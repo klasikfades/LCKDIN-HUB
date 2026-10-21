@@ -33,6 +33,12 @@
 
   <div id="walkin" hidden>
     <label>Category <select id="wCategory"></select></label>
+    <label>Purpose
+      <select id="wPurpose">
+        <option value="School">School</option>
+        <option value="Work">Work</option>
+      </select>
+    </label>
     <label>Number of people <input type="number" id="wGroup" min="1"></label>
     <button type="button" id="wStart">Check in</button>
   </div>
@@ -153,6 +159,7 @@ $('wStart').onclick = async () => {
       action: 'walkin',
       token,
       category: c.name,
+      purpose: $('wPurpose').value,
       groupSize: $('wGroup').value
     });
     if (!r.ok) throw new Error(r.error);
