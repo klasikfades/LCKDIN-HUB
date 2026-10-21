@@ -23,10 +23,11 @@
   <h2>Study Hub</h2>
   <div class="box" id="tapResult">Recording...</div>
 
-  <!-- Shown for walk-ins (no booking) -->
+  <!-- Shown for walk-ins (no booking yet) -->
   <div id="walkin" hidden>
     <label>Category <select id="wCategory"></select></label>
     <label>Group size <input id="wGroup"></label>
+    <label>Personnel in charge <select id="wPersonnel"></select></label>
     <button type="button" id="wStart">Check in</button>
   </div>
 </div>
@@ -80,9 +81,12 @@ async function loadConfig() {
   const r = await (await fetch(API_URL)).json();
   cats = r.categories;
   const catOptions = cats.map(c => `<option value="${c.name}">${c.name} (₱${c.rate}/hr)</option>`).join('');
+  const personOptions = r.personnel.map(p => `<option>${p}</option>`).join('');
+
   $('category').innerHTML = catOptions;
   $('wCategory').innerHTML = catOptions;
-  $('personnel').innerHTML = r.personnel.map(p => `<option>${p}</option>`).join('');
+  $('personnel').innerHTML = personOptions;
+  $('wPersonnel').innerHTML = personOptions;
   syncGroupSize();
 }
 
@@ -115,61 +119,3 @@ if (token) {
     } else {
       $('tapResult').textContent = 'Checked OUT at ' + r.time + ' | ' + r.hours + ' hr | ₱' + r.total;
     }
-  }).catch(() => { $('tapResult').textContent = 'Network error. Please tap again.'; });
-
-  $('wStart').onclick = async () => {
-    const r = await post({
-      action: 'walkin',
-      token,
-      category: $('wCategory').value,
-      groupSize: $('wGroup').value
-    });
-    if (!r.ok) return alert(r.error);
-    $('walkin').hidden = true;
-    $('tapResult').textContent = 'Checked IN at ' + r.time + ' | ' + $('wCategory').value;
-  };
-
-// ---- Mode 2: staff makes a card ----
-} else if (params.get('admin') === '1') {
-  $('cards').hidden = false;
-  $('mkToken').onclick = async () => {
-    const name = $('cardName').value.trim();
-    if (!name) return alert('Enter the guest name first');
-    const r = await post({ action: 'newToken', name });
-    if (!r.ok) return alert(r.error);
-    $('cardToken').textContent = r.token;
-    $('cardUrl').textContent = r.url;
-    $('cardResult').hidden = false;
-    $('cardName').value = '';
-  };
-
-// ---- Mode 3: staff booking form ----
-} else {
-  $('booking').hidden = false;
-  loadConfig();
-
-  $('openTime').onchange = e => { $('timeIn').disabled = e.target.checked; };
-
-  $('form').onsubmit = async e => {
-    e.preventDefault();
-    const r = await post({
-      action: 'visit',
-      name: $('name').value,
-      date: $('date').value,
-      purpose: $('purpose').value,
-      timeIn: $('openTime').checked ? 'Open' : $('timeIn').value,
-      category: $('category').value,
-      groupSize: $('groupSize').value,
-      personnel: $('personnel').value
-    });
-    $('msg').textContent = r.ok ? 'Booking saved!' : 'Error: ' + r.error;
-    if (r.ok) {
-      e.target.reset();
-      $('timeIn').disabled = false;
-      syncGroupSize();
-    }
-  };
-}
-</script>
-</body>
-</html>
