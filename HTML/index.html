@@ -27,7 +27,6 @@
     background: linear-gradient(160deg, #F7FBF1 0%, var(--mint) 100%);
     padding: 24px 14px 32px;
   }
-
   .app {
     max-width: 380px;
     margin: 0 auto;
@@ -36,8 +35,6 @@
     box-shadow: 0 18px 40px rgba(75, 83, 64, 0.16), 0 2px 6px rgba(75, 83, 64, 0.06);
     overflow: hidden;
   }
-
-  /* Green header: logo circle on the left, wordmark on the right */
   .hero {
     display: flex;
     align-items: center;
@@ -58,33 +55,15 @@
     justify-content: center;
     box-shadow: 0 8px 18px rgba(0, 0, 0, 0.25), 0 0 0 4px rgba(255, 255, 255, 0.25);
   }
-  .badge img {
-    width: 58px;
-    height: 58px;
-    object-fit: contain;
-    mix-blend-mode: multiply;
-  }
-  /* Turns the dark wordmark light so it shows on the green */
-  .wordmark {
-    width: 170px;
-    max-width: 100%;
-    filter: invert(1) brightness(1.8);
-    mix-blend-mode: screen;
-  }
+  .badge img { width: 58px; height: 58px; object-fit: contain; mix-blend-mode: multiply; }
+  .wordmark { width: 170px; max-width: 100%; filter: invert(1) brightness(1.8); mix-blend-mode: screen; }
 
   .body { padding: 22px 22px 26px; text-align: center; }
-
   .title { font-size: 18px; font-weight: 700; margin: 0 0 4px; }
   .subtitle { font-size: 13px; color: var(--olive-2); margin: 0 0 14px; }
 
   form, .section { text-align: left; }
-  label {
-    display: block;
-    margin-top: 12px;
-    font-weight: 600;
-    font-size: 13px;
-    color: var(--olive-2);
-  }
+  label { display: block; margin-top: 12px; font-weight: 600; font-size: 13px; color: var(--olive-2); }
   input, select {
     width: 100%;
     margin-top: 6px;
@@ -104,23 +83,8 @@
     box-shadow: inset 3px 3px 7px rgba(75, 83, 64, 0.1), 0 0 0 3px rgba(255, 221, 87, 0.35);
   }
   input:disabled { opacity: 0.5; }
-
-  .check {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-weight: 400;
-    font-size: 13px;
-    margin-top: 14px;
-    color: var(--olive);
-  }
-  .check input {
-    width: 18px;
-    height: 18px;
-    margin: 0;
-    padding: 0;
-    accent-color: var(--olive);
-  }
+  .check { display: flex; align-items: center; gap: 8px; font-weight: 400; font-size: 13px; margin-top: 14px; color: var(--olive); }
+  .check input { width: 18px; height: 18px; margin: 0; padding: 0; accent-color: var(--olive); }
 
   button {
     width: 100%;
@@ -167,7 +131,6 @@
   .msg { margin-top: 12px; text-align: center; font-weight: 600; font-size: 14px; min-height: 18px; }
   .msg.ok { color: #3f6212; }
   .msg.err { color: #991b1b; }
-
   .loading { text-align: center; color: var(--olive-2); padding: 24px 0; font-size: 14px; }
   #cardResult { text-align: left; font-size: 14px; }
   #cardResult b { color: var(--olive); }
@@ -188,6 +151,17 @@
   <div class="body">
     <div id="loading" class="loading">Loading...</div>
     <div id="error" class="status err" hidden></div>
+
+    <!-- Staff PIN screen (booking and card pages) -->
+    <div id="pin" hidden>
+      <div class="title">Staff sign in</div>
+      <p class="subtitle">Enter the staff PIN to continue</p>
+      <label>PIN
+        <input type="password" id="pinInput" inputmode="numeric" autocomplete="off">
+      </label>
+      <button type="button" id="pinBtn">Unlock</button>
+      <p id="pinMsg" class="msg err"></p>
+    </div>
 
     <!-- Guest taps the NFC card (?t=TOKEN) -->
     <div id="tap" hidden>
@@ -273,6 +247,7 @@
 
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbzlzbiuTATPOKUXBTQubIVFvLIgiHbWeUeZXTaUEgXV8NgiZb1JxZKf0HACJ4--dHHomA/exec';
+const PIN_KEY = 'lckdinStaffPin';
 
 const $ = id => document.getElementById(id);
 const params = new URLSearchParams(location.search);
@@ -285,7 +260,7 @@ function esc(s) {
 }
 
 function show(id) {
-  ['tap', 'cards', 'booking'].forEach(v => { $(v).hidden = v !== id; });
+  ['tap', 'cards', 'booking', 'pin'].forEach(v => { $(v).hidden = v !== id; });
   $('loading').hidden = true;
 }
 
@@ -303,6 +278,50 @@ function setStatus(el, text, kind) {
 async function post(body) {
   const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(body) });
   return res.json();
+}
+
+// ---- Staff PIN ----
+function getPin() {
+  return sessionStorage.getItem(PIN_KEY) || '';
+}
+
+// If the server rejects the PIN (for example, it was changed), sign out and ask again
+function checkAuthError(msg) {
+  if (/PIN/.test(msg)) {
+    sessionStorage.removeItem(PIN_KEY);
+    location.reload();
+    return true;
+  }
+  return false;
+}
+
+async function unlock(pin) {
+  const r = await post({ action: 'checkPin', pin });
+  if (!r.ok) throw new Error(r.error);
+  sessionStorage.setItem(PIN_KEY, pin);
+}
+
+function askPin(next) {
+  show('pin');
+  $('pinInput').value = '';
+  $('pinMsg').textContent = '';
+  $('pinBtn').onclick = async () => {
+    $('pinBtn').disabled = true;
+    try {
+      await unlock($('pinInput').value);
+      await enter(next);
+    } catch (e) {
+      $('pinMsg').textContent = e.message;
+    } finally {
+      $('pinBtn').disabled = false;
+    }
+  };
+}
+
+async function enter(next) {
+  if (next === 'cards') return show('cards');
+  show('booking');
+  await loadConfig();
 }
 
 // Loads the Settings table. Each row becomes one choice, e.g. "The Huddle, 6 people, ₱30/hr"
@@ -373,14 +392,14 @@ $('mkToken').onclick = async () => {
   const name = $('cardName').value.trim();
   if (!name) return alert('Enter the guest name first');
   try {
-    const r = await post({ action: 'newToken', name });
+    const r = await post({ action: 'newToken', name, pin: getPin() });
     if (!r.ok) throw new Error(r.error);
     $('cardToken').textContent = r.token;
     $('cardUrl').textContent = r.url;
     $('cardResult').hidden = false;
     $('cardName').value = '';
   } catch (e) {
-    alert(e.message);
+    if (!checkAuthError(e.message)) alert(e.message);
   }
 };
 
@@ -398,6 +417,7 @@ $('form').onsubmit = async e => {
   try {
     const r = await post({
       action: 'visit',
+      pin: getPin(),
       name: $('name').value,
       date: $('date').value,
       purpose: $('purpose').value,
@@ -413,6 +433,7 @@ $('form').onsubmit = async e => {
     $('timeIn').disabled = false;
     syncGroupSize();
   } catch (err) {
+    if (checkAuthError(err.message)) return;
     msg.className = 'msg err';
     msg.textContent = 'Error: ' + err.message;
   } finally {
@@ -423,9 +444,17 @@ $('form').onsubmit = async e => {
 // ---- Start ----
 async function init() {
   if (mode === 'tap') return runTap();
-  if (mode === 'admin') return show('cards');
-  show('booking');
-  await loadConfig();
+
+  const next = mode === 'admin' ? 'cards' : 'booking';
+  if (!getPin()) return askPin(next);
+
+  try {
+    await unlock(getPin());
+  } catch (e) {
+    sessionStorage.removeItem(PIN_KEY);
+    return askPin(next);
+  }
+  await enter(next);
 }
 
 init().catch(e => fail(e.message));
