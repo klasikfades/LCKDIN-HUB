@@ -3,82 +3,192 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Study Hub</title>
+<title>LCKDIN Study Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
-  body { font-family: system-ui, sans-serif; max-width: 420px; margin: 24px auto; padding: 0 16px; color: #111; }
-  h2 { margin-bottom: 8px; }
-  label { display: block; margin-top: 12px; font-weight: 600; }
-  input, select { width: 100%; padding: 10px; margin-top: 4px; font-size: 16px; box-sizing: border-box; }
-  button { width: 100%; padding: 12px; margin-top: 12px; font-size: 16px; border: 0; border-radius: 8px; background: #2563eb; color: #fff; cursor: pointer; }
-  button:disabled { background: #94a3b8; }
-  button.alt { background: #64748b; }
-  .box { margin-top: 16px; padding: 24px 16px; border-radius: 10px; background: #f1f5f9; font-size: 20px; text-align: center; }
-  .error { margin-top: 16px; padding: 16px; border-radius: 10px; background: #fee2e2; color: #991b1b; font-size: 16px; }
-  .hint { font-size: 13px; color: #555; margin-top: 4px; word-break: break-all; }
-  .check { font-weight: normal; display: flex; align-items: center; gap: 8px; }
+  :root {
+    --olive: #4B5340;
+    --olive-2: #6B7356;
+    --mint: #F1FFE6;
+    --yellow: #FFDD57;
+    --line: #D5DCC5;
+    --band: #F6FBEF;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: 'Poppins', system-ui, sans-serif;
+    background: var(--mint);
+    color: var(--olive);
+  }
+  .wrap { max-width: 460px; margin: 0 auto; padding: 20px 16px 32px; }
+
+  header { text-align: center; padding: 8px 0 4px; }
+  header .mark { width: 88px; mix-blend-mode: multiply; }
+  header .word { width: 250px; max-width: 80%; mix-blend-mode: multiply; margin-top: 4px; }
+
+  .card {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 20px;
+    margin-top: 16px;
+    box-shadow: 0 2px 10px rgba(75, 83, 64, 0.08);
+  }
+  .title { font-size: 18px; font-weight: 700; margin: 0 0 8px; text-align: center; }
+  .subtitle { font-size: 13px; color: var(--olive-2); text-align: center; margin: 0 0 12px; }
+
+  label { display: block; margin-top: 14px; font-weight: 600; font-size: 14px; }
+  input, select {
+    width: 100%;
+    padding: 12px;
+    margin-top: 6px;
+    font-size: 16px;
+    font-family: inherit;
+    color: #111;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+  }
+  input:focus, select:focus { outline: 2px solid var(--yellow); border-color: var(--olive); }
+  input:disabled { background: #f3f4f0; }
+
+  .check { display: flex; align-items: center; gap: 8px; font-weight: 400; margin-top: 12px; }
   .check input { width: auto; margin: 0; }
+
+  button {
+    width: 100%;
+    padding: 14px;
+    margin-top: 18px;
+    font-size: 16px;
+    font-weight: 700;
+    font-family: inherit;
+    color: var(--olive);
+    background: var(--yellow);
+    border: 0;
+    border-radius: 999px;
+    cursor: pointer;
+  }
+  button:hover { filter: brightness(0.97); }
+  button:disabled { opacity: 0.5; cursor: default; }
+  button.dark { background: var(--olive); color: #fff; }
+
+  .status {
+    text-align: center;
+    padding: 28px 16px;
+    border-radius: 14px;
+    font-size: 19px;
+    font-weight: 600;
+    background: var(--band);
+    border: 1px solid var(--line);
+  }
+  .status.in { background: #CDEFC2; }
+  .status.out { background: #E3E6DC; }
+  .status.err { background: #fee2e2; color: #991b1b; border-color: #fca5a5; font-size: 16px; }
+
+  .divider { height: 1px; background: var(--line); margin: 18px 0 4px; }
+  .hint { font-size: 12px; color: var(--olive-2); margin-top: 8px; word-break: break-all; line-height: 1.5; }
+  .msg { margin-top: 12px; text-align: center; font-weight: 600; }
+  .msg.ok { color: #3f6212; }
+  .msg.err { color: #991b1b; }
+
+  .loading { text-align: center; color: var(--olive-2); padding: 30px 0; }
+  footer { text-align: center; font-size: 12px; color: var(--olive-2); margin-top: 24px; }
   [hidden] { display: none !important; }
 </style>
 </head>
 <body>
+<div class="wrap">
 
-<h2>Study Hub</h2>
+  <header>
+    <img class="mark" src="logo-mark.png" alt="LCKDIN logo">
+    <br>
+    <img class="word" src="logo-wordmark.png" alt="LCKDIN Study Hub">
+  </header>
 
-<div id="loading" class="box">Loading Study Hub...</div>
-<div id="error" class="error" hidden></div>
+  <div id="loading" class="card loading">Loading...</div>
+  <div id="error" class="status err" hidden></div>
 
-<!-- Guest taps the NFC card (?t=TOKEN) -->
-<div id="tap" hidden>
-  <div class="box" id="tapResult">Recording...</div>
+  <!-- Guest taps the NFC card (?t=TOKEN) -->
+  <div id="tap" class="card" hidden>
+    <div id="tapResult" class="status">Recording...</div>
 
-  <div id="walkin" hidden>
-    <label>Category <select id="wCategory"></select></label>
-    <label>Purpose
-      <select id="wPurpose">
-        <option value="School">School</option>
-        <option value="Work">Work</option>
-      </select>
-    </label>
-    <label>Number of people <input type="number" id="wGroup" min="1"></label>
-    <button type="button" id="wStart">Check in</button>
+    <div id="walkin" hidden>
+      <div class="divider"></div>
+      <p class="subtitle">Choose your room and purpose to check in</p>
+      <label>Room
+        <select id="wCategory"></select>
+      </label>
+      <label>Purpose
+        <select id="wPurpose">
+          <option value="School">School</option>
+          <option value="Work">Work</option>
+        </select>
+      </label>
+      <label>Number of people
+        <input type="number" id="wGroup" min="1">
+      </label>
+      <button type="button" id="wStart">Check in</button>
+    </div>
   </div>
-</div>
 
-<!-- Staff makes an NFC card (?admin=1) -->
-<div id="cards" hidden>
-  <h3>Make NFC Card</h3>
-  <label>Guest name <input id="cardName"></label>
-  <button type="button" id="mkToken">Create card</button>
-  <div class="box" id="cardResult" hidden>
-    <div>Token: <b id="cardToken"></b></div>
-    <div class="hint" id="cardUrl"></div>
-  </div>
-  <p class="hint">Write the link above onto the NFC tag with NFC Tools (Write &gt; Add a record &gt; URL).</p>
-</div>
-
-<!-- Staff booking form (plain link) -->
-<div id="booking" hidden>
-  <h3>Booking</h3>
-  <form id="form">
-    <label>Name <input id="name" required></label>
-    <label>Date <input type="date" id="date" required></label>
-    <label>Purpose
-      <select id="purpose">
-        <option value="School">School</option>
-        <option value="Work">Work</option>
-      </select>
+  <!-- Staff makes an NFC card (?admin=1) -->
+  <div id="cards" class="card" hidden>
+    <h3 class="title">Make NFC Card</h3>
+    <label>Guest name
+      <input id="cardName">
     </label>
+    <button type="button" id="mkToken" class="dark">Create card</button>
+    <div class="status" id="cardResult" hidden style="margin-top:16px;text-align:left;font-size:15px">
+      <div>Token: <b id="cardToken"></b></div>
+      <div class="hint" id="cardUrl"></div>
+    </div>
+    <p class="hint">Write the link above onto the NFC tag with NFC Tools (Write &gt; Add a record &gt; URL).</p>
+  </div>
 
-    <label>Time In <input type="time" id="timeIn"></label>
-    <label class="check"><input type="checkbox" id="openTime"> Open time</label>
-    <label>Time Out  <input type="time" id="timeOut"></label>
+  <!-- Staff booking form (plain link) -->
+  <div id="booking" class="card" hidden>
+    <h3 class="title">Booking</h3>
+    <p class="subtitle">Save a guest's visit to the Study Hub sheet</p>
+    <form id="form">
+      <label>Name
+        <input id="name" required>
+      </label>
+      <label>Date
+        <input type="date" id="date" required>
+      </label>
+      <label>Purpose
+        <select id="purpose">
+          <option value="School">School</option>
+          <option value="Work">Work</option>
+        </select>
+      </label>
 
-    <label>Category <select id="category"></select></label>
-    <label>Number of people <input type="number" id="groupSize" min="1"></label>
+      <label>Time In
+        <input type="time" id="timeIn">
+      </label>
+      <label class="check">
+        <input type="checkbox" id="openTime"> Open time
+      </label>
+      <label>Time Out (if already left)
+        <input type="time" id="timeOut">
+      </label>
 
-    <button type="submit" id="save">Save Booking</button>
-  </form>
-  <p id="msg"></p>
+      <label>Room
+        <select id="category"></select>
+      </label>
+      <label>Number of people
+        <input type="number" id="groupSize" min="1">
+      </label>
+
+      <button type="submit" id="save">Save Booking</button>
+    </form>
+    <p id="msg" class="msg"></p>
+  </div>
+
+  <footer>LCKDIN Study Hub</footer>
 </div>
 
 <script>
@@ -103,6 +213,11 @@ function fail(msg) {
   $('loading').hidden = true;
   $('error').hidden = false;
   $('error').textContent = 'Error: ' + msg;
+}
+
+function setStatus(el, text, kind) {
+  el.className = 'status' + (kind ? ' ' + kind : '');
+  el.textContent = text;
 }
 
 async function post(body) {
@@ -135,18 +250,19 @@ function syncGroupSize() {
 // ---- Guest tap ----
 async function runTap() {
   show('tap');
+  const status = $('tapResult');
   const r = await post({ action: 'tap', token });
 
   if (!r.ok) {
-    $('tapResult').textContent = 'Error: ' + r.error;
+    setStatus(status, r.error, 'err');
   } else if (r.action === 'choose') {
-    $('tapResult').textContent = 'Welcome ' + r.name + '. Choose your room to check in.';
+    setStatus(status, 'Welcome ' + r.name + '. Choose your room to check in.');
     await loadConfig();
     $('walkin').hidden = false;
   } else if (r.action === 'in') {
-    $('tapResult').textContent = 'Checked IN at ' + r.time;
+    setStatus(status, 'Checked IN at ' + r.time, 'in');
   } else {
-    $('tapResult').textContent = 'Checked OUT at ' + r.time + ' | ' + r.hours + ' hr | ₱' + r.total;
+    setStatus(status, 'Checked OUT at ' + r.time + '\n' + r.hours + ' hr  |  ₱' + r.total, 'out');
   }
 }
 
@@ -164,7 +280,7 @@ $('wStart').onclick = async () => {
     });
     if (!r.ok) throw new Error(r.error);
     $('walkin').hidden = true;
-    $('tapResult').textContent = 'Checked IN at ' + r.time + ' | ' + c.name;
+    setStatus($('tapResult'), 'Checked IN at ' + r.time + '\n' + c.name, 'in');
   } catch (e) {
     alert(e.message);
   } finally {
@@ -196,6 +312,7 @@ $('wCategory').onchange = syncGroupSize;
 $('form').onsubmit = async e => {
   e.preventDefault();
   const btn = $('save');
+  const msg = $('msg');
   const c = cats[$('category').value];
   btn.disabled = true;
   try {
@@ -210,12 +327,14 @@ $('form').onsubmit = async e => {
       groupSize: $('groupSize').value
     });
     if (!r.ok) throw new Error(r.error);
-    $('msg').textContent = 'Booking saved!';
+    msg.className = 'msg ok';
+    msg.textContent = 'Booking saved!';
     e.target.reset();
     $('timeIn').disabled = false;
     syncGroupSize();
   } catch (err) {
-    $('msg').textContent = 'Error: ' + err.message;
+    msg.className = 'msg err';
+    msg.textContent = 'Error: ' + err.message;
   } finally {
     btn.disabled = false;
   }
