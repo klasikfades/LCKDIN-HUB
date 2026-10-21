@@ -10,7 +10,7 @@
   input, select { width: 100%; padding: 10px; margin-top: 4px; font-size: 16px; box-sizing: border-box; }
   button { width: 100%; padding: 12px; margin-top: 12px; font-size: 16px; border: 0; border-radius: 8px; background: #2563eb; color: #fff; }
   button.alt { background: #64748b; }
-  .box { margin-top: 16px; padding: 16px; border-radius: 10px; background: #f1f5f9; font-size: 18px; text-align: center; }
+  .box { margin-top: 16px; padding: 24px 16px; border-radius: 10px; background: #f1f5f9; font-size: 20px; text-align: center; }
   .hint { font-size: 13px; color: #555; margin-top: 4px; word-break: break-all; }
   .check { font-weight: normal; display: flex; align-items: center; gap: 8px; }
   .check input { width: auto; margin: 0; }
@@ -18,13 +18,25 @@
 </head>
 <body>
 
-<!-- Shown when a guest taps their NFC card (the link contains ?t=TOKEN) -->
+<!-- 1. Guest taps card: link is https://.../?t=TOKEN -->
 <div id="tap" hidden>
   <h2>Study Hub</h2>
   <div class="box" id="tapResult">Recording...</div>
 </div>
 
-<!-- Booking form for staff -->
+<!-- 2. Staff: make NFC card: link is https://.../?admin=1 -->
+<div id="cards" hidden>
+  <h2>Make NFC Card</h2>
+  <label>Guest name <input id="cardName"></label>
+  <button type="button" id="mkToken">Create card</button>
+  <div class="box" id="cardResult" hidden>
+    <div>Token: <b id="cardToken"></b></div>
+    <div class="hint" id="cardUrl"></div>
+  </div>
+  <p class="hint">Write the link above onto the NFC tag with NFC Tools (Write &gt; Add a record &gt; URL).</p>
+</div>
+
+<!-- 3. Staff: booking form (no NFC fields) -->
 <div id="booking" hidden>
   <h2>Study Hub Booking</h2>
   <form id="form">
@@ -41,10 +53,6 @@
     <label>Group Size <input type="number" id="groupSize" min="1" value="1"></label>
     <label>Personnel in charge <select id="personnel"></select></label>
 
-    <label>NFC Card Token <input id="token" readonly placeholder="Click 'Create NFC card'"></label>
-    <button type="button" class="alt" id="mkToken">Create NFC card</button>
-    <div class="hint" id="cardUrl"></div>
-
     <button type="submit">Save Booking</button>
   </form>
   <p id="msg"></p>
@@ -53,14 +61,15 @@
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbzlzbiuTATPOKUXBTQubIVFvLIgiHbWeUeZXTaUEgXV8NgiZb1JxZKf0HACJ4--dHHomA/exec';
 const $ = id => document.getElementById(id);
-const token = new URLSearchParams(location.search).get('t');
+const params = new URLSearchParams(location.search);
+const token = params.get('t');
 
 async function post(body) {
   const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(body) });
   return res.json();
 }
 
-// ---- Guest tap mode ----
+// ---- Mode 1: guest tap ----
 if (token) {
   $('tap').hidden = false;
   post({ action: 'tap', token }).then(r => {
@@ -68,12 +77,27 @@ if (token) {
     else if (r.action === 'in') $('tapResult').textContent = 'Checked IN at ' + r.time;
     else $('tapResult').textContent = 'Checked OUT at ' + r.time + ' | ' + r.hours + ' hr | ₱' + r.total;
   }).catch(() => { $('tapResult').textContent = 'Network error. Please tap again.'; });
+
+// ---- Mode 2: staff makes a card ----
+} else if (params.get('admin') === '1') {
+  $('cards').hidden = false;
+  $('mkToken').onclick = async () => {
+    const name = $('cardName').value.trim();
+    if (!name) return alert('Enter the guest name first');
+    const r = await post({ action: 'newToken', name });
+    if (!r.ok) return alert(r.error);
+    $('cardToken').textContent = r.token;
+    $('cardUrl').textContent = r.url;
+    $('cardResult').hidden = false;
+    $('cardName').value = '';
+  };
+
+// ---- Mode 3: staff booking form ----
 } else {
   $('booking').hidden = false;
   loadConfig();
 }
 
-// ---- Booking form mode ----
 async function loadConfig() {
   const r = await (await fetch(API_URL)).json();
   $('category').innerHTML = r.categories
@@ -91,15 +115,6 @@ $('category').onchange = showGroupHint;
 
 $('openTime').onchange = e => { $('timeIn').disabled = e.target.checked; };
 
-$('mkToken').onclick = async () => {
-  const name = $('name').value.trim();
-  if (!name) return alert('Enter the guest name first');
-  const r = await post({ action: 'newToken', name });
-  if (!r.ok) return alert(r.error);
-  $('token').value = r.token;
-  $('cardUrl').textContent = 'Write this link to the NFC card: ' + r.url;
-};
-
 $('form').onsubmit = async e => {
   e.preventDefault();
   const r = await post({
@@ -110,15 +125,13 @@ $('form').onsubmit = async e => {
     timeIn: $('openTime').checked ? 'Open' : $('timeIn').value,
     category: $('category').value,
     groupSize: $('groupSize').value,
-    personnel: $('personnel').value,
-    token: $('token').value
+    personnel: $('personnel').value
   });
   $('msg').textContent = r.ok ? 'Booking saved!' : 'Error: ' + r.error;
   if (r.ok) {
     e.target.reset();
     $('timeIn').disabled = false;
-    $('token').value = '';
-    $('cardUrl').textContent = '';
+    showGroupHint();
   }
 };
 </script>
