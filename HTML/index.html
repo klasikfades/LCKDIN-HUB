@@ -24,24 +24,22 @@
 
 <h2>Study Hub</h2>
 
-<!-- Shown first, hidden once the page is ready -->
 <div id="loading" class="box">Loading Study Hub...</div>
 <div id="error" class="error" hidden></div>
 
-<!-- Mode 1: guest taps the NFC card (link: ?t=TOKEN) -->
+<!-- Guest taps the NFC card (?t=TOKEN) -->
 <div id="tap" hidden>
   <div class="box" id="tapResult">Recording...</div>
 
-  <!-- Walk-in: shown when the card has no booking today -->
   <div id="walkin" hidden>
     <label>Category <select id="wCategory"></select></label>
-    <label>Group size <input id="wGroup"></label>
+    <label>Number of people <input type="number" id="wGroup" min="1"></label>
     <label>Personnel in charge <select id="wPersonnel"></select></label>
     <button type="button" id="wStart">Check in</button>
   </div>
 </div>
 
-<!-- Mode 2: staff makes an NFC card (link: ?admin=1) -->
+<!-- Staff makes an NFC card (?admin=1) -->
 <div id="cards" hidden>
   <h3>Make NFC Card</h3>
   <label>Guest name <input id="cardName"></label>
@@ -53,7 +51,7 @@
   <p class="hint">Write the link above onto the NFC tag with NFC Tools (Write &gt; Add a record &gt; URL).</p>
 </div>
 
-<!-- Mode 3: staff booking form (plain link) -->
+<!-- Staff booking form (plain link) -->
 <div id="booking" hidden>
   <h3>Booking</h3>
   <form id="form">
@@ -63,10 +61,10 @@
 
     <label>Time In <input type="time" id="timeIn"></label>
     <label class="check"><input type="checkbox" id="openTime"> Open time</label>
-     <label>Time Out <input type="time" id="timeOut"></label>
+    <label>Time Out (if already left) <input type="time" id="timeOut"></label>
 
     <label>Category <select id="category"></select></label>
-    <label>Group size <input id="groupSize"></label>
+    <label>Number of people <input type="number" id="groupSize" min="1"></label>
     <label>Personnel in charge <select id="personnel"></select></label>
 
     <button type="submit" id="save">Save Booking</button>
@@ -75,7 +73,6 @@
 </div>
 
 <script>
-// Your Apps Script Web app URL (ends in /exec)
 const API_URL = 'https://script.google.com/macros/s/AKfycbzlzbiuTATPOKUXBTQubIVFvLIgiHbWeUeZXTaUEgXV8NgiZb1JxZKf0HACJ4--dHHomA/exec';
 
 const $ = id => document.getElementById(id);
@@ -84,7 +81,6 @@ const token = params.get('t');
 const mode = token ? 'tap' : (params.get('admin') === '1' ? 'admin' : 'booking');
 let cats = [];
 
-// Escapes text before putting it into HTML
 function esc(s) {
   return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
@@ -105,15 +101,14 @@ async function post(body) {
   return res.json();
 }
 
-// Loads categories and personnel from the Settings tab
+// Loads the Settings table. Each row becomes one choice, e.g. "The Huddle, 6 people, ₱30/hr"
 async function loadConfig() {
-  const res = await fetch(API_URL);
-  const r = await res.json();
+  const r = await (await fetch(API_URL)).json();
   if (!r.ok) throw new Error(r.error || 'Could not load settings');
 
   cats = r.categories;
-  const catOptions = cats.map(c =>
-    `<option value="${esc(c.name)}">${esc(c.name)} (₱${esc(c.rate)}/hr)</option>`).join('');
+  const catOptions = cats.map((c, i) =>
+    `<option value="${i}">${esc(c.name)}, ${esc(c.groupSize)} people, ₱${esc(c.rate)}/hr</option>`).join('');
   const personOptions = r.personnel.map(p => `<option>${esc(p)}</option>`).join('');
 
   $('category').innerHTML = catOptions;
@@ -123,11 +118,12 @@ async function loadConfig() {
   syncGroupSize();
 }
 
-// Fills group size with the suggested value for the chosen category
+// When a choice is picked, fill in its group size (staff can still change it)
 function syncGroupSize() {
-  const find = name => { const c = cats.find(c => c.name === name); return c ? c.groupSize : ''; };
-  $('groupSize').value = find($('category').value);
-  $('wGroup').value = find($('wCategory').value);
+  const a = cats[$('category').value];
+  const b = cats[$('wCategory').value];
+  if (a) $('groupSize').value = a.groupSize;
+  if (b) $('wGroup').value = b.groupSize;
 }
 
 // ---- Guest tap ----
@@ -150,18 +146,19 @@ async function runTap() {
 
 $('wStart').onclick = async () => {
   const btn = $('wStart');
+  const c = cats[$('wCategory').value];
   btn.disabled = true;
   try {
     const r = await post({
       action: 'walkin',
       token,
-      category: $('wCategory').value,
+      category: c.name,
       groupSize: $('wGroup').value,
       personnel: $('wPersonnel').value
     });
     if (!r.ok) throw new Error(r.error);
     $('walkin').hidden = true;
-    $('tapResult').textContent = 'Checked IN at ' + r.time + ' | ' + $('wCategory').value;
+    $('tapResult').textContent = 'Checked IN at ' + r.time + ' | ' + c.name;
   } catch (e) {
     alert(e.message);
   } finally {
@@ -193,6 +190,7 @@ $('wCategory').onchange = syncGroupSize;
 $('form').onsubmit = async e => {
   e.preventDefault();
   const btn = $('save');
+  const c = cats[$('category').value];
   btn.disabled = true;
   try {
     const r = await post({
@@ -202,7 +200,7 @@ $('form').onsubmit = async e => {
       purpose: $('purpose').value,
       timeIn: $('openTime').checked ? 'Open' : $('timeIn').value,
       timeOut: $('timeOut').value,
-      category: $('category').value,
+      category: c.name,
       groupSize: $('groupSize').value,
       personnel: $('personnel').value
     });
