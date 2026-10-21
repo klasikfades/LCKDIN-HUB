@@ -186,7 +186,7 @@
       </div>
     </div>
 
-    <!-- Card maker (?admin=1), PIN required -->
+    <!-- Card maker (?admin=1), PIN required every time the page loads -->
     <div id="cards" hidden>
       <div class="title">Make NFC Card</div>
       <p class="subtitle">Create a card for a guest</p>
@@ -247,13 +247,15 @@
 
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbzlzbiuTATPOKUXBTQubIVFvLIgiHbWeUeZXTaUEgXV8NgiZb1JxZKf0HACJ4--dHHomA/exec';
-const PIN_KEY = 'lckdinStaffPin';
 
 const $ = id => document.getElementById(id);
 const params = new URLSearchParams(location.search);
 const token = params.get('t');
 const mode = token ? 'tap' : (params.get('admin') === '1' ? 'admin' : 'booking');
 let cats = [];
+
+// Kept in memory only, so a page refresh locks the card maker again
+let staffPin = '';
 
 function esc(s) {
   return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -282,13 +284,13 @@ async function post(body) {
 
 // ---- Card-maker PIN (only for ?admin=1) ----
 function getPin() {
-  return sessionStorage.getItem(PIN_KEY) || '';
+  return staffPin;
 }
 
 async function unlock(pin) {
   const r = await post({ action: 'checkPin', pin });
   if (!r.ok) throw new Error(r.error);
-  sessionStorage.setItem(PIN_KEY, pin);
+  staffPin = pin;
 }
 
 function askPin() {
@@ -384,8 +386,8 @@ $('mkToken').onclick = async () => {
     $('cardName').value = '';
   } catch (e) {
     if (/PIN/.test(e.message)) {
-      // PIN was changed or expired: sign out and ask again
-      sessionStorage.removeItem(PIN_KEY);
+      // PIN was changed: lock again and ask
+      staffPin = '';
       location.reload();
     } else {
       alert(e.message);
@@ -433,17 +435,8 @@ $('form').onsubmit = async e => {
 async function init() {
   if (mode === 'tap') return runTap();
 
-  if (mode === 'admin') {
-    if (getPin()) {
-      try {
-        await unlock(getPin());
-        return show('cards');
-      } catch (e) {
-        sessionStorage.removeItem(PIN_KEY);
-      }
-    }
-    return askPin();
-  }
+  // Card maker: always asks for the PIN when the page loads
+  if (mode === 'admin') return askPin();
 
   // Plain link: booking form, no PIN
   show('booking');
