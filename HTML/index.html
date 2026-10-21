@@ -22,6 +22,13 @@
 <div id="tap" hidden>
   <h2>Study Hub</h2>
   <div class="box" id="tapResult">Recording...</div>
+
+  <!-- Shown for walk-ins (no booking) -->
+  <div id="walkin" hidden>
+    <label>Category <select id="wCategory"></select></label>
+    <label>Group size <input id="wGroup"></label>
+    <button type="button" id="wStart">Check in</button>
+  </div>
 </div>
 
 <!-- 2. Staff: make NFC card: link is https://.../?admin=1 -->
@@ -36,7 +43,7 @@
   <p class="hint">Write the link above onto the NFC tag with NFC Tools (Write &gt; Add a record &gt; URL).</p>
 </div>
 
-<!-- 3. Staff: booking form (no NFC fields) -->
+<!-- 3. Staff: booking form -->
 <div id="booking" hidden>
   <h2>Study Hub Booking</h2>
   <form id="form">
@@ -48,9 +55,7 @@
     <label class="check"><input type="checkbox" id="openTime"> Open time</label>
 
     <label>Category <select id="category"></select></label>
-    <div class="hint" id="groupHint"></div>
-
-    <label>Group Size <input type="number" id="groupSize" min="1" value="1"></label>
+    <label>Group Size <input id="groupSize"></label>
     <label>Personnel in charge <select id="personnel"></select></label>
 
     <button type="submit">Save Booking</button>
@@ -63,20 +68,66 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbzlzbiuTATPOKUXBTQubIVF
 const $ = id => document.getElementById(id);
 const params = new URLSearchParams(location.search);
 const token = params.get('t');
+let cats = [];
 
 async function post(body) {
   const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(body) });
   return res.json();
 }
 
+// Loads categories and personnel from the Settings tab
+async function loadConfig() {
+  const r = await (await fetch(API_URL)).json();
+  cats = r.categories;
+  const catOptions = cats.map(c => `<option value="${c.name}">${c.name} (₱${c.rate}/hr)</option>`).join('');
+  $('category').innerHTML = catOptions;
+  $('wCategory').innerHTML = catOptions;
+  $('personnel').innerHTML = r.personnel.map(p => `<option>${p}</option>`).join('');
+  syncGroupSize();
+}
+
+// Fills group size with the suggested value for the chosen category
+function suggestedGroup(name) {
+  const c = cats.find(c => c.name === name);
+  return c ? c.groupSize : '';
+}
+
+function syncGroupSize() {
+  $('groupSize').value = suggestedGroup($('category').value);
+  $('wGroup').value = suggestedGroup($('wCategory').value);
+}
+
+$('category').onchange = syncGroupSize;
+$('wCategory').onchange = syncGroupSize;
+
 // ---- Mode 1: guest tap ----
 if (token) {
   $('tap').hidden = false;
+  loadConfig();
   post({ action: 'tap', token }).then(r => {
-    if (!r.ok) $('tapResult').textContent = 'Error: ' + r.error;
-    else if (r.action === 'in') $('tapResult').textContent = 'Checked IN at ' + r.time;
-    else $('tapResult').textContent = 'Checked OUT at ' + r.time + ' | ' + r.hours + ' hr | ₱' + r.total;
+    if (!r.ok) {
+      $('tapResult').textContent = 'Error: ' + r.error;
+    } else if (r.action === 'choose') {
+      $('tapResult').textContent = 'Welcome ' + r.name + '. Choose your room to check in.';
+      $('walkin').hidden = false;
+    } else if (r.action === 'in') {
+      $('tapResult').textContent = 'Checked IN at ' + r.time;
+    } else {
+      $('tapResult').textContent = 'Checked OUT at ' + r.time + ' | ' + r.hours + ' hr | ₱' + r.total;
+    }
   }).catch(() => { $('tapResult').textContent = 'Network error. Please tap again.'; });
+
+  $('wStart').onclick = async () => {
+    const r = await post({
+      action: 'walkin',
+      token,
+      category: $('wCategory').value,
+      groupSize: $('wGroup').value
+    });
+    if (!r.ok) return alert(r.error);
+    $('walkin').hidden = true;
+    $('tapResult').textContent = 'Checked IN at ' + r.time + ' | ' + $('wCategory').value;
+  };
 
 // ---- Mode 2: staff makes a card ----
 } else if (params.get('admin') === '1') {
@@ -96,44 +147,29 @@ if (token) {
 } else {
   $('booking').hidden = false;
   loadConfig();
+
+  $('openTime').onchange = e => { $('timeIn').disabled = e.target.checked; };
+
+  $('form').onsubmit = async e => {
+    e.preventDefault();
+    const r = await post({
+      action: 'visit',
+      name: $('name').value,
+      date: $('date').value,
+      purpose: $('purpose').value,
+      timeIn: $('openTime').checked ? 'Open' : $('timeIn').value,
+      category: $('category').value,
+      groupSize: $('groupSize').value,
+      personnel: $('personnel').value
+    });
+    $('msg').textContent = r.ok ? 'Booking saved!' : 'Error: ' + r.error;
+    if (r.ok) {
+      e.target.reset();
+      $('timeIn').disabled = false;
+      syncGroupSize();
+    }
+  };
 }
-
-async function loadConfig() {
-  const r = await (await fetch(API_URL)).json();
-  $('category').innerHTML = r.categories
-    .map(c => `<option value="${c.name}" data-g="${c.groupSize}">${c.name} (₱${c.rate}/hr)</option>`)
-    .join('');
-  $('personnel').innerHTML = r.personnel.map(p => `<option>${p}</option>`).join('');
-  showGroupHint();
-}
-
-function showGroupHint() {
-  const opt = $('category').selectedOptions[0];
-  $('groupHint').textContent = opt ? 'Suggested group size: ' + opt.dataset.g : '';
-}
-$('category').onchange = showGroupHint;
-
-$('openTime').onchange = e => { $('timeIn').disabled = e.target.checked; };
-
-$('form').onsubmit = async e => {
-  e.preventDefault();
-  const r = await post({
-    action: 'visit',
-    name: $('name').value,
-    date: $('date').value,
-    purpose: $('purpose').value,
-    timeIn: $('openTime').checked ? 'Open' : $('timeIn').value,
-    category: $('category').value,
-    groupSize: $('groupSize').value,
-    personnel: $('personnel').value
-  });
-  $('msg').textContent = r.ok ? 'Booking saved!' : 'Error: ' + r.error;
-  if (r.ok) {
-    e.target.reset();
-    $('timeIn').disabled = false;
-    showGroupHint();
-  }
-};
 </script>
 </body>
 </html>
