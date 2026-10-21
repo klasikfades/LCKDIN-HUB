@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Study Hub</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 420px; margin: 24px auto; padding: 0 16px; color: #111; }
+  label { display: block; margin-top: 12px; font-weight: 600; }
+  input, select { width: 100%; padding: 10px; margin-top: 4px; font-size: 16px; box-sizing: border-box; }
+  button { width: 100%; padding: 12px; margin-top: 12px; font-size: 16px; border: 0; border-radius: 8px; background: #2563eb; color: #fff; }
+  button.alt { background: #64748b; }
+  .box { margin-top: 16px; padding: 16px; border-radius: 10px; background: #f1f5f9; font-size: 18px; text-align: center; }
+  .hint { font-size: 13px; color: #555; margin-top: 4px; word-break: break-all; }
+  .check { font-weight: normal; display: flex; align-items: center; gap: 8px; }
+  .check input { width: auto; margin: 0; }
+</style>
+</head>
+<body>
+
+<!-- Shown when a guest taps their NFC card (the link contains ?t=TOKEN) -->
+<div id="tap" hidden>
+  <h2>Study Hub</h2>
+  <div class="box" id="tapResult">Recording...</div>
+</div>
+
+<!-- Booking form for staff -->
+<div id="booking" hidden>
+  <h2>Study Hub Booking</h2>
+  <form id="form">
+    <label>Name <input id="name" required></label>
+    <label>Date <input type="date" id="date" required></label>
+    <label>Purpose <input id="purpose"></label>
+
+    <label>Time In <input type="time" id="timeIn"></label>
+    <label class="check"><input type="checkbox" id="openTime"> Open time</label>
+
+    <label>Category <select id="category"></select></label>
+    <div class="hint" id="groupHint"></div>
+
+    <label>Group Size <input type="number" id="groupSize" min="1" value="1"></label>
+    <label>Personnel in charge <select id="personnel"></select></label>
+
+    <label>NFC Card Token <input id="token" readonly placeholder="Click 'Create NFC card'"></label>
+    <button type="button" class="alt" id="mkToken">Create NFC card</button>
+    <div class="hint" id="cardUrl"></div>
+
+    <button type="submit">Save Booking</button>
+  </form>
+  <p id="msg"></p>
+</div>
+
+<script>
+const API_URL = 'https://script.google.com/macros/s/AKfycbzlzbiuTATPOKUXBTQubIVFvLIgiHbWeUeZXTaUEgXV8NgiZb1JxZKf0HACJ4--dHHomA/exec';
+const $ = id => document.getElementById(id);
+const token = new URLSearchParams(location.search).get('t');
+
+async function post(body) {
+  const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(body) });
+  return res.json();
+}
+
+// ---- Guest tap mode ----
+if (token) {
+  $('tap').hidden = false;
+  post({ action: 'tap', token }).then(r => {
+    if (!r.ok) $('tapResult').textContent = 'Error: ' + r.error;
+    else if (r.action === 'in') $('tapResult').textContent = 'Checked IN at ' + r.time;
+    else $('tapResult').textContent = 'Checked OUT at ' + r.time + ' | ' + r.hours + ' hr | ₱' + r.total;
+  }).catch(() => { $('tapResult').textContent = 'Network error. Please tap again.'; });
+} else {
+  $('booking').hidden = false;
+  loadConfig();
+}
+
+// ---- Booking form mode ----
+async function loadConfig() {
+  const r = await (await fetch(API_URL)).json();
+  $('category').innerHTML = r.categories
+    .map(c => `<option value="${c.name}" data-g="${c.groupSize}">${c.name} (₱${c.rate}/hr)</option>`)
+    .join('');
+  $('personnel').innerHTML = r.personnel.map(p => `<option>${p}</option>`).join('');
+  showGroupHint();
+}
+
+function showGroupHint() {
+  const opt = $('category').selectedOptions[0];
+  $('groupHint').textContent = opt ? 'Suggested group size: ' + opt.dataset.g : '';
+}
+$('category').onchange = showGroupHint;
+
+$('openTime').onchange = e => { $('timeIn').disabled = e.target.checked; };
+
+$('mkToken').onclick = async () => {
+  const name = $('name').value.trim();
+  if (!name) return alert('Enter the guest name first');
+  const r = await post({ action: 'newToken', name });
+  if (!r.ok) return alert(r.error);
+  $('token').value = r.token;
+  $('cardUrl').textContent = 'Write this link to the NFC card: ' + r.url;
+};
+
+$('form').onsubmit = async e => {
+  e.preventDefault();
+  const r = await post({
+    action: 'visit',
+    name: $('name').value,
+    date: $('date').value,
+    purpose: $('purpose').value,
+    timeIn: $('openTime').checked ? 'Open' : $('timeIn').value,
+    category: $('category').value,
+    groupSize: $('groupSize').value,
+    personnel: $('personnel').value,
+    token: $('token').value
+  });
+  $('msg').textContent = r.ok ? 'Booking saved!' : 'Error: ' + r.error;
+  if (r.ok) {
+    e.target.reset();
+    $('timeIn').disabled = false;
+    $('token').value = '';
+    $('cardUrl').textContent = '';
+  }
+};
+</script>
+</body>
+</html>
