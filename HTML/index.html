@@ -6,24 +6,33 @@
 <title>Study Hub</title>
 <style>
   body { font-family: system-ui, sans-serif; max-width: 420px; margin: 24px auto; padding: 0 16px; color: #111; }
+  h2 { margin-bottom: 8px; }
   label { display: block; margin-top: 12px; font-weight: 600; }
   input, select { width: 100%; padding: 10px; margin-top: 4px; font-size: 16px; box-sizing: border-box; }
-  button { width: 100%; padding: 12px; margin-top: 12px; font-size: 16px; border: 0; border-radius: 8px; background: #2563eb; color: #fff; }
+  button { width: 100%; padding: 12px; margin-top: 12px; font-size: 16px; border: 0; border-radius: 8px; background: #2563eb; color: #fff; cursor: pointer; }
+  button:disabled { background: #94a3b8; }
   button.alt { background: #64748b; }
   .box { margin-top: 16px; padding: 24px 16px; border-radius: 10px; background: #f1f5f9; font-size: 20px; text-align: center; }
+  .error { margin-top: 16px; padding: 16px; border-radius: 10px; background: #fee2e2; color: #991b1b; font-size: 16px; }
   .hint { font-size: 13px; color: #555; margin-top: 4px; word-break: break-all; }
   .check { font-weight: normal; display: flex; align-items: center; gap: 8px; }
   .check input { width: auto; margin: 0; }
+  [hidden] { display: none !important; }
 </style>
 </head>
 <body>
 
-<!-- 1. Guest taps card: link is https://.../?t=TOKEN -->
+<h2>Study Hub</h2>
+
+<!-- Shown first, hidden once the page is ready -->
+<div id="loading" class="box">Loading Study Hub...</div>
+<div id="error" class="error" hidden></div>
+
+<!-- Mode 1: guest taps the NFC card (link: ?t=TOKEN) -->
 <div id="tap" hidden>
-  <h2>Study Hub</h2>
   <div class="box" id="tapResult">Recording...</div>
 
-  <!-- Shown for walk-ins (no booking yet) -->
+  <!-- Walk-in: shown when the card has no booking today -->
   <div id="walkin" hidden>
     <label>Category <select id="wCategory"></select></label>
     <label>Group size <input id="wGroup"></label>
@@ -32,9 +41,9 @@
   </div>
 </div>
 
-<!-- 2. Staff: make NFC card: link is https://.../?admin=1 -->
+<!-- Mode 2: staff makes an NFC card (link: ?admin=1) -->
 <div id="cards" hidden>
-  <h2>Make NFC Card</h2>
+  <h3>Make NFC Card</h3>
   <label>Guest name <input id="cardName"></label>
   <button type="button" id="mkToken">Create card</button>
   <div class="box" id="cardResult" hidden>
@@ -44,9 +53,9 @@
   <p class="hint">Write the link above onto the NFC tag with NFC Tools (Write &gt; Add a record &gt; URL).</p>
 </div>
 
-<!-- 3. Staff: booking form -->
+<!-- Mode 3: staff booking form (plain link) -->
 <div id="booking" hidden>
-  <h2>Study Hub Booking</h2>
+  <h3>Booking</h3>
   <form id="form">
     <label>Name <input id="name" required></label>
     <label>Date <input type="date" id="date" required></label>
@@ -56,66 +65,19 @@
     <label class="check"><input type="checkbox" id="openTime"> Open time</label>
 
     <label>Category <select id="category"></select></label>
-    <label>Group Size <input id="groupSize"></label>
+    <label>Group size <input id="groupSize"></label>
     <label>Personnel in charge <select id="personnel"></select></label>
 
-    <button type="submit">Save Booking</button>
+    <button type="submit" id="save">Save Booking</button>
   </form>
   <p id="msg"></p>
 </div>
 
 <script>
+// Your Apps Script Web app URL (ends in /exec)
 const API_URL = 'https://script.google.com/macros/s/AKfycbzlzbiuTATPOKUXBTQubIVFvLIgiHbWeUeZXTaUEgXV8NgiZb1JxZKf0HACJ4--dHHomA/exec';
+
 const $ = id => document.getElementById(id);
 const params = new URLSearchParams(location.search);
 const token = params.get('t');
-let cats = [];
-
-async function post(body) {
-  const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(body) });
-  return res.json();
-}
-
-// Loads categories and personnel from the Settings tab
-async function loadConfig() {
-  const r = await (await fetch(API_URL)).json();
-  cats = r.categories;
-  const catOptions = cats.map(c => `<option value="${c.name}">${c.name} (₱${c.rate}/hr)</option>`).join('');
-  const personOptions = r.personnel.map(p => `<option>${p}</option>`).join('');
-
-  $('category').innerHTML = catOptions;
-  $('wCategory').innerHTML = catOptions;
-  $('personnel').innerHTML = personOptions;
-  $('wPersonnel').innerHTML = personOptions;
-  syncGroupSize();
-}
-
-// Fills group size with the suggested value for the chosen category
-function suggestedGroup(name) {
-  const c = cats.find(c => c.name === name);
-  return c ? c.groupSize : '';
-}
-
-function syncGroupSize() {
-  $('groupSize').value = suggestedGroup($('category').value);
-  $('wGroup').value = suggestedGroup($('wCategory').value);
-}
-
-$('category').onchange = syncGroupSize;
-$('wCategory').onchange = syncGroupSize;
-
-// ---- Mode 1: guest tap ----
-if (token) {
-  $('tap').hidden = false;
-  loadConfig();
-  post({ action: 'tap', token }).then(r => {
-    if (!r.ok) {
-      $('tapResult').textContent = 'Error: ' + r.error;
-    } else if (r.action === 'choose') {
-      $('tapResult').textContent = 'Welcome ' + r.name + '. Choose your room to check in.';
-      $('walkin').hidden = false;
-    } else if (r.action === 'in') {
-      $('tapResult').textContent = 'Checked IN at ' + r.time;
-    } else {
-      $('tapResult').textContent = 'Checked OUT at ' + r.time + ' | ' + r.hours + ' hr | ₱' + r.total;
-    }
+const mode = token ? 'tap'
