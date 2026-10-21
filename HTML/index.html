@@ -80,4 +80,151 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbzlzbiuTATPOKUXBTQubIVF
 const $ = id => document.getElementById(id);
 const params = new URLSearchParams(location.search);
 const token = params.get('t');
-const mode = token ? 'tap'
+const mode = token ? 'tap' : (params.get('admin') === '1' ? 'admin' : 'booking');
+let cats = [];
+
+// Escapes text before putting it into HTML
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function show(id) {
+  ['tap', 'cards', 'booking'].forEach(v => { $(v).hidden = v !== id; });
+  $('loading').hidden = true;
+}
+
+function fail(msg) {
+  $('loading').hidden = true;
+  $('error').hidden = false;
+  $('error').textContent = 'Error: ' + msg;
+}
+
+async function post(body) {
+  const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(body) });
+  return res.json();
+}
+
+// Loads categories and personnel from the Settings tab
+async function loadConfig() {
+  const res = await fetch(API_URL);
+  const r = await res.json();
+  if (!r.ok) throw new Error(r.error || 'Could not load settings');
+
+  cats = r.categories;
+  const catOptions = cats.map(c =>
+    `<option value="${esc(c.name)}">${esc(c.name)} (₱${esc(c.rate)}/hr)</option>`).join('');
+  const personOptions = r.personnel.map(p => `<option>${esc(p)}</option>`).join('');
+
+  $('category').innerHTML = catOptions;
+  $('wCategory').innerHTML = catOptions;
+  $('personnel').innerHTML = personOptions;
+  $('wPersonnel').innerHTML = personOptions;
+  syncGroupSize();
+}
+
+// Fills group size with the suggested value for the chosen category
+function syncGroupSize() {
+  const find = name => { const c = cats.find(c => c.name === name); return c ? c.groupSize : ''; };
+  $('groupSize').value = find($('category').value);
+  $('wGroup').value = find($('wCategory').value);
+}
+
+// ---- Guest tap ----
+async function runTap() {
+  show('tap');
+  const r = await post({ action: 'tap', token });
+
+  if (!r.ok) {
+    $('tapResult').textContent = 'Error: ' + r.error;
+  } else if (r.action === 'choose') {
+    $('tapResult').textContent = 'Welcome ' + r.name + '. Choose your room to check in.';
+    await loadConfig();
+    $('walkin').hidden = false;
+  } else if (r.action === 'in') {
+    $('tapResult').textContent = 'Checked IN at ' + r.time;
+  } else {
+    $('tapResult').textContent = 'Checked OUT at ' + r.time + ' | ' + r.hours + ' hr | ₱' + r.total;
+  }
+}
+
+$('wStart').onclick = async () => {
+  const btn = $('wStart');
+  btn.disabled = true;
+  try {
+    const r = await post({
+      action: 'walkin',
+      token,
+      category: $('wCategory').value,
+      groupSize: $('wGroup').value,
+      personnel: $('wPersonnel').value
+    });
+    if (!r.ok) throw new Error(r.error);
+    $('walkin').hidden = true;
+    $('tapResult').textContent = 'Checked IN at ' + r.time + ' | ' + $('wCategory').value;
+  } catch (e) {
+    alert(e.message);
+  } finally {
+    btn.disabled = false;
+  }
+};
+
+// ---- Staff: make NFC card ----
+$('mkToken').onclick = async () => {
+  const name = $('cardName').value.trim();
+  if (!name) return alert('Enter the guest name first');
+  try {
+    const r = await post({ action: 'newToken', name });
+    if (!r.ok) throw new Error(r.error);
+    $('cardToken').textContent = r.token;
+    $('cardUrl').textContent = r.url;
+    $('cardResult').hidden = false;
+    $('cardName').value = '';
+  } catch (e) {
+    alert(e.message);
+  }
+};
+
+// ---- Staff: booking form ----
+$('openTime').onchange = e => { $('timeIn').disabled = e.target.checked; };
+$('category').onchange = syncGroupSize;
+$('wCategory').onchange = syncGroupSize;
+
+$('form').onsubmit = async e => {
+  e.preventDefault();
+  const btn = $('save');
+  btn.disabled = true;
+  try {
+    const r = await post({
+      action: 'visit',
+      name: $('name').value,
+      date: $('date').value,
+      purpose: $('purpose').value,
+      timeIn: $('openTime').checked ? 'Open' : $('timeIn').value,
+      category: $('category').value,
+      groupSize: $('groupSize').value,
+      personnel: $('personnel').value
+    });
+    if (!r.ok) throw new Error(r.error);
+    $('msg').textContent = 'Booking saved!';
+    e.target.reset();
+    $('timeIn').disabled = false;
+    syncGroupSize();
+  } catch (err) {
+    $('msg').textContent = 'Error: ' + err.message;
+  } finally {
+    btn.disabled = false;
+  }
+};
+
+// ---- Start ----
+async function init() {
+  if (mode === 'tap') return runTap();
+  if (mode === 'admin') return show('cards');
+  show('booking');
+  await loadConfig();
+}
+
+init().catch(e => fail(e.message));
+</script>
+</body>
+</html>
