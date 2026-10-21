@@ -152,10 +152,10 @@
     <div id="loading" class="loading">Loading...</div>
     <div id="error" class="status err" hidden></div>
 
-    <!-- Staff PIN screen (booking and card pages) -->
+    <!-- PIN screen: only for the card maker (?admin=1) -->
     <div id="pin" hidden>
       <div class="title">Staff sign in</div>
-      <p class="subtitle">Enter the staff PIN to continue</p>
+      <p class="subtitle">Enter the staff PIN to make NFC cards</p>
       <label>PIN
         <input type="password" id="pinInput" inputmode="numeric" autocomplete="off">
       </label>
@@ -163,7 +163,7 @@
       <p id="pinMsg" class="msg err"></p>
     </div>
 
-    <!-- Guest taps the NFC card (?t=TOKEN) -->
+    <!-- Guest taps the NFC card (?t=TOKEN), no PIN -->
     <div id="tap" hidden>
       <div id="tapResult" class="status">Recording...</div>
 
@@ -186,7 +186,7 @@
       </div>
     </div>
 
-    <!-- Staff makes an NFC card (?admin=1) -->
+    <!-- Card maker (?admin=1), PIN required -->
     <div id="cards" hidden>
       <div class="title">Make NFC Card</div>
       <p class="subtitle">Create a card for a guest</p>
@@ -201,7 +201,7 @@
       <p class="hint">Write the link above onto the NFC tag with NFC Tools (Write &gt; Add a record &gt; URL).</p>
     </div>
 
-    <!-- Staff booking form (plain link) -->
+    <!-- Booking form (plain link), no PIN -->
     <div id="booking" hidden>
       <div class="title">Booking</div>
       <p class="subtitle">Save a guest's visit to the Study Hub sheet</p>
@@ -280,19 +280,9 @@ async function post(body) {
   return res.json();
 }
 
-// ---- Staff PIN ----
+// ---- Card-maker PIN (only for ?admin=1) ----
 function getPin() {
   return sessionStorage.getItem(PIN_KEY) || '';
-}
-
-// If the server rejects the PIN (for example, it was changed), sign out and ask again
-function checkAuthError(msg) {
-  if (/PIN/.test(msg)) {
-    sessionStorage.removeItem(PIN_KEY);
-    location.reload();
-    return true;
-  }
-  return false;
 }
 
 async function unlock(pin) {
@@ -301,7 +291,7 @@ async function unlock(pin) {
   sessionStorage.setItem(PIN_KEY, pin);
 }
 
-function askPin(next) {
+function askPin() {
   show('pin');
   $('pinInput').value = '';
   $('pinMsg').textContent = '';
@@ -309,19 +299,13 @@ function askPin(next) {
     $('pinBtn').disabled = true;
     try {
       await unlock($('pinInput').value);
-      await enter(next);
+      show('cards');
     } catch (e) {
       $('pinMsg').textContent = e.message;
     } finally {
       $('pinBtn').disabled = false;
     }
   };
-}
-
-async function enter(next) {
-  if (next === 'cards') return show('cards');
-  show('booking');
-  await loadConfig();
 }
 
 // Loads the Settings table. Each row becomes one choice, e.g. "The Huddle, 6 people, ₱30/hr"
@@ -346,7 +330,7 @@ function syncGroupSize() {
   if (b) $('wGroup').value = b.groupSize;
 }
 
-// ---- Guest tap ----
+// ---- Guest tap (no PIN) ----
 async function runTap() {
   show('tap');
   const status = $('tapResult');
@@ -387,7 +371,7 @@ $('wStart').onclick = async () => {
   }
 };
 
-// ---- Staff: make NFC card ----
+// ---- Card maker (?admin=1, PIN required) ----
 $('mkToken').onclick = async () => {
   const name = $('cardName').value.trim();
   if (!name) return alert('Enter the guest name first');
@@ -399,11 +383,17 @@ $('mkToken').onclick = async () => {
     $('cardResult').hidden = false;
     $('cardName').value = '';
   } catch (e) {
-    if (!checkAuthError(e.message)) alert(e.message);
+    if (/PIN/.test(e.message)) {
+      // PIN was changed or expired: sign out and ask again
+      sessionStorage.removeItem(PIN_KEY);
+      location.reload();
+    } else {
+      alert(e.message);
+    }
   }
 };
 
-// ---- Staff: booking form ----
+// ---- Booking form (no PIN) ----
 $('openTime').onchange = e => { $('timeIn').disabled = e.target.checked; };
 $('category').onchange = syncGroupSize;
 $('wCategory').onchange = syncGroupSize;
@@ -417,7 +407,6 @@ $('form').onsubmit = async e => {
   try {
     const r = await post({
       action: 'visit',
-      pin: getPin(),
       name: $('name').value,
       date: $('date').value,
       purpose: $('purpose').value,
@@ -433,7 +422,6 @@ $('form').onsubmit = async e => {
     $('timeIn').disabled = false;
     syncGroupSize();
   } catch (err) {
-    if (checkAuthError(err.message)) return;
     msg.className = 'msg err';
     msg.textContent = 'Error: ' + err.message;
   } finally {
@@ -445,16 +433,21 @@ $('form').onsubmit = async e => {
 async function init() {
   if (mode === 'tap') return runTap();
 
-  const next = mode === 'admin' ? 'cards' : 'booking';
-  if (!getPin()) return askPin(next);
-
-  try {
-    await unlock(getPin());
-  } catch (e) {
-    sessionStorage.removeItem(PIN_KEY);
-    return askPin(next);
+  if (mode === 'admin') {
+    if (getPin()) {
+      try {
+        await unlock(getPin());
+        return show('cards');
+      } catch (e) {
+        sessionStorage.removeItem(PIN_KEY);
+      }
+    }
+    return askPin();
   }
-  await enter(next);
+
+  // Plain link: booking form, no PIN
+  show('booking');
+  await loadConfig();
 }
 
 init().catch(e => fail(e.message));
