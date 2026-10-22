@@ -175,6 +175,20 @@
   }
   .qr-box img { display: block; width: 100%; max-width: 320px; height: auto; margin: 0 auto; }
   .qr-hint { font-size: 12px; color: var(--olive-2); margin-top: 10px; }
+
+  /* Thank you page */
+  .thanks { text-align: center; padding: 18px 0 6px; }
+  .thanks-icon {
+    width: 64px; height: 64px; margin: 0 auto 14px;
+    border-radius: 50%;
+    background: linear-gradient(180deg, #FFE377 0%, var(--yellow) 100%);
+    color: var(--olive); font-size: 32px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 8px 18px rgba(245, 201, 46, 0.35);
+  }
+  .thanks h2 { font-size: 20px; margin: 0 0 8px; }
+  .thanks p { font-size: 14px; color: var(--olive-2); margin: 0 0 6px; line-height: 1.5; }
+  .thanks .thanks-name { font-weight: 700; color: var(--olive); }
 </style>
 </head>
 <body>
@@ -294,6 +308,17 @@
       <button type="button" id="payBackBtn" class="ghost">Back</button>
       <p id="msg" class="msg"></p>
     </div>
+
+    <!-- Step 4: thank you (after a successful save) -->
+    <div id="thanks" hidden>
+      <div class="thanks">
+        <div class="thanks-icon">✓</div>
+        <h2>Thank you for booking, LCKies!</h2>
+        <p>Your booking for <span class="thanks-name" id="tName"></span> is saved.</p>
+        <p id="tDetails"></p>
+      </div>
+      <button type="button" id="newBookingBtn">Make another booking</button>
+    </div>
   </div>
 </div>
 
@@ -341,7 +366,7 @@ function formatDateLabel(iso) {
 }
 
 function show(id) {
-  ['tap', 'cards', 'booking', 'summary', 'payment', 'pin'].forEach(v => { $(v).hidden = v !== id; });
+  ['tap', 'cards', 'booking', 'summary', 'payment', 'thanks', 'pin'].forEach(v => { $(v).hidden = v !== id; });
   $('loading').hidden = true;
 }
 
@@ -539,19 +564,28 @@ $('saveBtn').onclick = async () => {
       people: pending.people
     });
     if (!r.ok) throw new Error(r.error);
-    msg.className = 'msg ok';
-    msg.textContent = 'Booking saved!';
-    $('form').reset();
-    $('date').value = todayManila();
-    $('dateLabel').textContent = formatDateLabel($('date').value);
-    $('people').value = 1;
+
+    $('tName').textContent = pending.name;
+    $('tDetails').textContent = formatDateLabel(pending.date) + ', ' +
+      hourLabel(pending.timeInHour) + ' to ' + pending.outLabel.replace(' (next day)', '');
+    msg.textContent = '';
     pending = null;
-    setTimeout(() => show('booking'), 1200);
+    show('thanks');
   } catch (err) {
     msg.className = 'msg err';
     msg.textContent = 'Error: ' + err.message;
     btn.disabled = false;
   }
+};
+
+// ---- Step 4: make another booking ----
+$('newBookingBtn').onclick = () => {
+  $('form').reset();
+  $('date').value = todayManila();
+  $('dateLabel').textContent = formatDateLabel($('date').value);
+  $('people').value = 1;
+  $('saveBtn').disabled = false;
+  show('booking');
 };
 
 // ---- Start ----
