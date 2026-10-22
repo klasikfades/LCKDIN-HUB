@@ -266,6 +266,9 @@
         <label>Duration
           <select id="duration" required></select>
         </label>
+        <label>Number of people
+          <input type="number" id="people" min="1" value="1" required>
+        </label>
         <button type="submit">Next</button>
       </form>
     </div>
@@ -282,6 +285,7 @@
         <div class="row"><span>Time In</span><span id="sIn"></span></div>
         <div class="row"><span>Duration</span><span id="sDuration"></span></div>
         <div class="row"><span>Time Out</span><span id="sOut"></span></div>
+        <div class="row"><span>People</span><span id="sPeople"></span></div>
       </div>
       <div class="total">
         <span>Total</span>
@@ -424,8 +428,9 @@ async function loadConfig() {
   $('category').innerHTML = shown.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('');
 
   // Card maker keeps the full list with rates
-  $('cardCategory').innerHTML = r.categories.map(c =>
+  const full = r.categories.map(c =>
     `<option value="${esc(c.name)}">${esc(c.name)} (₱${esc(c.rate)}/hr)</option>`).join('');
+  $('cardCategory').innerHTML = full;
 }
 
 // Time In: every hour of the day
@@ -501,6 +506,7 @@ $('form').onsubmit = e => {
     category,
     timeInHour,
     duration,
+    people: Number($('people').value) || 1,
     // Time In and Time Out are saved as HH:00 so the sheet logic keeps working
     timeIn: String(timeInHour).padStart(2, '0') + ':00',
     timeOut: String(outHour).padStart(2, '0') + ':00',
@@ -515,6 +521,7 @@ $('form').onsubmit = e => {
   $('sIn').textContent = hourLabel(pending.timeInHour);
   $('sDuration').textContent = pending.duration + ' hr' + (pending.duration > 1 ? 's' : '');
   $('sOut').textContent = pending.outLabel;
+  $('sPeople').textContent = pending.people;
   $('sTotal').textContent = '₱' + pending.total.toFixed(2);
 
   show('summary');
@@ -553,7 +560,8 @@ $('saveBtn').onclick = async () => {
       category: pending.category,
       timeIn: pending.timeIn,
       timeOut: pending.timeOut,
-      duration: pending.duration
+      duration: pending.duration,
+      people: pending.people
     });
     if (!r.ok) throw new Error(r.error);
 
@@ -575,6 +583,7 @@ $('newBookingBtn').onclick = () => {
   $('form').reset();
   $('date').value = todayManila();
   $('dateLabel').textContent = formatDateLabel($('date').value);
+  $('people').value = 1;
   $('saveBtn').disabled = false;
   show('booking');
 };
