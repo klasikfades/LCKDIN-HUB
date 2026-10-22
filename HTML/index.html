@@ -126,7 +126,6 @@
   .status.out { background: #E3E6DC; }
   .status.err { background: #fee2e2; color: #991b1b; font-size: 15px; }
 
-  .divider { height: 1px; background: var(--line); margin: 18px 0 4px; }
   .hint { font-size: 12px; color: var(--olive-2); margin-top: 10px; word-break: break-all; line-height: 1.5; text-align: center; }
   .msg { margin-top: 12px; text-align: center; font-weight: 600; font-size: 14px; min-height: 18px; }
   .msg.ok { color: #3f6212; }
@@ -163,34 +162,16 @@
       <p id="pinMsg" class="msg err"></p>
     </div>
 
-    <!-- Guest taps the NFC card (?t=TOKEN), no PIN -->
+    <!-- Guest taps the NFC card (?t=TOKEN), no PIN. Checks in or out automatically. -->
     <div id="tap" hidden>
       <div id="tapResult" class="status">Recording...</div>
-
-      <div id="walkin" hidden>
-        <div class="divider"></div>
-        <p class="subtitle">Choose your room and purpose to check in</p>
-        <label>Category
-          <select id="wCategory"></select>
-        </label>
-        <label>Purpose
-          <select id="wPurpose">
-            <option value="School">School</option>
-            <option value="Work">Work</option>
-          </select>
-        </label>
-        <label>Number of people
-          <input type="number" id="wGroup" min="1">
-        </label>
-        <button type="button" id="wStart">Check in</button>
-      </div>
     </div>
 
-    <!-- Card maker (?admin=1), PIN required every time the page loads -->
+    <!-- Card maker (?admin=1), PIN required -->
     <div id="cards" hidden>
       <div class="title">Make NFC Card</div>
-      <p class="subtitle">Create a card for a guest</p>
-      <label>Guest name
+      <p class="subtitle">Name the card after its table, for example Focus table 1</p>
+      <label>Card name
         <input id="cardName">
       </label>
       <label>Category
@@ -228,15 +209,12 @@
         <label class="check">
           <input type="checkbox" id="openTime"> Open time
         </label>
-        <label>Time Out 
+        <label>Time Out (if already left)
           <input type="time" id="timeOut">
         </label>
 
         <label>Category
           <select id="category"></select>
-        </label>
-        <label>Number of people
-          <input type="number" id="groupSize" min="1">
         </label>
 
         <button type="submit" id="save">Save Booking</button>
@@ -255,7 +233,6 @@ const $ = id => document.getElementById(id);
 const params = new URLSearchParams(location.search);
 const token = params.get('t');
 const mode = token ? 'tap' : (params.get('admin') === '1' ? 'admin' : 'booking');
-let cats = [];
 
 // Kept in memory only, so a page refresh locks the card maker again
 let staffPin = '';
@@ -314,31 +291,20 @@ function askPin() {
   };
 }
 
-// Loads the Settings table. Each row becomes one choice, e.g. "The Huddle, 6 people, ₱30/hr"
+// Loads categories from the Settings tab (name and hourly rate only)
 async function loadConfig() {
   const r = await (await fetch(API_URL)).json();
   if (!r.ok) throw new Error(r.error || 'Could not load settings');
 
-  cats = r.categories;
-  const catOptions = cats.map((c, i) =>
-    `<option value="${i}">${esc(c.name)}, ${esc(c.groupSize)} people, ₱${esc(c.rate)}/hr</option>`).join('');
+  const options = r.categories.map(c =>
+    `<option value="${esc(c.name)}">${esc(c.name)} (₱${esc(c.rate)}/hr)</option>`).join('');
 
-  $('category').innerHTML = catOptions;
-  $('wCategory').innerHTML = catOptions;
-    $('cardCategory').innerHTML = cats.map(c =>
-    `<option value="${esc(c.name)}">${esc(c.name)}</option>`).join('');
-  syncGroupSize();
-}
-
-// When a choice is picked, fill in its group size (staff can still change it)
-function syncGroupSize() {
-  const a = cats[$('category').value];
-  const b = cats[$('wCategory').value];
-  if (a) $('groupSize').value = a.groupSize;
-  if (b) $('wGroup').value = b.groupSize;
+  $('category').innerHTML = options;
+  $('cardCategory').innerHTML = options;
 }
 
 // ---- Guest tap (no PIN) ----
+// The backend checks the guest in or out automatically, using the card's category.
 async function runTap() {
   show('tap');
   const status = $('tapResult');
@@ -346,50 +312,21 @@ async function runTap() {
 
   if (!r.ok) {
     setStatus(status, r.error, 'err');
-  } else if (r.action === 'choose') {
-    setStatus(status, 'Welcome ' + r.name + '.\nChoose your room to check in.');
-    await loadConfig();
-    $('walkin').hidden = false;
   } else if (r.action === 'in') {
-    setStatus(status, 'Checked IN at ' + r.time, 'in');
+    setStatus(status, 'Checked IN at ' + r.time + '\n' + r.name, 'in');
   } else {
     setStatus(status, 'Checked OUT at ' + r.time + '\n' + r.hours + ' hr  |  ₱' + r.total, 'out');
   }
 }
 
-$('wStart').onclick = async () => {
-  const btn = $('wStart');
-  const c = cats[$('wCategory').value];
-  btn.disabled = true;
-  try {
-    const r = await post({
-      action: 'walkin',
-      token,
-      category: c.name,
-      purpose: $('wPurpose').value,
-      groupSize: $('wGroup').value
-    });
-    if (!r.ok) throw new Error(r.error);
-    $('walkin').hidden = true;
-    setStatus($('tapResult'), 'Checked IN at ' + r.time + '\n' + c.name, 'in');
-  } catch (e) {
-    alert(e.message);
-  } finally {
-    btn.disabled = false;
-  }
-};
-
 // ---- Card maker (?admin=1, PIN required) ----
 $('mkToken').onclick = async () => {
   const name = $('cardName').value.trim();
-  if (!name) return alert('Enter the guest name first');
+  if (!name) return alert('Enter the card name first');
+  const category = $('cardCategory').value;
+  if (!category) return alert('Choose a category');
   try {
-      const r = await post({
-      action: 'newToken',
-      name,
-      category: $('cardCategory').value,
-      pin: getPin()
-    });
+    const r = await post({ action: 'newToken', name, category, pin: getPin() });
     if (!r.ok) throw new Error(r.error);
     $('cardToken').textContent = r.token;
     $('cardUrl').textContent = r.url;
@@ -408,14 +345,11 @@ $('mkToken').onclick = async () => {
 
 // ---- Booking form (no PIN) ----
 $('openTime').onchange = e => { $('timeIn').disabled = e.target.checked; };
-$('category').onchange = syncGroupSize;
-$('wCategory').onchange = syncGroupSize;
 
 $('form').onsubmit = async e => {
   e.preventDefault();
   const btn = $('save');
   const msg = $('msg');
-  const c = cats[$('category').value];
   btn.disabled = true;
   try {
     const r = await post({
@@ -425,15 +359,13 @@ $('form').onsubmit = async e => {
       purpose: $('purpose').value,
       timeIn: $('openTime').checked ? 'Open' : $('timeIn').value,
       timeOut: $('timeOut').value,
-      category: c.name,
-      groupSize: $('groupSize').value
+      category: $('category').value
     });
     if (!r.ok) throw new Error(r.error);
     msg.className = 'msg ok';
     msg.textContent = 'Booking saved!';
     e.target.reset();
     $('timeIn').disabled = false;
-    syncGroupSize();
   } catch (err) {
     msg.className = 'msg err';
     msg.textContent = 'Error: ' + err.message;
