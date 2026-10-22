@@ -193,6 +193,9 @@
       <label>Guest name
         <input id="cardName">
       </label>
+      <label>Category
+        <select id="cardCategory"></select>
+      </label>
       <button type="button" id="mkToken" class="dark">Create card</button>
       <div class="status" id="cardResult" hidden>
         <div>Token: <b id="cardToken"></b></div>
@@ -301,6 +304,7 @@ function askPin() {
     $('pinBtn').disabled = true;
     try {
       await unlock($('pinInput').value);
+      await loadConfig();
       show('cards');
     } catch (e) {
       $('pinMsg').textContent = e.message;
@@ -321,6 +325,8 @@ async function loadConfig() {
 
   $('category').innerHTML = catOptions;
   $('wCategory').innerHTML = catOptions;
+    $('cardCategory').innerHTML = cats.map(c =>
+    `<option value="${esc(c.name)}">${esc(c.name)}</option>`).join('');
   syncGroupSize();
 }
 
@@ -378,7 +384,12 @@ $('mkToken').onclick = async () => {
   const name = $('cardName').value.trim();
   if (!name) return alert('Enter the guest name first');
   try {
-    const r = await post({ action: 'newToken', name, pin: getPin() });
+      const r = await post({
+      action: 'newToken',
+      name,
+      category: $('cardCategory').value,
+      pin: getPin()
+    });
     if (!r.ok) throw new Error(r.error);
     $('cardToken').textContent = r.token;
     $('cardUrl').textContent = r.url;
