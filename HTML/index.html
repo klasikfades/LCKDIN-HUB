@@ -62,7 +62,7 @@
   .title { font-size: 18px; font-weight: 700; margin: 0 0 4px; }
   .subtitle { font-size: 13px; color: var(--olive-2); margin: 0 0 14px; }
 
-  form, .section { text-align: left; }
+  form { text-align: left; }
   label { display: block; margin-top: 12px; font-weight: 600; font-size: 13px; color: var(--olive-2); }
   input, select {
     width: 100%;
@@ -82,9 +82,6 @@
     border-color: var(--yellow-2);
     box-shadow: inset 3px 3px 7px rgba(75, 83, 64, 0.1), 0 0 0 3px rgba(255, 221, 87, 0.35);
   }
-  input:disabled { opacity: 0.5; }
-  .check { display: flex; align-items: center; gap: 8px; font-weight: 400; font-size: 13px; margin-top: 14px; color: var(--olive); }
-  .check input { width: 18px; height: 18px; margin: 0; padding: 0; accent-color: var(--olive); }
 
   button {
     width: 100%;
@@ -109,6 +106,12 @@
     color: #fff;
     background: linear-gradient(180deg, var(--olive-2) 0%, var(--olive) 100%);
     box-shadow: 0 8px 18px rgba(75, 83, 64, 0.3);
+  }
+  button.ghost {
+    margin-top: 10px;
+    color: var(--olive);
+    background: #fff;
+    box-shadow: inset 2px 2px 6px rgba(75, 83, 64, 0.08), 0 4px 10px rgba(75, 83, 64, 0.1);
   }
 
   .status {
@@ -135,6 +138,34 @@
   #cardResult b { color: var(--olive); }
   footer { text-align: center; font-size: 12px; color: var(--olive-2); margin-top: 20px; }
   [hidden] { display: none !important; }
+
+  /* Summary page */
+  .bill { text-align: left; margin-top: 10px; }
+  .row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px dashed var(--line);
+    font-size: 14px;
+  }
+  .row span:first-child { color: var(--olive-2); font-weight: 600; }
+  .row span:last-child { font-weight: 600; text-align: right; }
+  .total {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 14px;
+    padding: 14px 16px;
+    border-radius: 18px;
+    background: var(--band);
+    font-size: 15px;
+    font-weight: 700;
+  }
+  .total b { font-size: 22px; color: var(--olive); }
+  .qr { margin-top: 18px; }
+  .qr img { width: 200px; max-width: 100%; border-radius: 14px; background: #fff; }
+  .qr p { font-size: 12px; color: var(--olive-2); margin: 8px 0 0; }
 </style>
 </head>
 <body>
@@ -151,7 +182,7 @@
     <div id="loading" class="loading">Loading...</div>
     <div id="error" class="status err" hidden></div>
 
-    <!-- PIN screen: only for the card maker (?admin=1) -->
+    <!-- PIN screen: card maker only (?admin=1) -->
     <div id="pin" hidden>
       <div class="title">Staff sign in</div>
       <p class="subtitle">Enter the staff PIN to make NFC cards</p>
@@ -162,7 +193,7 @@
       <p id="pinMsg" class="msg err"></p>
     </div>
 
-    <!-- Guest taps the NFC card (?t=TOKEN), no PIN. Checks in or out automatically. -->
+    <!-- Guest taps the NFC card (?t=TOKEN). Checks in or out automatically. -->
     <div id="tap" hidden>
       <div id="tapResult" class="status">Recording...</div>
     </div>
@@ -185,7 +216,7 @@
       <p class="hint">Write the link above onto the NFC tag with NFC Tools (Write &gt; Add a record &gt; URL).</p>
     </div>
 
-    <!-- Booking form (plain link), no PIN -->
+    <!-- Step 1: booking form (no PIN) -->
     <div id="booking" hidden>
       <div class="title">Booking</div>
       <p class="subtitle">Save a guest's visit to the Study Hub sheet</p>
@@ -202,23 +233,46 @@
             <option value="Work">Work</option>
           </select>
         </label>
-
-        <label>Time In
-          <input type="time" id="timeIn">
-        </label>
-        <label class="check">
-          <input type="checkbox" id="openTime"> Open time
-        </label>
-        <label>Time Out (if already left)
-          <input type="time" id="timeOut">
-        </label>
-
         <label>Category
-          <select id="category"></select>
+          <select id="category" required></select>
         </label>
-
-        <button type="submit" id="save">Save Booking</button>
+        <label>Time In
+          <select id="timeIn" required></select>
+        </label>
+        <label>Duration
+          <select id="duration" required></select>
+        </label>
+        <label>Number of people
+          <input type="number" id="people" min="1" value="1" required>
+        </label>
+        <button type="submit">Next</button>
       </form>
+    </div>
+
+    <!-- Step 2: bill summary and QR (no PIN) -->
+    <div id="summary" hidden>
+      <div class="title">Booking summary</div>
+      <p class="subtitle">Check the details, then pay and save</p>
+      <div class="bill">
+        <div class="row"><span>Name</span><span id="sName"></span></div>
+        <div class="row"><span>Date</span><span id="sDate"></span></div>
+        <div class="row"><span>Purpose</span><span id="sPurpose"></span></div>
+        <div class="row"><span>Category</span><span id="sCategory"></span></div>
+        <div class="row"><span>Time In</span><span id="sIn"></span></div>
+        <div class="row"><span>Duration</span><span id="sDuration"></span></div>
+        <div class="row"><span>Time Out</span><span id="sOut"></span></div>
+        <div class="row"><span>People</span><span id="sPeople"></span></div>
+      </div>
+      <div class="total">
+        <span>Total</span>
+        <b id="sTotal"></b>
+      </div>
+      <div class="qr">
+        <img id="qrImg" src="" alt="Payment QR code">
+        <p>Scan to pay</p>
+      </div>
+      <button type="button" id="saveBtn">Save Booking</button>
+      <button type="button" id="backBtn" class="ghost">Back</button>
       <p id="msg" class="msg"></p>
     </div>
   </div>
@@ -228,6 +282,10 @@
 
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbzlzbiuTATPOKUXBTQubIVFvLIgiHbWeUeZXTaUEgXV8NgiZb1JxZKf0HACJ4--dHHomA/exec';
+const PAYMENT_QR = 'gcash-qr.png.jpg';
+
+// Only these categories appear on the booking form
+const CATEGORY_NAMES = ['Focus', 'Focus+', 'Sync', 'The Lounge', 'The Huddle'];
 
 const $ = id => document.getElementById(id);
 const params = new URLSearchParams(location.search);
@@ -236,13 +294,27 @@ const mode = token ? 'tap' : (params.get('admin') === '1' ? 'admin' : 'booking')
 
 // Kept in memory only, so a page refresh locks the card maker again
 let staffPin = '';
+let rates = {};      // category name -> hourly rate, from Settings
+let pending = null;  // booking waiting on the summary page
 
 function esc(s) {
   return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
+// Today's date in Manila, as YYYY-MM-DD
+function todayManila() {
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
+}
+
+// 0 -> "12:00 AM", 13 -> "1:00 PM"
+function hourLabel(h) {
+  const suffix = h < 12 ? 'AM' : 'PM';
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  return h12 + ':00 ' + suffix;
+}
+
 function show(id) {
-  ['tap', 'cards', 'booking', 'pin'].forEach(v => { $(v).hidden = v !== id; });
+  ['tap', 'cards', 'booking', 'summary', 'pin'].forEach(v => { $(v).hidden = v !== id; });
   $('loading').hidden = true;
 }
 
@@ -291,20 +363,43 @@ function askPin() {
   };
 }
 
-// Loads categories from the Settings tab (name and hourly rate only)
+// Loads categories and rates from the Settings tab
 async function loadConfig() {
   const r = await (await fetch(API_URL)).json();
   if (!r.ok) throw new Error(r.error || 'Could not load settings');
 
-  const options = r.categories.map(c =>
-    `<option value="${esc(c.name)}">${esc(c.name)} (₱${esc(c.rate)}/hr)</option>`).join('');
+  rates = {};
+  r.categories.forEach(c => { rates[c.name] = c.rate; });
 
-  $('category').innerHTML = options;
-  $('cardCategory').innerHTML = options;
+  // Booking form: names only, no rate text
+  const shown = CATEGORY_NAMES.filter(n => n in rates);
+  $('category').innerHTML = shown.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('');
+
+  // Card maker keeps the full list with rates
+  const full = r.categories.map(c =>
+    `<option value="${esc(c.name)}">${esc(c.name)} (₱${esc(c.rate)}/hr)</option>`).join('');
+  $('cardCategory').innerHTML = full;
+}
+
+// Time In: every hour of the day
+function buildTimeIn() {
+  let html = '';
+  for (let h = 0; h < 24; h++) {
+    html += `<option value="${h}">${hourLabel(h)}</option>`;
+  }
+  $('timeIn').innerHTML = html;
+}
+
+// Duration: 1 to 24 hours
+function buildDuration() {
+  let html = '';
+  for (let d = 1; d <= 24; d++) {
+    html += `<option value="${d}">${d} hr${d > 1 ? 's' : ''}</option>`;
+  }
+  $('duration').innerHTML = html;
 }
 
 // ---- Guest tap (no PIN) ----
-// The backend checks the guest in or out automatically, using the card's category.
 async function runTap() {
   show('tap');
   const status = $('tapResult');
@@ -334,7 +429,6 @@ $('mkToken').onclick = async () => {
     $('cardName').value = '';
   } catch (e) {
     if (/PIN/.test(e.message)) {
-      // PIN was changed: lock again and ask
       staffPin = '';
       location.reload();
     } else {
@@ -343,33 +437,82 @@ $('mkToken').onclick = async () => {
   }
 };
 
-// ---- Booking form (no PIN) ----
-$('openTime').onchange = e => { $('timeIn').disabled = e.target.checked; };
-
-$('form').onsubmit = async e => {
+// ---- Step 1: booking form, Next goes to the summary ----
+$('form').onsubmit = e => {
   e.preventDefault();
-  const btn = $('save');
+  const timeInHour = Number($('timeIn').value);
+  const duration = Number($('duration').value);
+  const category = $('category').value;
+
+  const outHour = (timeInHour + duration) % 24;
+  const nextDay = timeInHour + duration >= 24;
+
+  pending = {
+    name: $('name').value.trim(),
+    date: $('date').value,
+    purpose: $('purpose').value,
+    category,
+    timeInHour,
+    duration,
+    people: Number($('people').value) || 1,
+    // Time Out is saved as HH:00 so the existing sheet logic keeps working
+    timeIn: String(timeInHour).padStart(2, '0') + ':00',
+    timeOut: String(outHour).padStart(2, '0') + ':00',
+    outLabel: hourLabel(outHour) + (nextDay ? ' (next day)' : ''),
+    rate: rates[category] || 0
+  };
+
+  $('sName').textContent = pending.name;
+  $('sDate').textContent = pending.date;
+  $('sPurpose').textContent = pending.purpose;
+  $('sCategory').textContent = pending.category;
+  $('sIn').textContent = hourLabel(pending.timeInHour);
+  $('sDuration').textContent = pending.duration + ' hr' + (pending.duration > 1 ? 's' : '');
+  $('sOut').textContent = pending.outLabel;
+  $('sPeople').textContent = pending.people;
+  $('sTotal').textContent = '₱' + (pending.rate * pending.duration).toFixed(2);
+  $('qrImg').src = PAYMENT_QR;
+  $('msg').textContent = '';
+  $('saveBtn').disabled = false;
+
+  show('summary');
+};
+
+// ---- Step 2: back to edit ----
+$('backBtn').onclick = () => {
+  show('booking');
+};
+
+// ---- Step 2: save to the sheet ----
+$('saveBtn').onclick = async () => {
+  const btn = $('saveBtn');
   const msg = $('msg');
   btn.disabled = true;
+  msg.className = 'msg';
+  msg.textContent = 'Saving...';
   try {
     const r = await post({
       action: 'visit',
-      name: $('name').value,
-      date: $('date').value,
-      purpose: $('purpose').value,
-      timeIn: $('openTime').checked ? 'Open' : $('timeIn').value,
-      timeOut: $('timeOut').value,
-      category: $('category').value
+      name: pending.name,
+      date: pending.date,
+      purpose: pending.purpose,
+      category: pending.category,
+      timeIn: pending.timeIn,
+      timeOut: pending.timeOut,
+      duration: pending.duration,
+      people: pending.people
     });
     if (!r.ok) throw new Error(r.error);
     msg.className = 'msg ok';
     msg.textContent = 'Booking saved!';
-    e.target.reset();
-    $('timeIn').disabled = false;
+    $('form').reset();
+    $('date').value = todayManila();
+    $('people').value = 1;
+    pending = null;
+    setTimeout(() => show('booking'), 1200);
   } catch (err) {
     msg.className = 'msg err';
     msg.textContent = 'Error: ' + err.message;
-  } finally {
     btn.disabled = false;
   }
 };
@@ -378,12 +521,14 @@ $('form').onsubmit = async e => {
 async function init() {
   if (mode === 'tap') return runTap();
 
-  // Card maker: always asks for the PIN when the page loads
   if (mode === 'admin') return askPin();
 
   // Plain link: booking form, no PIN
-  show('booking');
+  buildTimeIn();
+  buildDuration();
+  $('date').value = todayManila();
   await loadConfig();
+  show('booking');
 }
 
 init().catch(e => fail(e.message));
