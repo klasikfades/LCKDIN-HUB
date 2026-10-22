@@ -130,6 +130,7 @@
   .status.err { background: #fee2e2; color: #991b1b; font-size: 15px; }
 
   .hint { font-size: 12px; color: var(--olive-2); margin-top: 10px; word-break: break-all; line-height: 1.5; text-align: center; }
+  .date-label { font-size: 12px; color: var(--olive-2); margin-top: 6px; font-weight: 400; }
   .msg { margin-top: 12px; text-align: center; font-weight: 600; font-size: 14px; min-height: 18px; }
   .msg.ok { color: #3f6212; }
   .msg.err { color: #991b1b; }
@@ -234,6 +235,7 @@
         </label>
         <label>Date
           <input type="date" id="date" required>
+          <span id="dateLabel" class="date-label"></span>
         </label>
         <label>Purpose
           <select id="purpose">
@@ -328,6 +330,14 @@ function hourLabel(h) {
   const suffix = h < 12 ? 'AM' : 'PM';
   const h12 = h % 12 === 0 ? 12 : h % 12;
   return h12 + ':00 ' + suffix;
+}
+
+// '2026-10-22' -> 'Oct 22, 2026'
+function formatDateLabel(iso) {
+  if (!iso) return '';
+  const [y, m, d] = iso.split('-').map(Number);
+  const names = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return names[m - 1] + ' ' + d + ', ' + y;
 }
 
 function show(id) {
@@ -480,7 +490,7 @@ $('form').onsubmit = e => {
   };
 
   $('sName').textContent = pending.name;
-  $('sDate').textContent = pending.date;
+  $('sDate').textContent = formatDateLabel(pending.date);
   $('sPurpose').textContent = pending.purpose;
   $('sCategory').textContent = pending.category;
   $('sIn').textContent = hourLabel(pending.timeInHour);
@@ -533,6 +543,7 @@ $('saveBtn').onclick = async () => {
     msg.textContent = 'Booking saved!';
     $('form').reset();
     $('date').value = todayManila();
+    $('dateLabel').textContent = formatDateLabel($('date').value);
     $('people').value = 1;
     pending = null;
     setTimeout(() => show('booking'), 1200);
@@ -553,6 +564,10 @@ async function init() {
   buildTimeIn();
   buildDuration();
   $('date').value = todayManila();
+  $('dateLabel').textContent = formatDateLabel($('date').value);
+  $('date').addEventListener('input', () => {
+    $('dateLabel').textContent = formatDateLabel($('date').value);
+  });
   await loadConfig();
   show('booking');
 }
