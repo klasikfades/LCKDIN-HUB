@@ -163,9 +163,17 @@
     font-weight: 700;
   }
   .total b { font-size: 22px; color: var(--olive); }
-  .qr { margin-top: 18px; }
-  .qr img { width: 200px; max-width: 100%; border-radius: 14px; background: #fff; }
-  .qr p { font-size: 12px; color: var(--olive-2); margin: 8px 0 0; }
+
+  /* Payment page */
+  .pay-total { font-size: 28px; font-weight: 700; color: var(--olive); margin: 6px 0 16px; }
+  .qr-box {
+    background: #fff;
+    border-radius: 24px;
+    padding: 14px;
+    box-shadow: inset 2px 2px 6px rgba(75, 83, 64, 0.06), 0 6px 16px rgba(75, 83, 64, 0.1);
+  }
+  .qr-box img { display: block; width: 100%; max-width: 320px; height: auto; margin: 0 auto; }
+  .qr-hint { font-size: 12px; color: var(--olive-2); margin-top: 10px; }
 </style>
 </head>
 <body>
@@ -249,10 +257,10 @@
       </form>
     </div>
 
-    <!-- Step 2: bill summary and QR (no PIN) -->
+    <!-- Step 2: bill summary (no PIN) -->
     <div id="summary" hidden>
       <div class="title">Booking summary</div>
-      <p class="subtitle">Check the details, then pay and save</p>
+      <p class="subtitle">Check the details before payment</p>
       <div class="bill">
         <div class="row"><span>Name</span><span id="sName"></span></div>
         <div class="row"><span>Date</span><span id="sDate"></span></div>
@@ -267,12 +275,21 @@
         <span>Total</span>
         <b id="sTotal"></b>
       </div>
-      <div class="qr">
-        <img id="qrImg" src="" alt="Payment QR code">
-        <p>Scan to pay</p>
-      </div>
-      <button type="button" id="saveBtn">Save Booking</button>
+      <button type="button" id="nextBtn">Next</button>
       <button type="button" id="backBtn" class="ghost">Back</button>
+    </div>
+
+    <!-- Step 3: payment QR and save (no PIN) -->
+    <div id="payment" hidden>
+      <div class="title">Scan to pay</div>
+      <p class="subtitle">Amount due</p>
+      <div class="pay-total" id="pTotal"></div>
+      <div class="qr-box">
+        <img id="qrImg" src="" alt="Payment QR code">
+      </div>
+      <p class="qr-hint">Show this screen to the staff after paying</p>
+      <button type="button" id="saveBtn">Save Booking</button>
+      <button type="button" id="payBackBtn" class="ghost">Back</button>
       <p id="msg" class="msg"></p>
     </div>
   </div>
@@ -282,7 +299,7 @@
 
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbzlzbiuTATPOKUXBTQubIVFvLIgiHbWeUeZXTaUEgXV8NgiZb1JxZKf0HACJ4--dHHomA/exec';
-const PAYMENT_QR = 'gcash-qr.png.jpg';
+const PAYMENT_QR = 'gcash-qr.png';
 
 // Only these categories appear on the booking form
 const CATEGORY_NAMES = ['Focus', 'Focus+', 'Sync', 'The Lounge', 'The Huddle'];
@@ -295,7 +312,7 @@ const mode = token ? 'tap' : (params.get('admin') === '1' ? 'admin' : 'booking')
 // Kept in memory only, so a page refresh locks the card maker again
 let staffPin = '';
 let rates = {};      // category name -> hourly rate, from Settings
-let pending = null;  // booking waiting on the summary page
+let pending = null;  // booking waiting on the summary and payment pages
 
 function esc(s) {
   return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -314,7 +331,7 @@ function hourLabel(h) {
 }
 
 function show(id) {
-  ['tap', 'cards', 'booking', 'summary', 'pin'].forEach(v => { $(v).hidden = v !== id; });
+  ['tap', 'cards', 'booking', 'summary', 'payment', 'pin'].forEach(v => { $(v).hidden = v !== id; });
   $('loading').hidden = true;
 }
 
@@ -455,11 +472,11 @@ $('form').onsubmit = e => {
     timeInHour,
     duration,
     people: Number($('people').value) || 1,
-    // Time Out is saved as HH:00 so the existing sheet logic keeps working
+    // Time In and Time Out are saved as HH:00 so the sheet logic keeps working
     timeIn: String(timeInHour).padStart(2, '0') + ':00',
     timeOut: String(outHour).padStart(2, '0') + ':00',
     outLabel: hourLabel(outHour) + (nextDay ? ' (next day)' : ''),
-    rate: rates[category] || 0
+    total: (rates[category] || 0) * duration
   };
 
   $('sName').textContent = pending.name;
@@ -470,20 +487,29 @@ $('form').onsubmit = e => {
   $('sDuration').textContent = pending.duration + ' hr' + (pending.duration > 1 ? 's' : '');
   $('sOut').textContent = pending.outLabel;
   $('sPeople').textContent = pending.people;
-  $('sTotal').textContent = '₱' + (pending.rate * pending.duration).toFixed(2);
-  $('qrImg').src = PAYMENT_QR;
-  $('msg').textContent = '';
-  $('saveBtn').disabled = false;
+  $('sTotal').textContent = '₱' + pending.total.toFixed(2);
 
   show('summary');
 };
 
-// ---- Step 2: back to edit ----
+// ---- Step 2: summary buttons ----
 $('backBtn').onclick = () => {
   show('booking');
 };
 
-// ---- Step 2: save to the sheet ----
+$('nextBtn').onclick = () => {
+  $('pTotal').textContent = '₱' + pending.total.toFixed(2);
+  $('qrImg').src = PAYMENT_QR;
+  $('msg').textContent = '';
+  $('saveBtn').disabled = false;
+  show('payment');
+};
+
+// ---- Step 3: payment buttons ----
+$('payBackBtn').onclick = () => {
+  show('summary');
+};
+
 $('saveBtn').onclick = async () => {
   const btn = $('saveBtn');
   const msg = $('msg');
