@@ -665,6 +665,7 @@ $('form').onsubmit = e => {
   const timeInHour = Number($('timeIn').value);
   const duration = Number($('duration').value);
   const category = $('category').value;
+  const people = Number($('people').value) || 1;
 
   const outHour = (timeInHour + duration) % 24;
   const nextDay = timeInHour + duration >= 24;
@@ -676,12 +677,13 @@ $('form').onsubmit = e => {
     category,
     timeInHour,
     duration,
-    people: Number($('people').value) || 1,
+    people,
     // Time In and Time Out are saved as HH:00 so the sheet logic keeps working
     timeIn: String(timeInHour).padStart(2, '0') + ':00',
     timeOut: String(outHour).padStart(2, '0') + ':00',
     outLabel: hourLabel(outHour) + (nextDay ? ' (next day)' : ''),
-    total: (rates[category] || 0) * duration
+    // Rate x hours x people
+    total: (rates[category] || 0) * duration * people
   };
 
   $('sName').textContent = pending.name;
