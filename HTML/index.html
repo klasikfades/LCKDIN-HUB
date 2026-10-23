@@ -221,14 +221,11 @@
       <div id="tapResult" class="status">Loading...</div>
     </div>
 
-    <!-- NFC tap, first tap: category, purpose, school, time in, duration -->
+    <!-- NFC tap, first tap: purpose, school, time in, duration -->
     <div id="tapFormView" hidden>
       <div class="title" id="tapWelcome"></div>
       <p class="subtitle">Tell us about your visit</p>
       <form id="tapForm">
-        <label>Category
-          <select id="tapCategory" required></select>
-        </label>
         <label>Purpose
           <select id="tapPurpose">
             <option value="Work">Work</option>
@@ -378,7 +375,7 @@
 const API_URL = 'https://script.google.com/macros/s/AKfycbzlzbiuTATPOKUXBTQubIVFvLIgiHbWeUeZXTaUEgXV8NgiZb1JxZKf0HACJ4--dHHomA/exec';
 const PAYMENT_QR = 'gcash-qr.png';
 
-// Only these categories appear on the booking form and the NFC tap form
+// Only these categories appear on the booking form and the card maker
 const CATEGORY_NAMES = ['Focus', 'Focus+', 'Sync', 'The Lounge', 'The Huddle'];
 
 // Every view that can be shown
@@ -533,22 +530,14 @@ async function runTap() {
   const r = await post({ action: 'tap', token });
   if (!r.ok) return setTapStatus(r.error, 'err');
 
-  if (r.action === 'form') return await showTapForm(r);
+  if (r.action === 'form') return showTapForm(r);
   if (r.action === 'ask') return showTapAsk(r);
   if (r.action === 'in') return setTapStatus(checkedInText(r), 'in');
   setTapStatus('Unexpected response', 'err');
 }
 
-// First tap: category, purpose, school, time in, duration
-async function showTapForm(r) {
-  // Rates are needed to know which categories exist
-  if (!Object.keys(rates).length) await loadConfig();
-
-  const shown = CATEGORY_NAMES.filter(n => n in rates);
-  $('tapCategory').innerHTML = shown.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('');
-  // Pre-select the card's category when it is one of the five
-  if (r.category && shown.includes(r.category)) $('tapCategory').value = r.category;
-
+// First tap: purpose, school, time in, duration. The card's category is used automatically.
+function showTapForm(r) {
   $('tapWelcome').textContent = 'Welcome, LCKies!';
   $('tapPurpose').value = 'Work';
   $('tapSchool').value = '';
@@ -568,15 +557,9 @@ $('tapForm').onsubmit = async e => {
   e.preventDefault();
   const msg = $('tapFormMsg');
   const btn = $('tapSubmit');
-  const category = $('tapCategory').value;
   const purpose = $('tapPurpose').value;
   const school = $('tapSchool').value.trim();
 
-  if (!category) {
-    msg.className = 'msg err';
-    msg.textContent = 'Choose a category';
-    return;
-  }
   if (purpose === 'School' && !school) {
     msg.className = 'msg err';
     msg.textContent = 'Type the name of your school';
@@ -587,10 +570,10 @@ $('tapForm').onsubmit = async e => {
   msg.className = 'msg';
   msg.textContent = 'Checking in...';
   try {
+    // No category is sent, so the backend uses the card's category
     const r = await post({
       action: 'checkin',
       token,
-      category,
       purpose,
       school,
       hour: Number($('tapTimeIn').value),
