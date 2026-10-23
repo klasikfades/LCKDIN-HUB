@@ -216,9 +216,56 @@
       <p id="pinMsg" class="msg err"></p>
     </div>
 
-    <!-- Guest taps the NFC card (?t=TOKEN). Checks in or out automatically. -->
+    <!-- NFC tap: status message (?t=TOKEN) -->
     <div id="tap" hidden>
-      <div id="tapResult" class="status">Recording...</div>
+      <div id="tapResult" class="status">Loading...</div>
+    </div>
+
+    <!-- NFC tap, first tap: purpose, school, time in, duration -->
+    <div id="tapFormView" hidden>
+      <div class="title" id="tapWelcome"></div>
+      <p class="subtitle">Tell us about your visit</p>
+      <form id="tapForm">
+        <label>Purpose
+          <select id="tapPurpose">
+            <option value="Work">Work</option>
+            <option value="School">School</option>
+          </select>
+        </label>
+        <label id="tapSchoolWrap" hidden>School name
+          <input id="tapSchool" autocomplete="off">
+        </label>
+        <label>Time In
+          <select id="tapTimeIn" required></select>
+        </label>
+        <label>Duration
+          <select id="tapDuration" required></select>
+        </label>
+        <button type="submit" id="tapSubmit">Check in</button>
+      </form>
+      <p id="tapFormMsg" class="msg"></p>
+    </div>
+
+    <!-- NFC tap, second tap: extend or check out -->
+    <div id="tapAskView" hidden>
+      <div class="title">Still here?</div>
+      <p class="subtitle" id="askText"></p>
+      <button type="button" id="askYes">Yes, extend my duration</button>
+      <button type="button" id="askNo" class="ghost">No, check me out</button>
+    </div>
+
+    <!-- NFC tap: choose extra hours -->
+    <div id="tapExtendView" hidden>
+      <div class="title">Extend duration</div>
+      <p class="subtitle">How many more hours?</p>
+      <form id="extendForm">
+        <label>Extra hours
+          <select id="extendHours" required></select>
+        </label>
+        <button type="submit" id="extendSubmit">Confirm extension</button>
+      </form>
+      <button type="button" id="extendBack" class="ghost">Back</button>
+      <p id="extendMsg" class="msg"></p>
     </div>
 
     <!-- Card maker (?admin=1), PIN required -->
@@ -326,10 +373,13 @@
 
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbzlzbiuTATPOKUXBTQubIVFvLIgiHbWeUeZXTaUEgXV8NgiZb1JxZKf0HACJ4--dHHomA/exec';
-const PAYMENT_QR = 'gcash-qr.png.jpg';
+const PAYMENT_QR = 'gcash-qr.png';
 
 // Only these categories appear on the booking form
 const CATEGORY_NAMES = ['Focus', 'Focus+', 'Sync', 'The Lounge', 'The Huddle'];
+
+// Every view that can be shown
+const VIEWS = ['tap', 'tapFormView', 'tapAskView', 'tapExtendView', 'cards', 'booking', 'summary', 'payment', 'thanks', 'pin'];
 
 const $ = id => document.getElementById(id);
 const params = new URLSearchParams(location.search);
@@ -350,6 +400,13 @@ function todayManila() {
   return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
 }
 
+// Current hour in Manila, 0 to 23
+function currentHourManila() {
+  return Number(new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Manila', hour: '2-digit', hourCycle: 'h23'
+  }).format(new Date())) % 24;
+}
+
 // 0 -> "12:00 AM", 13 -> "1:00 PM"
 function hourLabel(h) {
   const suffix = h < 12 ? 'AM' : 'PM';
@@ -365,8 +422,22 @@ function formatDateLabel(iso) {
   return names[m - 1] + ' ' + d + ', ' + y;
 }
 
+// Fills a select with every hour of the day
+function fillHours(id) {
+  $(id).innerHTML = Array.from({ length: 24 }, (_, h) =>
+    `<option value="${h}">${hourLabel(h)}</option>`).join('');
+}
+
+// Fills a select with 1 to 24 hours
+function fillDurations(id) {
+  $(id).innerHTML = Array.from({ length: 24 }, (_, i) => {
+    const d = i + 1;
+    return `<option value="${d}">${d} hr${d > 1 ? 's' : ''}</option>`;
+  }).join('');
+}
+
 function show(id) {
-  ['tap', 'cards', 'booking', 'summary', 'payment', 'thanks', 'pin'].forEach(v => { $(v).hidden = v !== id; });
+  VIEWS.forEach(v => { $(v).hidden = v !== id; });
   $('loading').hidden = true;
 }
 
@@ -433,38 +504,123 @@ async function loadConfig() {
   $('cardCategory').innerHTML = full;
 }
 
-// Time In: every hour of the day
-function buildTimeIn() {
-  let html = '';
-  for (let h = 0; h < 24; h++) {
-    html += `<option value="${h}">${hourLabel(h)}</option>`;
-  }
-  $('timeIn').innerHTML = html;
-}
-
-// Duration: 1 to 24 hours
-function buildDuration() {
-  let html = '';
-  for (let d = 1; d <= 24; d++) {
-    html += `<option value="${d}">${d} hr${d > 1 ? 's' : ''}</option>`;
-  }
-  $('duration').innerHTML = html;
-}
-
-// ---- Guest tap (no PIN) ----
-async function runTap() {
+// ---- NFC tap (?t=TOKEN, no PIN) ----
+function setTapStatus(text, kind) {
   show('tap');
-  const status = $('tapResult');
-  const r = await post({ action: 'tap', token });
-
-  if (!r.ok) {
-    setStatus(status, r.error, 'err');
-  } else if (r.action === 'in') {
-    setStatus(status, 'Checked IN at ' + r.time + '\n' + r.name, 'in');
-  } else {
-    setStatus(status, 'Checked OUT at ' + r.time + '\n' + r.hours + ' hr  |  ₱' + r.total, 'out');
-  }
+  setStatus($('tapResult'), text, kind);
 }
+
+async function runTap() {
+  setTapStatus('Loading...');
+  const r = await post({ action: 'tap', token });
+  if (!r.ok) return setTapStatus(r.error, 'err');
+
+  if (r.action === 'form') return showTapForm(r);
+  if (r.action === 'ask') return showTapAsk(r);
+  if (r.action === 'in') {
+    return setTapStatus('Checked IN at ' + r.time + '\n' + r.name + '\nStay ends at ' + r.endTime, 'in');
+  }
+  setTapStatus('Unexpected response', 'err');
+}
+
+// First tap: purpose, school, time in, duration
+function showTapForm(r) {
+  $('tapWelcome').textContent = 'Welcome, ' + r.name + '!';
+  $('tapPurpose').value = 'Work';
+  $('tapSchool').value = '';
+  $('tapSchoolWrap').hidden = true;
+  $('tapTimeIn').value = String(currentHourManila());
+  $('tapDuration').value = '1';
+  $('tapFormMsg').textContent = '';
+  $('tapSubmit').disabled = false;
+  show('tapFormView');
+}
+
+$('tapPurpose').onchange = () => {
+  $('tapSchoolWrap').hidden = $('tapPurpose').value !== 'School';
+};
+
+$('tapForm').onsubmit = async e => {
+  e.preventDefault();
+  const msg = $('tapFormMsg');
+  const btn = $('tapSubmit');
+  const purpose = $('tapPurpose').value;
+  const school = $('tapSchool').value.trim();
+
+  if (purpose === 'School' && !school) {
+    msg.className = 'msg err';
+    msg.textContent = 'Type the name of your school';
+    return;
+  }
+
+  btn.disabled = true;
+  msg.className = 'msg';
+  msg.textContent = 'Checking in...';
+  try {
+    const r = await post({
+      action: 'checkin',
+      token,
+      purpose,
+      school,
+      hour: Number($('tapTimeIn').value),
+      duration: Number($('tapDuration').value)
+    });
+    if (!r.ok) throw new Error(r.error);
+    setTapStatus('Checked IN at ' + r.time + '\n' + r.name + '\nStay ends at ' + r.endTime, 'in');
+  } catch (err) {
+    msg.className = 'msg err';
+    msg.textContent = 'Error: ' + err.message;
+    btn.disabled = false;
+  }
+};
+
+// Second tap: ask whether to extend
+function showTapAsk(r) {
+  $('askText').textContent = 'Your stay ends at ' + r.endTime + '. Do you want to extend your duration?';
+  $('askYes').disabled = false;
+  $('askNo').disabled = false;
+  show('tapAskView');
+}
+
+$('askYes').onclick = () => {
+  $('extendMsg').textContent = '';
+  $('extendSubmit').disabled = false;
+  show('tapExtendView');
+};
+
+$('askNo').onclick = async () => {
+  $('askYes').disabled = true;
+  $('askNo').disabled = true;
+  try {
+    const r = await post({ action: 'leave', token });
+    if (!r.ok) throw new Error(r.error);
+    setTapStatus('Checked OUT at ' + r.time + '\n' + r.hours + ' hr  |  ₱' + r.total, 'out');
+  } catch (e) {
+    setTapStatus('Error: ' + e.message, 'err');
+  }
+};
+
+$('extendBack').onclick = () => {
+  show('tapAskView');
+};
+
+$('extendForm').onsubmit = async e => {
+  e.preventDefault();
+  const msg = $('extendMsg');
+  const btn = $('extendSubmit');
+  btn.disabled = true;
+  msg.className = 'msg';
+  msg.textContent = 'Extending...';
+  try {
+    const r = await post({ action: 'extend', token, hours: Number($('extendHours').value) });
+    if (!r.ok) throw new Error(r.error);
+    setTapStatus('Extended. New end time: ' + r.endTime + '\nTap again when you leave.', 'in');
+  } catch (err) {
+    msg.className = 'msg err';
+    msg.textContent = 'Error: ' + err.message;
+    btn.disabled = false;
+  }
+};
 
 // ---- Card maker (?admin=1, PIN required) ----
 $('mkToken').onclick = async () => {
@@ -590,13 +746,18 @@ $('newBookingBtn').onclick = () => {
 
 // ---- Start ----
 async function init() {
+  // Dropdowns used by the NFC tap pages
+  fillHours('tapTimeIn');
+  fillDurations('tapDuration');
+  fillDurations('extendHours');
+
   if (mode === 'tap') return runTap();
 
   if (mode === 'admin') return askPin();
 
   // Plain link: booking form, no PIN
-  buildTimeIn();
-  buildDuration();
+  fillHours('timeIn');
+  fillDurations('duration');
   $('date').value = todayManila();
   $('dateLabel').textContent = formatDateLabel($('date').value);
   $('date').addEventListener('input', () => {
