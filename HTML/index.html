@@ -312,6 +312,7 @@
         </label>
         <label>Number of people
           <input type="number" id="people" min="1" value="1" required>
+          <span id="peopleHint" class="date-label"></span>
         </label>
         <button type="submit">Next</button>
       </form>
@@ -375,6 +376,15 @@ const PAYMENT_QR = 'gcash-qr.png';
 
 // Only these categories appear on the booking form and the NFC tap form
 const CATEGORY_NAMES = ['Focus', 'Focus+', 'Sync', 'The Lounge', 'The Huddle'];
+
+// Number of people per category: [starting value, minimum, maximum]
+const PEOPLE_RULES = {
+  'Focus':      { min: 1, max: 1 },
+  'Focus+':     { min: 1, max: 1 },
+  'Sync':       { min: 2, max: 2 },
+  'The Lounge': { min: 3, max: 4 },
+  'The Huddle': { min: 5, max: 8 }
+};
 
 // Billing rule (matches the sheet): 20-minute grace, each started hour counts, minimum 1 hr
 const GRACE_MINUTES = 20;
@@ -444,6 +454,18 @@ function fillDurations(id) {
     const d = i + 1;
     return `<option value="${d}">${d} hr${d > 1 ? 's' : ''}</option>`;
   }).join('');
+}
+
+// Sets the people field to the chosen category's starting value and limits it to that category's range
+function applyPeopleRule() {
+  const rule = PEOPLE_RULES[$('category').value] || { min: 1, max: 99 };
+  const input = $('people');
+  input.min = rule.min;
+  input.max = rule.max;
+  input.value = rule.min;
+  $('peopleHint').textContent = rule.min === rule.max
+    ? rule.min + ' person' + (rule.min > 1 ? 's' : '')
+    : rule.min + ' to ' + rule.max + ' people';
 }
 
 function show(id) {
@@ -663,7 +685,14 @@ $('form').onsubmit = e => {
   const timeInHour = Number($('timeIn').value);
   const duration = Number($('duration').value);
   const category = $('category').value;
-  const people = Number($('people').value) || 1;
+  const people = Number($('people').value);
+
+  const rule = PEOPLE_RULES[category] || { min: 1, max: 99 };
+  if (!(people >= rule.min && people <= rule.max)) {
+    alert('Number of people for ' + category + ' must be ' +
+      (rule.min === rule.max ? rule.min : rule.min + ' to ' + rule.max));
+    return;
+  }
 
   // Time Out is calculated from Time In + Duration
   const outHour = (timeInHour + duration) % 24;
@@ -755,7 +784,7 @@ $('newBookingBtn').onclick = () => {
   $('form').reset();
   $('date').value = todayManila();
   $('dateLabel').textContent = formatDateLabel($('date').value);
-  $('people').value = 1;
+  applyPeopleRule();
   $('saveBtn').disabled = false;
   show('booking');
 };
@@ -779,6 +808,8 @@ async function init() {
     $('dateLabel').textContent = formatDateLabel($('date').value);
   });
   await loadConfig();
+  $('category').addEventListener('change', applyPeopleRule);
+  applyPeopleRule();
   show('booking');
 }
 
