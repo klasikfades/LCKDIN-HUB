@@ -130,7 +130,6 @@
   .status.err { background: #fee2e2; color: #991b1b; font-size: 15px; }
 
   .hint { font-size: 12px; color: var(--olive-2); margin-top: 10px; word-break: break-all; line-height: 1.5; text-align: center; }
-  .date-label { font-size: 12px; color: var(--olive-2); margin-top: 6px; font-weight: 400; }
   .people-hint { font-weight: 400; font-size: 12px; color: var(--olive-2); }
   .msg { margin-top: 12px; text-align: center; font-weight: 600; font-size: 14px; min-height: 18px; }
   .msg.ok { color: #3f6212; }
@@ -190,6 +189,23 @@
   .thanks h2 { font-size: 20px; margin: 0 0 8px; }
   .thanks p { font-size: 14px; color: var(--olive-2); margin: 0 0 6px; line-height: 1.5; }
   .thanks .thanks-name { font-weight: 700; color: var(--olive); }
+
+  /* Date field: shows "Oct 24, 2026", native picker sits on top (invisible) */
+  .date-wrap { position: relative; margin-top: 6px; }
+  .date-display {
+    padding: 13px 16px;
+    font-size: 15px;
+    font-weight: 400;
+    color: var(--olive);
+    background: var(--field);
+    border-radius: 16px;
+    box-shadow: inset 3px 3px 7px rgba(75, 83, 64, 0.08), inset -3px -3px 7px #fff;
+  }
+  .date-native {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%; margin: 0;
+    opacity: 0; cursor: pointer;
+  }
 </style>
 </head>
 <body>
@@ -293,8 +309,10 @@
           <input id="name" required>
         </label>
         <label>Date
-          <input type="date" id="date" required>
-          <span id="dateLabel" class="date-label"></span>
+          <div class="date-wrap">
+            <div id="dateDisplay" class="date-display"></div>
+            <input type="date" id="date" required class="date-native">
+          </div>
         </label>
         <label>Purpose
           <select id="purpose">
@@ -440,6 +458,12 @@ function formatDateLabel(iso) {
   const [y, m, d] = iso.split('-').map(Number);
   const names = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   return names[m - 1] + ' ' + d + ', ' + y;
+}
+
+// Sets the date value and shows it as "Oct 24, 2026"
+function setDate(iso) {
+  $('date').value = iso;
+  $('dateDisplay').textContent = formatDateLabel(iso);
 }
 
 // Fills a select with every hour of the day
@@ -782,8 +806,7 @@ $('saveBtn').onclick = async () => {
 // ---- Step 4: make another booking ----
 $('newBookingBtn').onclick = () => {
   $('form').reset();
-  $('date').value = todayManila();
-  $('dateLabel').textContent = formatDateLabel($('date').value);
+  setDate(todayManila());
   applyPeopleRule();
   $('saveBtn').disabled = false;
   show('booking');
@@ -802,11 +825,8 @@ async function init() {
   // Plain link: booking form, no PIN
   fillHours('timeIn');
   fillDurations('duration');
-  $('date').value = todayManila();
-  $('dateLabel').textContent = formatDateLabel($('date').value);
-  $('date').addEventListener('input', () => {
-    $('dateLabel').textContent = formatDateLabel($('date').value);
-  });
+  setDate(todayManila());
+  $('date').addEventListener('input', () => setDate($('date').value));
   await loadConfig();
   $('category').addEventListener('change', applyPeopleRule);
   applyPeopleRule();
