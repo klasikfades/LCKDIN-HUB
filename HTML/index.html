@@ -221,7 +221,7 @@
       <div id="tapResult" class="status">Loading...</div>
     </div>
 
-    <!-- NFC tap, first tap: purpose, school, time in, duration -->
+    <!-- NFC tap, first tap: purpose, school, duration. Time In is the time of the tap. -->
     <div id="tapFormView" hidden>
       <div class="title" id="tapWelcome"></div>
       <p class="subtitle">Tell us about your visit</p>
@@ -234,9 +234,6 @@
         </label>
         <label id="tapSchoolWrap" hidden>School name
           <input id="tapSchool" autocomplete="off">
-        </label>
-        <label>Time In
-          <select id="tapTimeIn" required></select>
         </label>
         <label>Duration
           <select id="tapDuration" required></select>
@@ -286,7 +283,7 @@
       <p class="hint">Write the link above onto the NFC tag with NFC Tools (Write &gt; Add a record &gt; URL).</p>
     </div>
 
-    <!-- Step 1: booking form (no PIN) -->
+    <!-- Step 1: booking form (no PIN). Time In and Duration by the hour; Time Out is calculated. -->
     <div id="booking" hidden>
       <div class="title">Booking</div>
       <p class="subtitle">Save a guest's visit to the Study Hub sheet</p>
@@ -332,6 +329,7 @@
         <div class="row"><span>Time In</span><span id="sIn"></span></div>
         <div class="row"><span>Duration</span><span id="sDuration"></span></div>
         <div class="row"><span>Time Out</span><span id="sOut"></span></div>
+        <div class="row"><span>Billed hours</span><span id="sBilled"></span></div>
         <div class="row"><span>People</span><span id="sPeople"></span></div>
       </div>
       <div class="total">
@@ -373,10 +371,14 @@
 
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbzlzbiuTATPOKUXBTQubIVFvLIgiHbWeUeZXTaUEgXV8NgiZb1JxZKf0HACJ4--dHHomA/exec';
-const PAYMENT_QR = 'gcash-qr.png.jpg';
+const PAYMENT_QR = 'gcash-qr.png';
 
-// Only these categories appear on the booking form and the card maker
+// Only these categories appear on the booking form and the NFC tap form
 const CATEGORY_NAMES = ['Focus', 'Focus+', 'Sync', 'The Lounge', 'The Huddle'];
+
+// Billing rule (matches the sheet): 20-minute grace, each started hour counts, minimum 1 hr
+const GRACE_MINUTES = 20;
+const MIN_BILLED_HOURS = 1;
 
 // Every view that can be shown
 const VIEWS = ['tap', 'tapFormView', 'tapAskView', 'tapExtendView', 'cards', 'booking', 'summary', 'payment', 'thanks', 'pin'];
@@ -400,13 +402,6 @@ function todayManila() {
   return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
 }
 
-// Current hour in Manila, 0 to 23
-function currentHourManila() {
-  return Number(new Intl.DateTimeFormat('en-GB', {
-    timeZone: 'Asia/Manila', hour: '2-digit', hourCycle: 'h23'
-  }).format(new Date())) % 24;
-}
-
 // 0 -> "12:00 AM", 13 -> "1:00 PM"
 function hourLabel(h) {
   const suffix = h < 12 ? 'AM' : 'PM';
@@ -414,7 +409,7 @@ function hourLabel(h) {
   return h12 + ':00 ' + suffix;
 }
 
-// '19:05' -> '7:05 PM' (for times sent back by the NFC backend)
+// '19:05' -> '7:05 PM'
 function to12h(hm) {
   if (!hm) return '';
   const [h, m] = String(hm).split(':').map(Number);
@@ -422,6 +417,11 @@ function to12h(hm) {
   const suffix = h < 12 ? 'AM' : 'PM';
   const h12 = h % 12 === 0 ? 12 : h % 12;
   return h12 + ':' + String(m).padStart(2, '0') + ' ' + suffix;
+}
+
+// Billed hours from a stay in minutes: up to 1 hr 20 min = 1 hr, 1 hr 21 min = 2 hrs
+function billedHours(stayMin) {
+  return Math.max(MIN_BILLED_HOURS, Math.ceil((stayMin - GRACE_MINUTES) / 60));
 }
 
 // '2026-10-22' -> 'Oct 22, 2026'
@@ -536,13 +536,12 @@ async function runTap() {
   setTapStatus('Unexpected response', 'err');
 }
 
-// First tap: purpose, school, time in, duration. The card's category is used automatically.
+// First tap: purpose, school, duration. Time In is set to the time of the tap.
 function showTapForm(r) {
   $('tapWelcome').textContent = 'Welcome, LCKies!';
   $('tapPurpose').value = 'Work';
   $('tapSchool').value = '';
   $('tapSchoolWrap').hidden = true;
-  $('tapTimeIn').value = String(currentHourManila());
   $('tapDuration').value = '1';
   $('tapFormMsg').textContent = '';
   $('tapSubmit').disabled = false;
@@ -570,13 +569,12 @@ $('tapForm').onsubmit = async e => {
   msg.className = 'msg';
   msg.textContent = 'Checking in...';
   try {
-    // No category is sent, so the backend uses the card's category
+    // No category or time is sent: the backend uses the card's category and the time of the tap
     const r = await post({
       action: 'checkin',
       token,
       purpose,
       school,
-      hour: Number($('tapTimeIn').value),
       duration: Number($('tapDuration').value)
     });
     if (!r.ok) throw new Error(r.error);
@@ -667,8 +665,11 @@ $('form').onsubmit = e => {
   const category = $('category').value;
   const people = Number($('people').value) || 1;
 
+  // Time Out is calculated from Time In + Duration
   const outHour = (timeInHour + duration) % 24;
   const nextDay = timeInHour + duration >= 24;
+  const stayMin = duration * 60;
+  const billed = billedHours(stayMin);
 
   pending = {
     name: $('name').value.trim(),
@@ -677,13 +678,12 @@ $('form').onsubmit = e => {
     category,
     timeInHour,
     duration,
+    billed,
     people,
-    // Time In and Time Out are saved as HH:00 so the sheet logic keeps working
     timeIn: String(timeInHour).padStart(2, '0') + ':00',
     timeOut: String(outHour).padStart(2, '0') + ':00',
     outLabel: hourLabel(outHour) + (nextDay ? ' (next day)' : ''),
-    // Rate x hours x people
-    total: (rates[category] || 0) * duration * people
+    total: (rates[category] || 0) * billed * people
   };
 
   $('sName').textContent = pending.name;
@@ -693,6 +693,7 @@ $('form').onsubmit = e => {
   $('sIn').textContent = hourLabel(pending.timeInHour);
   $('sDuration').textContent = pending.duration + ' hr' + (pending.duration > 1 ? 's' : '');
   $('sOut').textContent = pending.outLabel;
+  $('sBilled').textContent = pending.billed + ' hr' + (pending.billed > 1 ? 's' : '');
   $('sPeople').textContent = pending.people;
   $('sTotal').textContent = '₱' + pending.total.toFixed(2);
 
@@ -732,7 +733,6 @@ $('saveBtn').onclick = async () => {
       category: pending.category,
       timeIn: pending.timeIn,
       timeOut: pending.timeOut,
-      duration: pending.duration,
       people: pending.people
     });
     if (!r.ok) throw new Error(r.error);
@@ -763,7 +763,6 @@ $('newBookingBtn').onclick = () => {
 // ---- Start ----
 async function init() {
   // Dropdowns used by the NFC tap pages
-  fillHours('tapTimeIn');
   fillDurations('tapDuration');
   fillDurations('extendHours');
 
