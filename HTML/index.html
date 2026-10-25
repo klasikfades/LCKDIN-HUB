@@ -407,7 +407,7 @@
 
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbzlzbiuTATPOKUXBTQubIVFvLIgiHbWeUeZXTaUEgXV8NgiZb1JxZKf0HACJ4--dHHomA/exec';
-const PAYMENT_QR = 'gcash-qr.png.jpg';
+const PAYMENT_QR = 'gcash-qr.png';
 
 // Only these categories appear on the booking form and the NFC tap form
 const CATEGORY_NAMES = ['Focus', 'Focus+', 'Sync', 'The Lounge', 'The Huddle'];
@@ -440,7 +440,7 @@ const mode = token ? 'tap' : (params.get('admin') === '1' ? 'admin' : 'booking')
 let staffPin = '';
 let rates = {};      // category name -> hourly rate, from Settings
 let pending = null;  // booking waiting on the summary and payment pages
-let askNoExtend = false; // true when a pass has no hours left today
+let askNoExtend = false; // true when a pass has used all its hours today
 
 function esc(s) {
   return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -682,6 +682,54 @@ function showTapAsk(r) {
   $('askNo').disabled = false;
   show('tapAskView');
 }
+
+$('askYes').onclick = () => {
+  $('extendMsg').textContent = '';
+  $('extendSubmit').disabled = false;
+  show('tapExtendView');
+};
+
+// Check-out: shows "Checking out..." right away, then the result or any error
+$('askNo').onclick = async () => {
+  const btn = $('askNo');
+  btn.disabled = true;
+  $('askYes').disabled = true;
+  setTapStatus('Checking out...', '');
+  try {
+    const r = await post({ action: 'leave', token });
+    if (!r.ok) throw new Error(r.error || 'Check-out failed');
+    const extra = askNoExtend
+      ? '\nYour 9-hour limit for today is used up.\nCome back tomorrow.'
+      : '';
+    setTapStatus('Checked OUT at ' + to12h(r.time) + '\n' + r.hours + ' hr  |  ₱' + r.total + extra, 'out');
+  } catch (e) {
+    setTapStatus('Error: ' + e.message + '\nPlease tell the staff.', 'err');
+    btn.disabled = false;
+    $('askYes').disabled = false;
+  }
+};
+
+$('extendBack').onclick = () => {
+  show('tapAskView');
+};
+
+$('extendForm').onsubmit = async e => {
+  e.preventDefault();
+  const msg = $('extendMsg');
+  const btn = $('extendSubmit');
+  btn.disabled = true;
+  msg.className = 'msg';
+  msg.textContent = 'Extending...';
+  try {
+    const r = await post({ action: 'extend', token, hours: Number($('extendHours').value) });
+    if (!r.ok) throw new Error(r.error);
+    setTapStatus('Extended. New end time: ' + to12h(r.endTime) + '\nTap again when you leave.', 'in');
+  } catch (err) {
+    msg.className = 'msg err';
+    msg.textContent = 'Error: ' + err.message;
+    btn.disabled = false;
+  }
+};
 
 // ---- Card maker (?admin=1, PIN required) ----
 $('mkToken').onclick = async () => {
