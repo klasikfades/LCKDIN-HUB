@@ -407,7 +407,7 @@
 
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbzlzbiuTATPOKUXBTQubIVFvLIgiHbWeUeZXTaUEgXV8NgiZb1JxZKf0HACJ4--dHHomA/exec';
-const PAYMENT_QR = 'gcash-qr.png';
+const PAYMENT_QR = 'gcash-qr.png.jpg';
 
 // Only these categories appear on the booking form and the NFC tap form
 const CATEGORY_NAMES = ['Focus', 'Focus+', 'Sync', 'The Lounge', 'The Huddle'];
@@ -440,6 +440,7 @@ const mode = token ? 'tap' : (params.get('admin') === '1' ? 'admin' : 'booking')
 let staffPin = '';
 let rates = {};      // category name -> hourly rate, from Settings
 let pending = null;  // booking waiting on the summary and payment pages
+let askNoExtend = false; // true when a pass has no hours left today
 
 function esc(s) {
   return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -659,9 +660,15 @@ $('tapForm').onsubmit = async e => {
   }
 };
 
-// Second tap: ask whether to extend
+// Second tap: ask whether to extend. Passes with no hours left today are told to come back tomorrow.
 function showTapAsk(r) {
-  $('askText').textContent = 'Your stay ends at ' + to12h(r.endTime) + '. Do you want to extend your duration?';
+  askNoExtend = !!r.noExtend;
+  $('askText').textContent = 'Your stay ends at ' + to12h(r.endTime) +
+    (askNoExtend
+      ? '. Your 9-hour limit for today is used up. Please come back tomorrow.'
+      : '. Do you want to extend your duration?');
+  $('askYes').hidden = askNoExtend;
+  $('askNo').textContent = askNoExtend ? 'OK, check me out' : 'No, check me out';
   $('askYes').disabled = false;
   $('askNo').disabled = false;
   show('tapAskView');
@@ -679,7 +686,10 @@ $('askNo').onclick = async () => {
   try {
     const r = await post({ action: 'leave', token });
     if (!r.ok) throw new Error(r.error);
-    setTapStatus('Checked OUT at ' + to12h(r.time) + '\n' + r.hours + ' hr  |  ₱' + r.total, 'out');
+    const extra = askNoExtend
+      ? '\nYour 9-hour limit for today is used up.\nCome back tomorrow.'
+      : '';
+    setTapStatus('Checked OUT at ' + to12h(r.time) + '\n' + r.hours + ' hr  |  ₱' + r.total + extra, 'out');
   } catch (e) {
     setTapStatus('Error: ' + e.message, 'err');
   }
