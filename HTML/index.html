@@ -660,21 +660,24 @@ $('tapForm').onsubmit = async e => {
   }
 };
 
-// Second tap: shows the used-up message, a reminder of hours left, or the normal question
+// Second tap: pass cards get a reminder and check-out only. Category cards keep the extend option.
 function showTapAsk(r) {
-  askNoExtend = !!r.noExtend;
+  const isPass = r.remaining !== null && r.remaining !== undefined;
+  askNoExtend = !!r.noExtend;   // true only when the pass has used all its hours today
+
   let text = 'Your stay ends at ' + to12h(r.endTime);
-  if (askNoExtend) {
+  if (r.noExtend) {
     text += '. Your 9-hour limit for today is used up. Please come back tomorrow.';
-  } else if (r.remaining !== null && r.remaining !== undefined) {
+  } else if (isPass) {
     text += '. Reminder: you have ' + r.remaining + ' hr' + (r.remaining !== 1 ? 's' : '') +
-            ' left on your pass today. Do you want to extend your duration?';
+            ' left on your pass today.';
   } else {
     text += '. Do you want to extend your duration?';
   }
   $('askText').textContent = text;
-  $('askYes').hidden = askNoExtend;
-  $('askNo').textContent = askNoExtend ? 'OK, check me out' : 'No, check me out';
+
+  $('askYes').hidden = isPass || askNoExtend;
+  $('askNo').textContent = (isPass || askNoExtend) ? 'Check me out' : 'No, check me out';
   $('askYes').disabled = false;
   $('askNo').disabled = false;
   show('tapAskView');
