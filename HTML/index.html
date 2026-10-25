@@ -660,62 +660,25 @@ $('tapForm').onsubmit = async e => {
   }
 };
 
-// Second tap: ask whether to extend. Passes with no hours left today are told to come back tomorrow.
+// Second tap: shows the used-up message, a reminder of hours left, or the normal question
 function showTapAsk(r) {
   askNoExtend = !!r.noExtend;
-  $('askText').textContent = 'Your stay ends at ' + to12h(r.endTime) +
-    (askNoExtend
-      ? '. Your 9-hour limit for today is used up. Please come back tomorrow.'
-      : '. Do you want to extend your duration?');
+  let text = 'Your stay ends at ' + to12h(r.endTime);
+  if (askNoExtend) {
+    text += '. Your 9-hour limit for today is used up. Please come back tomorrow.';
+  } else if (r.remaining !== null && r.remaining !== undefined) {
+    text += '. Reminder: you have ' + r.remaining + ' hr' + (r.remaining !== 1 ? 's' : '') +
+            ' left on your pass today. Do you want to extend your duration?';
+  } else {
+    text += '. Do you want to extend your duration?';
+  }
+  $('askText').textContent = text;
   $('askYes').hidden = askNoExtend;
   $('askNo').textContent = askNoExtend ? 'OK, check me out' : 'No, check me out';
   $('askYes').disabled = false;
   $('askNo').disabled = false;
   show('tapAskView');
 }
-
-$('askYes').onclick = () => {
-  $('extendMsg').textContent = '';
-  $('extendSubmit').disabled = false;
-  show('tapExtendView');
-};
-
-$('askNo').onclick = async () => {
-  $('askYes').disabled = true;
-  $('askNo').disabled = true;
-  try {
-    const r = await post({ action: 'leave', token });
-    if (!r.ok) throw new Error(r.error);
-    const extra = askNoExtend
-      ? '\nYour 9-hour limit for today is used up.\nCome back tomorrow.'
-      : '';
-    setTapStatus('Checked OUT at ' + to12h(r.time) + '\n' + r.hours + ' hr  |  ₱' + r.total + extra, 'out');
-  } catch (e) {
-    setTapStatus('Error: ' + e.message, 'err');
-  }
-};
-
-$('extendBack').onclick = () => {
-  show('tapAskView');
-};
-
-$('extendForm').onsubmit = async e => {
-  e.preventDefault();
-  const msg = $('extendMsg');
-  const btn = $('extendSubmit');
-  btn.disabled = true;
-  msg.className = 'msg';
-  msg.textContent = 'Extending...';
-  try {
-    const r = await post({ action: 'extend', token, hours: Number($('extendHours').value) });
-    if (!r.ok) throw new Error(r.error);
-    setTapStatus('Extended. New end time: ' + to12h(r.endTime) + '\nTap again when you leave.', 'in');
-  } catch (err) {
-    msg.className = 'msg err';
-    msg.textContent = 'Error: ' + err.message;
-    btn.disabled = false;
-  }
-};
 
 // ---- Card maker (?admin=1, PIN required) ----
 $('mkToken').onclick = async () => {
