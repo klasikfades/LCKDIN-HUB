@@ -573,7 +573,7 @@ function askPin() {
   };
 }
 
-// Loads categories and rates from the Settings tab, plus the pass types
+// Loads categories and rates from the Settings tab, plus the pass prices
 async function loadConfig() {
   const r = await (await fetch(API_URL)).json();
   if (!r.ok) throw new Error(r.error || 'Could not load settings');
@@ -585,11 +585,11 @@ async function loadConfig() {
   const shown = CATEGORY_NAMES.filter(n => n in rates);
   $('category').innerHTML = shown.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('');
 
-  // Card maker: categories with rates, then the passes
+  // Card maker: categories with rates, then the passes (prices from Settings)
   const full = r.categories.map(c =>
     `<option value="${esc(c.name)}">${esc(c.name)} (₱${esc(c.rate)}/hr)</option>`).join('');
-  const passes = Object.keys(PASS_PRICES).map(p =>
-    `<option value="${esc(p)}">${esc(p)} (₱${PASS_PRICES[p]})</option>`).join('');
+  const passes = Object.keys(r.passes || {}).map(p =>
+    `<option value="${esc(p)}">${esc(p)} (₱${r.passes[p]})</option>`).join('');
   $('cardCategory').innerHTML = full + passes;
 }
 
