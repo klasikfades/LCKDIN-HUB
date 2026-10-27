@@ -409,13 +409,11 @@
 const API_URL = 'https://script.google.com/macros/s/AKfycbzlzbiuTATPOKUXBTQubIVFvLIgiHbWeUeZXTaUEgXV8NgiZb1JxZKf0HACJ4--dHHomA/exec';
 const PAYMENT_QR = 'gcash-qr.png.jpg';
 
-// Only these categories appear on the booking form and the NFC tap form
+// ---- Settings that must match the sheet ----
+// Rooms shown on the booking form and NFC tap form (must match Settings tab names)
 const CATEGORY_NAMES = ['Focus', 'Focus+', 'Sync', 'The Lounge', 'The Huddle'];
 
-// Pass types you can sell as cards
-const PASS_PRICES = { 'Day Pass': 400, 'Weekly Pass': 800, 'Monthly Pass': 1600 };
-
-// Number of people per category: minimum and maximum. The field starts at the minimum.
+// People allowed per room: min and max. The field starts at min.
 const PEOPLE_RULES = {
   'Focus':      { min: 1, max: 1 },
   'Focus+':     { min: 1, max: 1 },
@@ -428,6 +426,9 @@ const PEOPLE_RULES = {
 const GRACE_MINUTES = 20;
 const MIN_BILLED_HOURS = 1;
 
+// Fallback until the server sends passDailyCap
+const DEFAULT_PASS_DAILY_CAP = 9;
+
 // Every view that can be shown
 const VIEWS = ['tap', 'tapFormView', 'tapAskView', 'tapExtendView', 'cards', 'booking', 'summary', 'payment', 'thanks', 'pin'];
 
@@ -438,9 +439,9 @@ const mode = token ? 'tap' : (params.get('admin') === '1' ? 'admin' : 'booking')
 
 // Kept in memory only, so a page refresh locks the card maker again
 let staffPin = '';
-let rates = {};      // category name -> hourly rate, from Settings
-let pending = null;  // booking waiting on the summary and payment pages
-let askNoExtend = false;
+let rates = {};            // category name -> hourly rate, from Settings
+let passDailyCap = DEFAULT_PASS_DAILY_CAP;   // from the server
+let pending = null;        // booking waiting on the summary and payment pages
 
 function esc(s) {
   return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -573,13 +574,14 @@ function askPin() {
   };
 }
 
-// Loads categories and rates from the Settings tab, plus the pass prices
+// Loads categories, rates and pass settings from the server
 async function loadConfig() {
   const r = await (await fetch(API_URL)).json();
   if (!r.ok) throw new Error(r.error || 'Could not load settings');
 
   rates = {};
   r.categories.forEach(c => { rates[c.name] = c.rate; });
+  passDailyCap = r.passDailyCap || DEFAULT_PASS_DAILY_CAP;
 
   // Booking form: names only, no rate text
   const shown = CATEGORY_NAMES.filter(n => n in rates);
@@ -671,13 +673,12 @@ $('tapForm').onsubmit = async e => {
 
 // Second tap: passes get a reminder and check-out only. Category cards keep the extend option.
 function showTapAsk(r) {
-  askNoExtend = !!r.noExtend;
   const isPass = !!r.isPass;
 
   let text = 'Your stay ends at ' + to12h(r.endTime);
   if (isPass) {
     text += r.remainingMin === 0
-      ? '. Your 9-hour limit for today is used up. Please check out and come back tomorrow.'
+      ? '. Your ' + passDailyCap + '-hour limit for today is used up. Please check out and come back tomorrow.'
       : '. Time left on your pass today: ' + minsText(r.remainingMin) + '.';
   } else {
     text += '. Do you want to extend your duration?';
@@ -710,7 +711,7 @@ $('askNo').onclick = async () => {
     let msg = 'Checked OUT at ' + to12h(r.time) + '\nTime used: ' + minsText(r.usedMin);
     if (r.isPass) {
       msg += '\nPass time left today: ' + minsText(r.leftMin);
-      if (r.leftMin === 0) msg += '\nYour 9-hour limit is used up. Come back tomorrow.';
+      if (r.leftMin === 0) msg += '\nYour ' + passDailyCap + '-hour limit is used up. Come back tomorrow.';
     } else {
       msg += '\n' + r.hours + ' hr  |  ₱' + r.total;
     }
