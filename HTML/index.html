@@ -253,34 +253,22 @@
   .avgtile .label { font-size: 11px; color: var(--olive-2); font-weight: 600; }
   .avgtile .value { font-size: 18px; font-weight: 700; margin-top: 6px; word-break: break-word; }
 
-  .chart {
-    display: flex;
-    align-items: flex-end;
-    gap: 4px;
-    height: 200px;
-    padding: 14px 10px 0;
+  /* Line chart */
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; color: var(--olive-2); margin: 4px 0 8px; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend i { display: inline-block; width: 18px; height: 3px; border-radius: 2px; }
+  .linechart {
     background: var(--band);
     border-radius: 18px;
-    overflow-x: auto;
+    padding: 12px 8px 4px;
   }
-  .bar-col {
-    flex: 1;
-    min-width: 16px;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
-    align-items: center;
-  }
-  .bar {
-    width: 100%;
-    background: linear-gradient(180deg, var(--olive-3), var(--olive));
-    border-radius: 6px 6px 2px 2px;
-    min-height: 2px;
-  }
-  .bar.last { background: linear-gradient(180deg, var(--orange-2), var(--orange)); }
-  .bar.zero { background: var(--line); }
-  .bar-label { font-size: 9px; color: var(--olive-2); margin-top: 4px; height: 14px; white-space: nowrap; }
+  .linechart svg { width: 100%; height: auto; display: block; }
+  .linechart .axis { font-size: 10px; fill: var(--olive-2); font-family: 'Poppins', system-ui, sans-serif; }
+  .linechart .grid { stroke: var(--line); stroke-width: 1; stroke-dasharray: 3 4; }
+  .linechart .line-v { fill: none; stroke: var(--olive); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+  .linechart .line-s { fill: none; stroke: var(--orange); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+  .linechart .dot-v { fill: var(--olive); stroke: #fff; stroke-width: 1.5; }
+  .linechart .dot-s { fill: var(--orange); stroke: #fff; stroke-width: 1.5; }
 
   table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 12px; }
   th, td { padding: 10px 6px; border-bottom: 1px dashed var(--line); text-align: left; }
@@ -446,19 +434,17 @@
         <div class="panel wide">
           <div class="prow">
             <div class="ptitle" id="trendTitle">Trend</div>
-            <div style="display:flex; gap:8px; flex-wrap:wrap;">
-              <div class="seg" role="group" aria-label="Period">
-                <button type="button" data-period="daily" aria-pressed="true">Day</button>
-                <button type="button" data-period="weekly" aria-pressed="false">Week</button>
-                <button type="button" data-period="monthly" aria-pressed="false">Month</button>
-              </div>
-              <div class="seg" role="group" aria-label="Metric">
-                <button type="button" data-metric="visitors" aria-pressed="false">Visitors</button>
-                <button type="button" data-metric="sales" aria-pressed="true">Sales</button>
-              </div>
+            <div class="seg" role="group" aria-label="Period">
+              <button type="button" data-period="daily" aria-pressed="true">Day</button>
+              <button type="button" data-period="weekly" aria-pressed="false">Week</button>
+              <button type="button" data-period="monthly" aria-pressed="false">Month</button>
             </div>
           </div>
-          <div class="chart" id="chart" role="img" aria-label="Sales by day"></div>
+          <div class="legend">
+            <span><i style="background: var(--olive);"></i>Visitors (left scale, people)</span>
+            <span><i style="background: var(--orange);"></i>Sales (right scale, ₱)</span>
+          </div>
+          <div class="linechart" id="chart"></div>
           <table>
             <caption class="sr-only">Visitors and sales for each period</caption>
             <thead>
@@ -512,7 +498,6 @@ const $ = id => document.getElementById(id);
 let staffPin = '';
 let data = null;          // last dashboard response
 let period = 'daily';     // daily | weekly | monthly
-let metric = 'sales';     // sales | visitors
 let refreshTimer = null;
 
 function esc(s) {
@@ -547,7 +532,7 @@ function fullLabel(p, label) {
   return MONTHS[m - 1] + ' ' + y;
 }
 
-// Short label under each bar
+// Short label under each point on the chart
 function shortLabel(p, label) {
   if (p === 'daily') return String(Number(label.split('-')[2]));
   if (p === 'weekly') {
@@ -859,26 +844,68 @@ function renderAverages() {
     tile('Per month', fmtAvg(a.perMonth.visitors));
 }
 
-// Bar chart plus a table. Both come from the same numbers, so the table is the accessible fallback.
+// Rounds a maximum up to a clean number for the axis (e.g. 37 -> 40, 1260 -> 1300)
+function niceMax(v) {
+  if (v <= 0) return 10;
+  const p = Math.pow(10, Math.floor(Math.log10(v)));
+  return Math.ceil(v / p) * p;
+}
+
+// Two-line chart: visitors on the left axis, sales on the right axis
 function renderSeries() {
   const series = data[period];
-  const max = Math.max(0, ...series.map(s => s[metric]));
-  const periodName = period === 'daily' ? 'day' : period === 'weekly' ? 'week' : 'month';
-  const metricName = metric === 'sales' ? 'Sales' : 'Visitors';
-  const lastIndex = series.length - 1;
+  const n = series.length;
 
-  $('chart').setAttribute('aria-label', metricName + ' by ' + periodName);
-  $('chart').innerHTML = series.map((s, i) => {
-    const v = s[metric];
-    const h = max && v ? Math.max(3, Math.round(v / max * 100)) : 0;
-    const title = fullLabel(period, s.label) + ': ' +
-      (metric === 'sales' ? peso(v) : fmtNum(v));
-    const cls = i === lastIndex ? 'bar last' : 'bar';
-    return `<div class="bar-col" title="${esc(title)}">
-      <div class="${v ? cls : 'bar zero'}" style="height:${h}%"></div>
-      <div class="bar-label">${esc(shortLabel(period, s.label))}</div>
-    </div>`;
-  }).join('');
+  const W = 640, H = 260, pl = 52, pr = 60, pt = 14, pb = 30;
+  const iw = W - pl - pr, ih = H - pt - pb;
+
+  const vMax = niceMax(Math.max(0, ...series.map(s => s.visitors)));
+  const sMax = niceMax(Math.max(0, ...series.map(s => s.sales)));
+
+  const x = i => n === 1 ? pl + iw / 2 : pl + i * iw / (n - 1);
+  const yV = v => pt + ih - (v / vMax) * ih;
+  const yS = v => pt + ih - (v / sMax) * ih;
+
+  const pathV = series.map((s, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${yV(s.visitors).toFixed(1)}`).join(' ');
+  const pathS = series.map((s, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${yS(s.sales).toFixed(1)}`).join(' ');
+
+  // Horizontal grid lines and axis labels (4 steps)
+  let grid = '';
+  for (let k = 0; k <= 4; k++) {
+    const y = pt + ih * k / 4;
+    const lv = Math.round(vMax * (1 - k / 4));
+    const ls = Math.round(sMax * (1 - k / 4));
+    grid += `<line class="grid" x1="${pl}" x2="${W - pr}" y1="${y}" y2="${y}"></line>`;
+    grid += `<text class="axis" x="${pl - 8}" y="${y + 3}" text-anchor="end">${fmtNum(lv)}</text>`;
+    grid += `<text class="axis" x="${W - pr + 8}" y="${y + 3}" text-anchor="start">₱${fmtNum(ls)}</text>`;
+  }
+
+  // X-axis labels: show about 8 labels so they don't crowd together
+  const step = Math.max(1, Math.ceil(n / 8));
+  let xLabels = '';
+  series.forEach((s, i) => {
+    if (i % step === 0 || i === n - 1) {
+      xLabels += `<text class="axis" x="${x(i).toFixed(1)}" y="${H - 8}" text-anchor="middle">${esc(shortLabel(period, s.label))}</text>`;
+    }
+  });
+
+  // Dots with hover tooltips
+  let dots = '';
+  series.forEach((s, i) => {
+    dots += `<circle class="dot-v" cx="${x(i).toFixed(1)}" cy="${yV(s.visitors).toFixed(1)}" r="3.5">
+      <title>${esc(fullLabel(period, s.label))}: ${fmtNum(s.visitors)} visitors</title></circle>`;
+    dots += `<circle class="dot-s" cx="${x(i).toFixed(1)}" cy="${yS(s.sales).toFixed(1)}" r="3.5">
+      <title>${esc(fullLabel(period, s.label))}: ${peso(s.sales)} sales</title></circle>`;
+  });
+
+  $('chart').innerHTML = `
+    <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Line chart of visitors and sales by ${period === 'daily' ? 'day' : period === 'weekly' ? 'week' : 'month'}">
+      ${grid}
+      <path class="line-v" d="${pathV}"></path>
+      <path class="line-s" d="${pathS}"></path>
+      ${dots}
+      ${xLabels}
+    </svg>`;
 
   // Newest first in the table
   $('seriesBody').innerHTML = series.slice().reverse().map(s => `
@@ -889,20 +916,11 @@ function renderSeries() {
     </tr>`).join('');
 }
 
-// Period and metric switches
+// Period switches
 document.querySelectorAll('[data-period]').forEach(btn => {
   btn.onclick = () => {
     period = btn.dataset.period;
     document.querySelectorAll('[data-period]').forEach(b =>
-      b.setAttribute('aria-pressed', String(b === btn)));
-    if (data) renderSeries();
-  };
-});
-
-document.querySelectorAll('[data-metric]').forEach(btn => {
-  btn.onclick = () => {
-    metric = btn.dataset.metric;
-    document.querySelectorAll('[data-metric]').forEach(b =>
       b.setAttribute('aria-pressed', String(b === btn)));
     if (data) renderSeries();
   };
