@@ -238,6 +238,16 @@
   /* Card maker */
   #cardResult { text-align: left; font-size: 14px; }
   #cardResult b { color: var(--olive); }
+
+  /* Booking flow */
+  .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  .row3 select { margin-top: 6px; }
+  #summary { margin-top: 12px; }
+  #summary td:last-child { text-align: right; font-weight: 600; }
+  #summary tr.total td { font-weight: 700; color: var(--olive); border-bottom: 0; }
+  .value-big { font-size: 22px; font-weight: 700; margin-top: 4px; }
+  .qr { display: block; width: 220px; max-width: 100%; margin: 14px auto 0; border-radius: 16px; }
+  .reminder { margin-top: 14px; background: var(--yellow); color: var(--olive); font-size: 13px; }
 </style>
 </head>
 <body>
@@ -254,31 +264,80 @@
     <div id="loading" class="loading">Loading...</div>
     <div id="error" class="status err" hidden></div>
 
-    <!-- Booking form (root link) -->
+    <!-- Booking flow (root link) -->
     <div id="booking" hidden>
-      <div class="title">Book a visit</div>
-      <p class="subtitle">Staff booking form</p>
-      <label for="bookName">Name</label>
-      <input id="bookName">
-      <label for="bookDate">Date</label>
-      <input type="date" id="bookDate">
-      <label for="bookCategory">Room</label>
-      <select id="bookCategory"></select>
-      <label for="bookPeople">People</label>
-      <input type="number" id="bookPeople" min="1" value="1">
-      <label for="bookIn">Time in (leave empty for Open)</label>
-      <input type="time" id="bookIn">
-      <label for="bookOut">Time out (optional)</label>
-      <input type="time" id="bookOut">
-      <label for="bookPurpose">Purpose</label>
-      <input id="bookPurpose">
-      <label for="bookPayment">Payment</label>
-      <select id="bookPayment">
-        <option>GCash</option>
-        <option>Cash</option>
-      </select>
-      <button type="button" id="bookBtn" class="dark">Save booking</button>
-      <p id="bookMsg" class="msg" role="alert"></p>
+      <p class="subtitle" id="stepLabel">Step 1 of 3</p>
+
+      <!-- Step 1: details -->
+      <div id="step1">
+        <div class="title">Book a visit</div>
+        <label for="bookName">Name</label>
+        <input id="bookName">
+        <label for="bookDate">Date</label>
+        <input type="date" id="bookDate">
+        <label for="bookCategory">Room</label>
+        <select id="bookCategory"></select>
+        <label for="bookPeople">People</label>
+        <input type="number" id="bookPeople" min="1" value="1">
+
+        <label>Time in</label>
+        <div class="row3">
+          <select id="bookHour" aria-label="Hour"></select>
+          <select id="bookMin" aria-label="Minute"></select>
+          <select id="bookAmpm" aria-label="AM or PM">
+            <option>AM</option>
+            <option>PM</option>
+          </select>
+        </div>
+
+        <label for="bookHours">Duration</label>
+        <select id="bookHours"></select>
+
+        <label>Purpose</label>
+        <div class="seg">
+          <button type="button" data-purpose="Work" aria-pressed="true">Work</button>
+          <button type="button" data-purpose="School" aria-pressed="false">School</button>
+        </div>
+        <div id="schoolWrap" hidden>
+          <label for="bookSchool">School name</label>
+          <input id="bookSchool">
+        </div>
+
+        <button type="button" id="next1" class="dark">Next</button>
+        <p id="msg1" class="msg err" role="alert"></p>
+      </div>
+
+      <!-- Step 2: billing summary -->
+      <div id="step2" hidden>
+        <div class="title">Billing summary</div>
+        <table id="summary"></table>
+        <button type="button" id="next2" class="dark">Next</button>
+        <button type="button" id="back2" class="ghost">Back</button>
+      </div>
+
+      <!-- Step 3: payment -->
+      <div id="step3" hidden>
+        <div class="title">Payment</div>
+        <div class="status">
+          <div>Amount due</div>
+          <div class="value-big" id="dueAmt"></div>
+        </div>
+        <label for="bookPayment">Payment method</label>
+        <select id="bookPayment">
+          <option value="GCash">GCash</option>
+          <option value="Cash">Cash</option>
+        </select>
+        <div id="qrBox">
+          <img class="qr" src="gcash-qr.png" alt="GCash QR code">
+          <p class="hint">Scan the code to pay with GCash, then show the payment confirmation to staff.</p>
+        </div>
+        <div class="status reminder">
+          Reminder: please pay the amount due before you leave. Staff will mark the booking as paid.
+        </div>
+        <button type="button" id="saveBtn" class="dark">Save booking</button>
+        <button type="button" id="back3" class="ghost">Back</button>
+        <p id="bookMsg" class="msg" role="alert"></p>
+      </div>
     </div>
 
     <!-- Staff PIN -->
@@ -450,14 +509,50 @@ async function post(body) {
   return parseReply(res);
 }
 
-// ---- Booking form (root link) ----
+// ---- Booking flow (root link) ----
+const RATES = {};     // room name -> rate per hour
+let S = {};           // booking in progress
+
+const pad = n => String(n).padStart(2, '0');
+
+// 12-hour picker values -> 'HH:MM' (24-hour), for the server
+function to24(h, m, ap) {
+  let hh = Number(h) % 12;
+  if (ap === 'PM') hh += 12;
+  return pad(hh) + ':' + m;
+}
+
+// 'HH:MM' (24-hour) -> '2:00 PM'
+function fmt12str(hhmm) {
+  let [h, m] = hhmm.split(':').map(Number);
+  const ap = h >= 12 ? 'PM' : 'AM';
+  h = h % 12 || 12;
+  return h + ':' + pad(m) + ' ' + ap;
+}
+
+function goStep(n) {
+  [1, 2, 3].forEach(i => { $('step' + i).hidden = i !== n; });
+  $('stepLabel').textContent = 'Step ' + n + ' of 3';
+}
+
 async function showBooking() {
   show('booking');
+  goStep(1);
   $('bookDate').value = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date());
+
+  $('bookHour').innerHTML = [...Array(12)].map((_, i) => `<option>${i + 1}</option>`).join('');
+  $('bookHour').value = '9';
+  $('bookMin').innerHTML = ['00', '15', '30', '45'].map(m => `<option>${m}</option>`).join('');
+  $('bookAmpm').value = 'AM';
+  $('bookHours').innerHTML = [...Array(24)].map((_, i) =>
+    `<option value="${i + 1}">${i + 1} ${i === 0 ? 'hr' : 'hrs'}</option>`).join('');
+  $('bookHours').value = '1';
+
   try {
     const res = await fetch(API_URL);
     const r = await parseReply(res);
     if (!r.ok) throw new Error(r.error || 'Could not load rooms');
+    r.categories.forEach(c => { RATES[c.name] = c.rate; });
     $('bookCategory').innerHTML = r.categories.map(c =>
       `<option value="${esc(c.name)}">${esc(c.name)} (₱${esc(c.rate)}/hr)</option>`).join('');
   } catch (e) {
@@ -465,31 +560,117 @@ async function showBooking() {
   }
 }
 
-$('bookBtn').onclick = async () => {
-  $('bookBtn').disabled = true;
+// Work or School
+document.querySelectorAll('[data-purpose]').forEach(btn => {
+  btn.onclick = () => {
+    const isSchool = btn.dataset.purpose === 'School';
+    document.querySelectorAll('[data-purpose]').forEach(b =>
+      b.setAttribute('aria-pressed', String(b === btn)));
+    $('schoolWrap').hidden = !isSchool;
+  };
+});
+
+// Step 1 -> Step 2
+$('next1').onclick = () => {
+  const name = $('bookName').value.trim();
+  const date = $('bookDate').value;
+  const category = $('bookCategory').value;
+  const people = Math.max(1, Number($('bookPeople').value) || 1);
+  const isSchool = !$('schoolWrap').hidden;
+  const school = $('bookSchool').value.trim();
+
+  if (!name || !date || !category) {
+    $('msg1').textContent = 'Name, date and room are required';
+    return;
+  }
+  if (isSchool && !school) {
+    $('msg1').textContent = 'Type the name of the school';
+    return;
+  }
+
+  const hours = Number($('bookHours').value);
+  const startHHMM = to24($('bookHour').value, $('bookMin').value, $('bookAmpm').value);
+  const [sh, sm] = startHHMM.split(':').map(Number);
+  const startMin = sh * 60 + sm;
+  const endMin = (startMin + hours * 60) % 1440;
+  const nextDay = startMin + hours * 60 >= 1440;
+
+  S = {
+    name, date, category, people, hours,
+    purpose: isSchool ? 'School: ' + school : 'Work',
+    startHHMM,
+    endHHMM: pad(Math.floor(endMin / 60)) + ':' + pad(endMin % 60),
+    nextDay,
+    rate: (RATES[category] || 0) * people,
+    total: (RATES[category] || 0) * people * hours
+  };
+
+  $('msg1').textContent = '';
+  renderSummary();
+  goStep(2);
+};
+
+function renderSummary() {
+  const rows = [
+    ['Name', S.name],
+    ['Date', dayLabel(S.date)],
+    ['Room', S.category],
+    ['People', S.people],
+    ['Purpose', S.purpose],
+    ['Time in', fmt12str(S.startHHMM)],
+    ['Time out', fmt12str(S.endHHMM) + (S.nextDay ? ' (next day)' : '')],
+    ['Duration', S.hours + (S.hours === 1 ? ' hr' : ' hrs')],
+    ['Rate', peso(S.rate) + ' per hour'],
+  ];
+  $('summary').innerHTML = rows.map(([k, v]) =>
+    `<tr><td>${esc(k)}</td><td>${esc(v)}</td></tr>`).join('') +
+    `<tr class="total"><td>Total due</td><td>${peso(S.total)}</td></tr>`;
+}
+
+// Step 2 -> Step 3
+$('next2').onclick = () => {
+  $('dueAmt').textContent = peso(S.total);
+  goStep(3);
+};
+
+$('back2').onclick = () => goStep(1);
+$('back3').onclick = () => goStep(2);
+
+$('bookPayment').onchange = () => {
+  $('qrBox').hidden = $('bookPayment').value !== 'GCash';
+};
+
+// Step 3: save the booking
+$('saveBtn').onclick = async () => {
+  $('saveBtn').disabled = true;
   $('bookMsg').textContent = '';
   try {
     const r = await post({
       action: 'visit',
-      name: $('bookName').value.trim(),
-      date: $('bookDate').value,
-      category: $('bookCategory').value,
-      people: $('bookPeople').value,
-      timeIn: $('bookIn').value || 'Open',
-      timeOut: $('bookOut').value,
-      purpose: $('bookPurpose').value.trim(),
+      name: S.name,
+      date: S.date,
+      category: S.category,
+      people: S.people,
+      timeIn: S.startHHMM,
+      timeOut: S.endHHMM,
+      purpose: S.purpose,
       payment: $('bookPayment').value
     });
     if (!r.ok) throw new Error(r.error);
-    $('bookMsg').className = 'msg ok';
-    $('bookMsg').textContent = 'Booking saved.';
+
+    // Clear the form and go back to step 1
     $('bookName').value = '';
-    $('bookPurpose').value = '';
+    $('bookSchool').value = '';
+    $('bookPeople').value = '1';
+    S = {};
+    goStep(1);
+    $('msg1').className = 'msg ok';
+    $('msg1').textContent = 'Booking saved.';
   } catch (e) {
     $('bookMsg').className = 'msg err';
     $('bookMsg').textContent = e.message;
   } finally {
-    $('bookBtn').disabled = false;
+    $('saveBtn').disabled = false;
   }
 };
 
@@ -679,7 +860,7 @@ $('mkToken').onclick = async () => {
 };
 
 // ---- Start ----
-// Root link (no ?admin): booking form. ?admin=1: staff sign-in and dashboard.
+// Root link (no ?admin): booking flow. ?admin=1: staff sign-in and dashboard.
 if (new URLSearchParams(location.search).has('admin')) {
   askPin();
 } else {
