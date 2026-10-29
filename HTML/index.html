@@ -337,6 +337,9 @@
             <option value="Work">Work</option>
           </select>
         </label>
+        <label id="schoolWrap">School name
+          <input id="school" autocomplete="off">
+        </label>
         <label>Category
           <select id="category" required></select>
         </label>
@@ -406,14 +409,21 @@
 <footer>LCKDIN Study Hub</footer>
 
 <script>
+// ---- Connection ----
+// Must be the URL of the CURRENT deployment (Deploy > Manage deployments > New version)
 const API_URL = 'https://script.google.com/macros/s/AKfycbzlzbiuTATPOKUXBTQubIVFvLIgiHbWeUeZXTaUEgXV8NgiZb1JxZKf0HACJ4--dHHomA/exec';
 const PAYMENT_QR = 'gcash-qr.png.jpg';
 
-// ---- Settings that must match the sheet ----
-// Rooms shown on the booking form and NFC tap form (must match Settings tab names)
+// ---- Must match the Apps Script ----
+const TZ = 'Asia/Manila';
+const PASS_DAILY_CAP_HOURS = 9;   // same as PASS_DAILY_CAP_HOURS in the script
+const GRACE_MINUTES = 20;         // same billing rule as writeFormulas() in the script
+const MIN_BILLED_HOURS = 1;
+
+// Room order on the booking form. Rooms not in the Settings tab are skipped.
 const CATEGORY_NAMES = ['Focus', 'Focus+', 'Sync', 'The Lounge', 'The Huddle'];
 
-// People allowed per room: min and max. The field starts at min.
+// People allowed per room. Must match the room's rules on the booking form.
 const PEOPLE_RULES = {
   'Focus':      { min: 1, max: 1 },
   'Focus+':     { min: 1, max: 1 },
@@ -422,12 +432,7 @@ const PEOPLE_RULES = {
   'The Huddle': { min: 5, max: 8 }
 };
 
-// Billing rule (matches the sheet): 20-minute grace, each started hour counts, minimum 1 hr
-const GRACE_MINUTES = 20;
-const MIN_BILLED_HOURS = 1;
-
-// Fallback until the server sends passDailyCap
-const DEFAULT_PASS_DAILY_CAP = 9;
+const DEFAULT_PASS_DAILY_CAP = PASS_DAILY_CAP_HOURS;
 
 // Every view that can be shown
 const VIEWS = ['tap', 'tapFormView', 'tapAskView', 'tapExtendView', 'cards', 'booking', 'summary', 'payment', 'thanks', 'pin'];
@@ -439,9 +444,9 @@ const mode = token ? 'tap' : (params.get('admin') === '1' ? 'admin' : 'booking')
 
 // Kept in memory only, so a page refresh locks the card maker again
 let staffPin = '';
-let rates = {};            // category name -> hourly rate, from Settings
+let rates = {};                              // category name -> hourly rate, from Settings
 let passDailyCap = DEFAULT_PASS_DAILY_CAP;   // from the server
-let pending = null;        // booking waiting on the summary and payment pages
+let pending = null;                          // booking waiting on the summary and payment pages
 
 function esc(s) {
   return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -449,7 +454,7 @@ function esc(s) {
 
 // Today's date in Manila, as YYYY-MM-DD
 function todayManila() {
-  return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
+  return new Date().toLocaleDateString('en-CA', { timeZone: TZ });
 }
 
 // 0 -> "12:00 AM", 13 -> "1:00 PM"
@@ -512,7 +517,7 @@ function fillDurations(id, max = 24) {
   }).join('');
 }
 
-// Sets the people field to the chosen category's starting value and limits it to that category's range
+// Sets the people field to the room's starting value and limits it to the room's range
 function applyPeopleRule() {
   const rule = PEOPLE_RULES[$('category').value] || { min: 1, max: 99 };
   const input = $('people');
@@ -522,6 +527,11 @@ function applyPeopleRule() {
   $('peopleHint').textContent = rule.min === rule.max
     ? '(' + rule.min + ' person' + (rule.min > 1 ? 's' : '') + ')'
     : '(' + rule.min + '-' + rule.max + ' people)';
+}
+
+// Shows/hides the school name field on the booking form
+function applySchoolRule() {
+  $('schoolWrap').hidden = $('purpose').value !== 'School';
 }
 
 function show(id) {
@@ -540,9 +550,15 @@ function setStatus(el, text, kind) {
   el.textContent = text;
 }
 
+// Sends one action to the Apps Script. Reports a readable error if the reply is not JSON.
 async function post(body) {
   const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(body) });
-  return res.json();
+  const text = await res.text();
+  try {
+    return JSON.parse(text);
+  } catch (e) {
+    throw new Error('Server reply was not valid. Check the Apps Script deployment.');
+  }
 }
 
 // ---- Card-maker PIN (only for ?admin=1) ----
@@ -574,20 +590,23 @@ function askPin() {
   };
 }
 
-// Loads categories, rates and pass settings from the server
+// Loads rooms, rates and pass settings from the server (the Settings tab is the source of truth)
 async function loadConfig() {
-  const r = await (await fetch(API_URL)).json();
+  const res = await fetch(API_URL);
+  const text = await res.text();
+  let r;
+  try { r = JSON.parse(text); } catch (e) { throw new Error('Server reply was not valid. Check the Apps Script deployment.'); }
   if (!r.ok) throw new Error(r.error || 'Could not load settings');
 
   rates = {};
   r.categories.forEach(c => { rates[c.name] = c.rate; });
   passDailyCap = r.passDailyCap || DEFAULT_PASS_DAILY_CAP;
 
-  // Booking form: names only, no rate text
+  // Booking form: rooms that exist in Settings, in the order above
   const shown = CATEGORY_NAMES.filter(n => n in rates);
   $('category').innerHTML = shown.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('');
 
-  // Card maker: categories with rates, then the passes (prices from Settings)
+  // Card maker: rooms with rates, then the passes (prices from Settings)
   const full = r.categories.map(c =>
     `<option value="${esc(c.name)}">${esc(c.name)} (₱${esc(c.rate)}/hr)</option>`).join('');
   const passes = Object.keys(r.passes || {}).map(p =>
@@ -775,6 +794,13 @@ $('form').onsubmit = e => {
   const duration = Number($('duration').value);
   const category = $('category').value;
   const people = Number($('people').value);
+  const purposeType = $('purpose').value;
+  const school = $('school').value.trim();
+
+  if (purposeType === 'School' && !school) {
+    alert('Type the name of the school');
+    return;
+  }
 
   const rule = PEOPLE_RULES[category] || { min: 1, max: 99 };
   if (!(people >= rule.min && people <= rule.max)) {
@@ -786,13 +812,13 @@ $('form').onsubmit = e => {
   // Time Out is calculated from Time In + Duration
   const outHour = (timeInHour + duration) % 24;
   const nextDay = timeInHour + duration >= 24;
-  const stayMin = duration * 60;
-  const billed = billedHours(stayMin);
+  const billed = billedHours(duration * 60);
 
   pending = {
     name: $('name').value.trim(),
     date: $('date').value,
-    purpose: $('purpose').value,
+    // Same format the script writes for tap check-ins
+    purpose: purposeType === 'School' ? 'School: ' + school : 'Work',
     category,
     timeInHour,
     duration,
@@ -873,6 +899,7 @@ $('newBookingBtn').onclick = () => {
   $('form').reset();
   setDate(todayManila());
   applyPeopleRule();
+  applySchoolRule();
   $('saveBtn').disabled = false;
   show('booking');
 };
@@ -893,6 +920,8 @@ async function init() {
     const d = $('date');
     if (d.showPicker) d.showPicker(); else d.focus();
   });
+  $('purpose').addEventListener('change', applySchoolRule);
+  $('category').addEventListener('change', applyPeopleRule);
 
   // Give the settings request 15 seconds before showing an error
   const timer = setTimeout(() => fail('Could not reach the booking server. Check the Apps Script deployment.'), 15000);
@@ -901,8 +930,8 @@ async function init() {
   } finally {
     clearTimeout(timer);
   }
-  $('category').addEventListener('change', applyPeopleRule);
   applyPeopleRule();
+  applySchoolRule();
   show('booking');
 }
 
