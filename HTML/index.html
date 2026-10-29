@@ -14,6 +14,8 @@
     --mint: #EEF5E4;
     --yellow: #FFDD57;
     --yellow-2: #F5C92E;
+    --orange: #FF6B35;
+    --orange-2: #FF8A5B;
     --line: #D5DCC5;
     --band: #F6FBEF;
     --field: #F3F7EC;
@@ -39,6 +41,9 @@
     box-shadow: 0 18px 40px rgba(75, 83, 64, 0.16), 0 2px 6px rgba(75, 83, 64, 0.06);
     overflow: hidden;
   }
+  /* Wider layout for the staff dashboard */
+  body.admin .app { max-width: 1160px; }
+
   .hero {
     display: flex;
     align-items: center;
@@ -121,7 +126,7 @@
     background: #fff;
     box-shadow: inset 2px 2px 6px rgba(75, 83, 64, 0.08), 0 4px 10px rgba(75, 83, 64, 0.1);
   }
-  button.small { width: auto; margin: 0; padding: 8px 14px; font-size: 12px; }
+  button.small { width: auto; margin: 0; padding: 9px 16px; font-size: 12px; }
 
   .status {
     text-align: center;
@@ -138,7 +143,7 @@
   .msg.err { color: var(--red-fg); }
   .loading { text-align: center; color: var(--olive-2); padding: 24px 0; font-size: 14px; }
   .hint { font-size: 12px; color: var(--olive-2); margin-top: 10px; line-height: 1.5; text-align: center; }
-  .note { font-size: 11px; color: var(--olive-2); margin-top: 8px; line-height: 1.5; }
+  .note { font-size: 11px; color: var(--olive-2); margin-top: 10px; line-height: 1.5; }
   footer { text-align: center; font-size: 12px; color: var(--olive-2); margin-top: 20px; }
   [hidden] { display: none !important; }
   .sr-only {
@@ -146,75 +151,121 @@
     clip: rect(0 0 0 0); white-space: nowrap;
   }
 
-  /* Dashboard layout: grouped sections with clear dividers */
-  .topbar { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
-  .updated { font-size: 11px; color: var(--olive-2); }
-  .section { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--line); }
-  .section-title { font-size: 14px; font-weight: 700; margin: 0 0 10px; }
+  /* Booking flow */
+  .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  .row3 select { margin-top: 6px; }
+  #summary { margin-top: 12px; }
+  #summary td:last-child { text-align: right; font-weight: 600; }
+  #summary tr.total td { font-weight: 700; color: var(--olive); border-bottom: 0; }
+  .value-big { font-size: 22px; font-weight: 700; margin-top: 4px; }
+  .qr { display: block; width: 220px; max-width: 100%; margin: 14px auto 0; border-radius: 16px; }
+  .reminder { margin-top: 14px; background: var(--yellow); color: var(--olive); font-size: 13px; }
 
-  .kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .kpi {
-    background: var(--band);
-    border-radius: 18px;
-    padding: 14px;
-    box-shadow: inset 2px 2px 6px rgba(75, 83, 64, 0.06), inset -2px -2px 6px #fff;
+  /* ---------- Admin dashboard (Finexy-style layout) ---------- */
+  .dhead { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .dhead .title { font-size: 22px; margin: 0; }
+  .updated { font-size: 11px; color: var(--olive-2); margin-top: 2px; }
+
+  .pills {
+    display: flex; gap: 6px; flex-wrap: wrap;
+    margin-top: 16px; padding: 6px;
+    background: var(--field); border-radius: 999px; width: fit-content; max-width: 100%;
   }
-  .kpi.wide { grid-column: span 2; }
+  .pills a {
+    padding: 8px 16px; border-radius: 999px; font-size: 13px; font-weight: 600;
+    color: var(--olive-2); text-decoration: none;
+  }
+  .pills a:first-child { background: var(--olive); color: #fff; }
+
+  .dgrid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-top: 18px;
+  }
+  .grid2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-top: 14px;
+  }
+  .panel {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 22px;
+    padding: 18px;
+  }
+  .panel.wide { grid-column: 1 / -1; }
+  .ptitle { font-size: 14px; font-weight: 700; margin: 0 0 12px; }
+  .prow { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+  .prow .ptitle { margin: 0; }
+
+  .kpi {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 22px;
+    padding: 16px;
+    min-height: 118px;
+  }
+  .kpi.hl {
+    background: linear-gradient(135deg, var(--orange-2) 0%, var(--orange) 100%);
+    border-color: transparent;
+    color: #fff;
+    box-shadow: 0 12px 24px rgba(255, 107, 53, 0.3);
+  }
   .kpi .label { font-size: 12px; color: var(--olive-2); font-weight: 600; }
-  .kpi .value { font-size: 22px; font-weight: 700; margin-top: 4px; }
-  .kpi .sub { font-size: 11px; color: var(--olive-2); margin-top: 2px; }
+  .kpi.hl .label { color: rgba(255, 255, 255, 0.85); }
+  .kpi .value { font-size: 24px; font-weight: 700; margin-top: 6px; }
+  .kpi .sub { font-size: 11px; color: var(--olive-2); margin-top: 4px; }
+  .kpi.hl .sub { color: rgba(255, 255, 255, 0.85); }
   .kpi.alert .value { color: var(--red-fg); }
+
   .delta {
-    display: inline-block;
-    margin-top: 6px;
-    padding: 2px 8px;
-    border-radius: 999px;
-    font-size: 11px;
-    font-weight: 600;
-    background: #E3E6DC;
-    color: var(--olive);
+    display: inline-block; margin-top: 8px; padding: 2px 8px; border-radius: 999px;
+    font-size: 11px; font-weight: 600; background: #E3E6DC; color: var(--olive);
   }
   .delta.up { background: var(--green-bg); color: var(--green-fg); }
   .delta.down { background: var(--red-bg); color: var(--red-fg); }
+  .kpi.hl .delta { background: rgba(255, 255, 255, 0.25); color: #fff; }
 
   .seg {
-    display: flex;
+    display: inline-flex;
     background: var(--field);
     border-radius: 999px;
     padding: 4px;
     gap: 4px;
-    margin-bottom: 8px;
   }
   .seg button {
-    margin: 0;
-    flex: 1;
-    padding: 8px;
-    font-size: 13px;
-    background: transparent;
-    box-shadow: none;
-    color: var(--olive-2);
-    border-radius: 999px;
+    margin: 0; width: auto; padding: 7px 14px; font-size: 12px;
+    background: transparent; box-shadow: none; color: var(--olive-2); border-radius: 999px;
   }
   .seg button[aria-pressed="true"] {
-    background: var(--olive);
-    color: #fff;
-    box-shadow: 0 4px 10px rgba(75, 83, 64, 0.3);
+    background: var(--olive); color: #fff; box-shadow: 0 4px 10px rgba(75, 83, 64, 0.3);
   }
+
+  .avg3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .avgtile {
+    background: var(--band);
+    border-radius: 16px;
+    padding: 14px 12px;
+    text-align: center;
+  }
+  .avgtile .label { font-size: 11px; color: var(--olive-2); font-weight: 600; }
+  .avgtile .value { font-size: 18px; font-weight: 700; margin-top: 6px; word-break: break-word; }
 
   .chart {
     display: flex;
     align-items: flex-end;
-    gap: 3px;
-    height: 180px;
-    padding: 12px 8px 0;
-    margin-top: 8px;
+    gap: 4px;
+    height: 200px;
+    padding: 14px 10px 0;
     background: var(--band);
     border-radius: 18px;
     overflow-x: auto;
   }
   .bar-col {
     flex: 1;
-    min-width: 14px;
+    min-width: 16px;
     height: 100%;
     display: flex;
     flex-direction: column;
@@ -227,27 +278,33 @@
     border-radius: 6px 6px 2px 2px;
     min-height: 2px;
   }
+  .bar.last { background: linear-gradient(180deg, var(--orange-2), var(--orange)); }
   .bar.zero { background: var(--line); }
   .bar-label { font-size: 9px; color: var(--olive-2); margin-top: 4px; height: 14px; white-space: nowrap; }
 
-  table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 10px; }
-  th, td { padding: 9px 6px; border-bottom: 1px dashed var(--line); text-align: left; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 12px; }
+  th, td { padding: 10px 6px; border-bottom: 1px dashed var(--line); text-align: left; }
   th { color: var(--olive-2); font-weight: 600; font-size: 12px; }
   .num { text-align: right; }
 
-  /* Card maker */
   #cardResult { text-align: left; font-size: 14px; }
   #cardResult b { color: var(--olive); }
+  .cardform { display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; align-items: end; }
+  .cardform button { margin-top: 0; width: auto; padding: 13px 22px; }
+  .cardform label { margin-top: 0; }
+  .cardform input, .cardform select { margin-top: 6px; }
 
-  /* Booking flow */
-  .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
-  .row3 select { margin-top: 6px; }
-  #summary { margin-top: 12px; }
-  #summary td:last-child { text-align: right; font-weight: 600; }
-  #summary tr.total td { font-weight: 700; color: var(--olive); border-bottom: 0; }
-  .value-big { font-size: 22px; font-weight: 700; margin-top: 4px; }
-  .qr { display: block; width: 220px; max-width: 100%; margin: 14px auto 0; border-radius: 16px; }
-  .reminder { margin-top: 14px; background: var(--yellow); color: var(--olive); font-size: 13px; }
+  /* Responsive */
+  @media (max-width: 900px) {
+    .dgrid { grid-template-columns: repeat(2, 1fr); }
+    .grid2 { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 560px) {
+    .dgrid { grid-template-columns: 1fr; }
+    .avg3 { grid-template-columns: 1fr; }
+    .cardform { grid-template-columns: 1fr; }
+    .cardform button { width: 100%; }
+  }
 </style>
 </head>
 <body>
@@ -345,68 +402,95 @@
       <p id="pinMsg" class="msg err" role="alert"></p>
     </div>
 
-    <!-- Dashboard -->
+    <!-- Admin dashboard -->
     <div id="dash" hidden>
-      <div class="topbar">
+      <div class="dhead">
         <div>
           <div class="title">Dashboard</div>
           <div class="updated" id="updated" aria-live="polite"></div>
         </div>
         <button type="button" class="ghost small" id="refreshBtn">Refresh</button>
       </div>
+
+      <nav class="pills" aria-label="Dashboard sections">
+        <a href="#overview">Overview</a>
+        <a href="#averages">Averages</a>
+        <a href="#trend">Trend</a>
+        <a href="#cards">NFC cards</a>
+      </nav>
+
       <div id="dashErr" class="status err" hidden role="alert"></div>
 
-      <section class="section" aria-labelledby="kpiTitle">
-        <h2 class="section-title" id="kpiTitle">Today at a glance</h2>
-        <div class="kpis" id="kpis"></div>
+      <!-- Overview -->
+      <section id="overview" aria-labelledby="kpiTitle">
+        <h2 class="ptitle" id="kpiTitle" hidden>Overview</h2>
+        <div class="dgrid" id="kpis"></div>
       </section>
 
-      <section class="section" aria-labelledby="trendTitle">
-        <h2 class="section-title" id="trendTitle">Trend</h2>
-        <div class="seg" role="group" aria-label="Period">
-          <button type="button" data-period="daily" aria-pressed="true">Day</button>
-          <button type="button" data-period="weekly" aria-pressed="false">Week</button>
-          <button type="button" data-period="monthly" aria-pressed="false">Month</button>
+      <!-- Averages -->
+      <section id="averages" class="grid2" aria-labelledby="avgTitle">
+        <div class="panel">
+          <div class="ptitle">Average sales</div>
+          <div class="avg3" id="avgSales"></div>
         </div>
-        <div class="seg" role="group" aria-label="Metric">
-          <button type="button" data-metric="visitors" aria-pressed="false">Visitors</button>
-          <button type="button" data-metric="sales" aria-pressed="true">Sales</button>
+        <div class="panel">
+          <div class="ptitle">Average visitors</div>
+          <div class="avg3" id="avgVisitors"></div>
         </div>
-        <div class="chart" id="chart" role="img" aria-label="Sales by day"></div>
-        <table>
-          <caption class="sr-only">Visitors and sales for each period</caption>
-          <thead>
-            <tr><th scope="col">Period</th><th scope="col" class="num">Visitors</th><th scope="col" class="num">Sales</th></tr>
-          </thead>
-          <tbody id="seriesBody"></tbody>
-        </table>
+        <p class="note" style="grid-column: 1 / -1; margin: 0;">Averages count only the days, weeks or months that had at least one closed visit.</p>
+      </section>
+      <h2 class="sr-only" id="avgTitle">Averages</h2>
+
+      <!-- Trend -->
+      <section id="trend" class="grid2" aria-labelledby="trendTitle">
+        <div class="panel wide">
+          <div class="prow">
+            <div class="ptitle" id="trendTitle">Trend</div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <div class="seg" role="group" aria-label="Period">
+                <button type="button" data-period="daily" aria-pressed="true">Day</button>
+                <button type="button" data-period="weekly" aria-pressed="false">Week</button>
+                <button type="button" data-period="monthly" aria-pressed="false">Month</button>
+              </div>
+              <div class="seg" role="group" aria-label="Metric">
+                <button type="button" data-metric="visitors" aria-pressed="false">Visitors</button>
+                <button type="button" data-metric="sales" aria-pressed="true">Sales</button>
+              </div>
+            </div>
+          </div>
+          <div class="chart" id="chart" role="img" aria-label="Sales by day"></div>
+          <table>
+            <caption class="sr-only">Visitors and sales for each period</caption>
+            <thead>
+              <tr><th scope="col">Period</th><th scope="col" class="num">Visitors</th><th scope="col" class="num">Sales</th></tr>
+            </thead>
+            <tbody id="seriesBody"></tbody>
+          </table>
+        </div>
       </section>
 
-      <section class="section" aria-labelledby="avgTitle">
-        <h2 class="section-title" id="avgTitle">Averages</h2>
-        <table>
-          <caption class="sr-only">Average visitors and sales per period</caption>
-          <thead>
-            <tr><th scope="col">Per</th><th scope="col" class="num">Visitors</th><th scope="col" class="num">Sales</th></tr>
-          </thead>
-          <tbody id="avgBody"></tbody>
-        </table>
-        <p class="note">Averages count only the days, weeks or months that had at least one closed visit.</p>
-      </section>
-
-      <section class="section" aria-labelledby="cardTitle">
-        <h2 class="section-title" id="cardTitle">Make NFC Card</h2>
-        <p class="subtitle">Name the card after its table, for example Focus table 1</p>
-        <label for="cardName">Card name</label>
-        <input id="cardName">
-        <label for="cardCategory">Category</label>
-        <select id="cardCategory"></select>
-        <button type="button" id="mkToken" class="dark">Create card</button>
-        <div class="status" id="cardResult" hidden>
-          <div>Token: <b id="cardToken"></b></div>
-          <div class="hint" id="cardUrl"></div>
+      <!-- NFC cards -->
+      <section id="cards" class="grid2" aria-labelledby="cardTitle">
+        <div class="panel wide">
+          <div class="ptitle" id="cardTitle">Make NFC card</div>
+          <p class="subtitle">Name the card after its table, for example Focus table 1</p>
+          <div class="cardform">
+            <div>
+              <label for="cardName">Card name</label>
+              <input id="cardName">
+            </div>
+            <div>
+              <label for="cardCategory">Category</label>
+              <select id="cardCategory"></select>
+            </div>
+            <button type="button" id="mkToken" class="dark">Create card</button>
+          </div>
+          <div class="status" id="cardResult" hidden>
+            <div>Token: <b id="cardToken"></b></div>
+            <div class="hint" id="cardUrl"></div>
+          </div>
+          <p class="hint">Write the link above onto the NFC tag with NFC Tools (Write &gt; Add a record &gt; URL).</p>
         </div>
-        <p class="hint">Write the link above onto the NFC tag with NFC Tools (Write &gt; Add a record &gt; URL).</p>
       </section>
     </div>
   </div>
@@ -442,6 +526,11 @@ function peso(n) {
 
 function fmtNum(n) {
   return Number(n || 0).toLocaleString('en-PH');
+}
+
+// Averages can be fractions, so show up to one decimal
+function fmtAvg(n) {
+  return Number(n || 0).toLocaleString('en-PH', { maximumFractionDigits: 1 });
 }
 
 // '2026-10-22' -> 'Oct 22, 2026'
@@ -728,31 +817,46 @@ function renderKpis() {
   const unpaid = data.totals.unpaid;
 
   $('kpis').innerHTML = `
+    <div class="kpi hl">
+      <div class="label">Sales today</div>
+      <div class="value">${peso(today.sales)}</div>
+      ${deltaTag(today.sales, yest.sales)}
+    </div>
     <div class="kpi">
       <div class="label">Visitors today</div>
       <div class="value">${fmtNum(today.visitors)}</div>
       ${deltaTag(today.visitors, yest.visitors)}
     </div>
     <div class="kpi">
-      <div class="label">Sales today</div>
-      <div class="value">${peso(today.sales)}</div>
-      ${deltaTag(today.sales, yest.sales)}
-    </div>
-    <div class="kpi">
-      <div class="label">Sales this week (so far)</div>
-      <div class="value">${peso(wk.sales)}</div>
-      <div class="sub">${fmtNum(wk.visitors)} visitors</div>
-    </div>
-    <div class="kpi">
       <div class="label">Sales this month (so far)</div>
       <div class="value">${peso(mo.sales)}</div>
-      <div class="sub">${fmtNum(mo.visitors)} visitors</div>
+      <div class="sub">${fmtNum(mo.visitors)} visitors · week so far ${peso(wk.sales)}</div>
     </div>
-    <div class="kpi wide ${unpaid > 0 ? 'alert' : ''}">
+    <div class="kpi ${unpaid > 0 ? 'alert' : ''}">
       <div class="label">Unpaid balance (all time)</div>
       <div class="value">${peso(unpaid)}</div>
       <div class="sub">${unpaid > 0 ? 'Visits marked Out but not yet paid' : 'Nothing outstanding'}</div>
     </div>`;
+}
+
+// Average sales and average visitors per day, week and month
+function renderAverages() {
+  const a = data.averages;
+  const tile = (label, v) => `
+    <div class="avgtile">
+      <div class="label">${label}</div>
+      <div class="value">${v}</div>
+    </div>`;
+
+  $('avgSales').innerHTML =
+    tile('Per day', peso(a.perDay.sales)) +
+    tile('Per week', peso(a.perWeek.sales)) +
+    tile('Per month', peso(a.perMonth.sales));
+
+  $('avgVisitors').innerHTML =
+    tile('Per day', fmtAvg(a.perDay.visitors)) +
+    tile('Per week', fmtAvg(a.perWeek.visitors)) +
+    tile('Per month', fmtAvg(a.perMonth.visitors));
 }
 
 // Bar chart plus a table. Both come from the same numbers, so the table is the accessible fallback.
@@ -761,15 +865,17 @@ function renderSeries() {
   const max = Math.max(0, ...series.map(s => s[metric]));
   const periodName = period === 'daily' ? 'day' : period === 'weekly' ? 'week' : 'month';
   const metricName = metric === 'sales' ? 'Sales' : 'Visitors';
+  const lastIndex = series.length - 1;
 
   $('chart').setAttribute('aria-label', metricName + ' by ' + periodName);
-  $('chart').innerHTML = series.map(s => {
+  $('chart').innerHTML = series.map((s, i) => {
     const v = s[metric];
     const h = max && v ? Math.max(3, Math.round(v / max * 100)) : 0;
     const title = fullLabel(period, s.label) + ': ' +
       (metric === 'sales' ? peso(v) : fmtNum(v));
+    const cls = i === lastIndex ? 'bar last' : 'bar';
     return `<div class="bar-col" title="${esc(title)}">
-      <div class="bar ${v ? '' : 'zero'}" style="height:${h}%"></div>
+      <div class="${v ? cls : 'bar zero'}" style="height:${h}%"></div>
       <div class="bar-label">${esc(shortLabel(period, s.label))}</div>
     </div>`;
   }).join('');
@@ -781,17 +887,6 @@ function renderSeries() {
       <td class="num">${fmtNum(s.visitors)}</td>
       <td class="num">${peso(s.sales)}</td>
     </tr>`).join('');
-}
-
-function renderAverages() {
-  const a = data.averages;
-  const row = (label, x) => `
-    <tr>
-      <td>${label}</td>
-      <td class="num">${Number(x.visitors).toLocaleString('en-PH', { maximumFractionDigits: 1 })}</td>
-      <td class="num">${peso(x.sales)}</td>
-    </tr>`;
-  $('avgBody').innerHTML = row('Per day', a.perDay) + row('Per week', a.perWeek) + row('Per month', a.perMonth);
 }
 
 // Period and metric switches
@@ -853,6 +948,7 @@ $('mkToken').onclick = async () => {
 // ---- Start ----
 // Root link (no ?admin): booking flow. ?admin=1: staff sign-in and dashboard.
 if (new URLSearchParams(location.search).has('admin')) {
+  document.body.classList.add('admin');
   askPin();
 } else {
   showBooking();
