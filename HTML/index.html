@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>LCKDIN Study Hub · Admin</title>
+<title>LCKDIN Study Hub</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
@@ -254,6 +254,33 @@
     <div id="loading" class="loading">Loading...</div>
     <div id="error" class="status err" hidden></div>
 
+    <!-- Booking form (root link) -->
+    <div id="booking" hidden>
+      <div class="title">Book a visit</div>
+      <p class="subtitle">Staff booking form</p>
+      <label for="bookName">Name</label>
+      <input id="bookName">
+      <label for="bookDate">Date</label>
+      <input type="date" id="bookDate">
+      <label for="bookCategory">Room</label>
+      <select id="bookCategory"></select>
+      <label for="bookPeople">People</label>
+      <input type="number" id="bookPeople" min="1" value="1">
+      <label for="bookIn">Time in (leave empty for Open)</label>
+      <input type="time" id="bookIn">
+      <label for="bookOut">Time out (optional)</label>
+      <input type="time" id="bookOut">
+      <label for="bookPurpose">Purpose</label>
+      <input id="bookPurpose">
+      <label for="bookPayment">Payment</label>
+      <select id="bookPayment">
+        <option>GCash</option>
+        <option>Cash</option>
+      </select>
+      <button type="button" id="bookBtn" class="dark">Save booking</button>
+      <p id="bookMsg" class="msg" role="alert"></p>
+    </div>
+
     <!-- Staff PIN -->
     <div id="pin" hidden>
       <div class="title">Staff sign in</div>
@@ -398,7 +425,7 @@ function deltaTag(cur, prev) {
 }
 
 function show(id) {
-  ['pin', 'dash'].forEach(v => { $(v).hidden = v !== id; });
+  ['booking', 'pin', 'dash'].forEach(v => { $(v).hidden = v !== id; });
   $('loading').hidden = true;
 }
 
@@ -423,7 +450,50 @@ async function post(body) {
   return parseReply(res);
 }
 
-// ---- Sign in ----
+// ---- Booking form (root link) ----
+async function showBooking() {
+  show('booking');
+  $('bookDate').value = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date());
+  try {
+    const res = await fetch(API_URL);
+    const r = await parseReply(res);
+    if (!r.ok) throw new Error(r.error || 'Could not load rooms');
+    $('bookCategory').innerHTML = r.categories.map(c =>
+      `<option value="${esc(c.name)}">${esc(c.name)} (₱${esc(c.rate)}/hr)</option>`).join('');
+  } catch (e) {
+    fail(e.message);
+  }
+}
+
+$('bookBtn').onclick = async () => {
+  $('bookBtn').disabled = true;
+  $('bookMsg').textContent = '';
+  try {
+    const r = await post({
+      action: 'visit',
+      name: $('bookName').value.trim(),
+      date: $('bookDate').value,
+      category: $('bookCategory').value,
+      people: $('bookPeople').value,
+      timeIn: $('bookIn').value || 'Open',
+      timeOut: $('bookOut').value,
+      purpose: $('bookPurpose').value.trim(),
+      payment: $('bookPayment').value
+    });
+    if (!r.ok) throw new Error(r.error);
+    $('bookMsg').className = 'msg ok';
+    $('bookMsg').textContent = 'Booking saved.';
+    $('bookName').value = '';
+    $('bookPurpose').value = '';
+  } catch (e) {
+    $('bookMsg').className = 'msg err';
+    $('bookMsg').textContent = e.message;
+  } finally {
+    $('bookBtn').disabled = false;
+  }
+};
+
+// ---- Staff sign in ----
 async function unlock(pin) {
   const r = await post({ action: 'checkPin', pin });
   if (!r.ok) throw new Error(r.error);
@@ -609,7 +679,12 @@ $('mkToken').onclick = async () => {
 };
 
 // ---- Start ----
-askPin();
+// Root link (no ?admin): booking form. ?admin=1: staff sign-in and dashboard.
+if (new URLSearchParams(location.search).has('admin')) {
+  askPin();
+} else {
+  showBooking();
+}
 </script>
 </body>
 </html>
