@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>LCKDIN Study Hub</title>
+<title>LCKDIN Study Hub · Admin</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
@@ -17,6 +17,10 @@
     --line: #D5DCC5;
     --band: #F6FBEF;
     --field: #F3F7EC;
+    --green-bg: #CDEFC2;
+    --green-fg: #2F5D1E;
+    --red-bg: #FBE3E3;
+    --red-fg: #8A2B2B;
   }
   * { box-sizing: border-box; }
   body {
@@ -28,7 +32,7 @@
     padding: 24px 14px 32px;
   }
   .app {
-    max-width: 380px;
+    max-width: 640px;
     margin: 0 auto;
     background: #fff;
     border-radius: 28px;
@@ -58,11 +62,11 @@
   .badge img { width: 58px; height: 58px; object-fit: contain; mix-blend-mode: multiply; }
   .wordmark { width: 170px; max-width: 100%; filter: invert(1) brightness(1.8); mix-blend-mode: screen; }
 
-  .body { padding: 22px 22px 26px; text-align: center; }
+  .body { padding: 22px 22px 26px; }
   .title { font-size: 18px; font-weight: 700; margin: 0 0 4px; }
   .subtitle { font-size: 13px; color: var(--olive-2); margin: 0 0 14px; }
+  .center { text-align: center; }
 
-  form { text-align: left; }
   label { display: block; margin-top: 12px; font-weight: 600; font-size: 13px; color: var(--olive-2); }
   input, select {
     width: 100%;
@@ -102,126 +106,138 @@
   button:hover { box-shadow: 0 10px 22px rgba(245, 201, 46, 0.45); }
   button:active { transform: scale(0.98); }
   button:disabled { opacity: 0.55; cursor: default; transform: none; }
+  button:focus-visible, input:focus-visible, select:focus-visible {
+    outline: 3px solid var(--yellow-2);
+    outline-offset: 2px;
+  }
   button.dark {
     color: #fff;
     background: linear-gradient(180deg, var(--olive-2) 0%, var(--olive) 100%);
     box-shadow: 0 8px 18px rgba(75, 83, 64, 0.3);
   }
   button.ghost {
-    margin-top: 10px;
+    margin-top: 0;
     color: var(--olive);
     background: #fff;
     box-shadow: inset 2px 2px 6px rgba(75, 83, 64, 0.08), 0 4px 10px rgba(75, 83, 64, 0.1);
   }
+  button.small { width: auto; margin: 0; padding: 8px 14px; font-size: 12px; }
 
   .status {
     text-align: center;
-    padding: 26px 16px;
+    padding: 20px 16px;
     margin-top: 14px;
     border-radius: 18px;
-    font-size: 18px;
+    font-size: 15px;
     font-weight: 600;
-    white-space: pre-line;
     background: var(--band);
-    box-shadow: inset 2px 2px 6px rgba(75, 83, 64, 0.06), inset -2px -2px 6px #fff;
   }
-  .status.in { background: #CDEFC2; }
-  .status.out { background: #E3E6DC; }
-  .status.err { background: #fee2e2; color: #991b1b; font-size: 15px; }
-
-  .hint { font-size: 12px; color: var(--olive-2); margin-top: 10px; word-break: break-all; line-height: 1.5; text-align: center; }
-  .people-hint { font-weight: 400; font-size: 12px; color: var(--olive-2); }
+  .status.err { background: var(--red-bg); color: var(--red-fg); }
   .msg { margin-top: 12px; text-align: center; font-weight: 600; font-size: 14px; min-height: 18px; }
   .msg.ok { color: #3f6212; }
-  .msg.err { color: #991b1b; }
+  .msg.err { color: var(--red-fg); }
   .loading { text-align: center; color: var(--olive-2); padding: 24px 0; font-size: 14px; }
-  #cardResult { text-align: left; font-size: 14px; }
-  #cardResult b { color: var(--olive); }
+  .hint { font-size: 12px; color: var(--olive-2); margin-top: 10px; line-height: 1.5; text-align: center; }
+  .note { font-size: 11px; color: var(--olive-2); margin-top: 8px; line-height: 1.5; }
   footer { text-align: center; font-size: 12px; color: var(--olive-2); margin-top: 20px; }
   [hidden] { display: none !important; }
-
-  /* Summary page */
-  .bill { text-align: left; margin-top: 10px; }
-  .row {
-    display: flex;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 10px 0;
-    border-bottom: 1px dashed var(--line);
-    font-size: 14px;
+  .sr-only {
+    position: absolute; width: 1px; height: 1px; overflow: hidden;
+    clip: rect(0 0 0 0); white-space: nowrap;
   }
-  .row span:first-child { color: var(--olive-2); font-weight: 600; }
-  .row span:last-child { font-weight: 600; text-align: right; }
-  .total {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 14px;
-    padding: 14px 16px;
-    border-radius: 18px;
+
+  /* Dashboard layout: grouped sections with clear dividers */
+  .topbar { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+  .updated { font-size: 11px; color: var(--olive-2); }
+  .section { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--line); }
+  .section-title { font-size: 14px; font-weight: 700; margin: 0 0 10px; }
+
+  .kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .kpi {
     background: var(--band);
-    font-size: 15px;
-    font-weight: 700;
-  }
-  .total b { font-size: 22px; color: var(--olive); }
-
-  /* Payment page */
-  .pay-total { font-size: 28px; font-weight: 700; color: var(--olive); margin: 6px 0 16px; }
-  .qr-box {
-    background: #fff;
-    border-radius: 24px;
+    border-radius: 18px;
     padding: 14px;
-    box-shadow: inset 2px 2px 6px rgba(75, 83, 64, 0.06), 0 6px 16px rgba(75, 83, 64, 0.1);
+    box-shadow: inset 2px 2px 6px rgba(75, 83, 64, 0.06), inset -2px -2px 6px #fff;
   }
-  .qr-box img { display: block; width: 100%; max-width: 320px; height: auto; margin: 0 auto; }
-  .qr-hint { font-size: 12px; color: var(--olive-2); margin-top: 10px; }
-
-  /* Thank you page */
-  .thanks { text-align: center; padding: 18px 0 6px; }
-  .thanks-icon {
-    width: 64px; height: 64px; margin: 0 auto 14px;
-    border-radius: 50%;
-    background: linear-gradient(180deg, #FFE377 0%, var(--yellow) 100%);
-    color: var(--olive); font-size: 32px; font-weight: 700;
-    display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 8px 18px rgba(245, 201, 46, 0.35);
-  }
-  .thanks h2 { font-size: 20px; margin: 0 0 8px; }
-  .thanks p { font-size: 14px; color: var(--olive-2); margin: 0 0 6px; line-height: 1.5; }
-  .thanks .thanks-name { font-weight: 700; color: var(--olive); }
-
-  /* Date field: shows "Oct 24, 2026", native picker sits on top (invisible) */
-  .date-wrap { position: relative; margin-top: 6px; }
-  .date-display {
-    position: relative;
-    padding: 13px 44px 13px 16px;
-    font-size: 15px;
-    font-weight: 400;
+  .kpi.wide { grid-column: span 2; }
+  .kpi .label { font-size: 12px; color: var(--olive-2); font-weight: 600; }
+  .kpi .value { font-size: 22px; font-weight: 700; margin-top: 4px; }
+  .kpi .sub { font-size: 11px; color: var(--olive-2); margin-top: 2px; }
+  .kpi.alert .value { color: var(--red-fg); }
+  .delta {
+    display: inline-block;
+    margin-top: 6px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    background: #E3E6DC;
     color: var(--olive);
+  }
+  .delta.up { background: var(--green-bg); color: var(--green-fg); }
+  .delta.down { background: var(--red-bg); color: var(--red-fg); }
+
+  .seg {
+    display: flex;
     background: var(--field);
-    border-radius: 16px;
-    box-shadow: inset 3px 3px 7px rgba(75, 83, 64, 0.08), inset -3px -3px 7px #fff;
-    cursor: pointer;
+    border-radius: 999px;
+    padding: 4px;
+    gap: 4px;
+    margin-bottom: 8px;
   }
-  .date-display::after {
-    content: "";
-    position: absolute;
-    right: 16px;
-    top: 50%;
-    width: 18px;
-    height: 18px;
-    margin-top: -9px;
-    background: no-repeat center / contain url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234B5340' stroke-width='2' stroke-linecap='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2'/%3E%3Cline x1='16' y1='2' x2='16' y2='6'/%3E%3Cline x1='8' y1='2' x2='8' y2='6'/%3E%3Cline x1='3' y1='10' x2='21' y2='10'/%3E%3C/svg%3E");
+  .seg button {
+    margin: 0;
+    flex: 1;
+    padding: 8px;
+    font-size: 13px;
+    background: transparent;
+    box-shadow: none;
+    color: var(--olive-2);
+    border-radius: 999px;
   }
-  .date-native {
-    position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    width: 100%; height: 100%;
-    margin: 0; padding: 0;
-    border: 0; box-shadow: none; background: transparent;
-    opacity: 0; cursor: pointer;
-    -webkit-appearance: none; appearance: none;
+  .seg button[aria-pressed="true"] {
+    background: var(--olive);
+    color: #fff;
+    box-shadow: 0 4px 10px rgba(75, 83, 64, 0.3);
   }
+
+  .chart {
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    height: 180px;
+    padding: 12px 8px 0;
+    margin-top: 8px;
+    background: var(--band);
+    border-radius: 18px;
+    overflow-x: auto;
+  }
+  .bar-col {
+    flex: 1;
+    min-width: 14px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+  }
+  .bar {
+    width: 100%;
+    background: linear-gradient(180deg, var(--olive-3), var(--olive));
+    border-radius: 6px 6px 2px 2px;
+    min-height: 2px;
+  }
+  .bar.zero { background: var(--line); }
+  .bar-label { font-size: 9px; color: var(--olive-2); margin-top: 4px; height: 14px; white-space: nowrap; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 10px; }
+  th, td { padding: 9px 6px; border-bottom: 1px dashed var(--line); text-align: left; }
+  th { color: var(--olive-2); font-weight: 600; font-size: 12px; }
+  .num { text-align: right; }
+
+  /* Card maker */
+  #cardResult { text-align: left; font-size: 14px; }
+  #cardResult b { color: var(--olive); }
 </style>
 </head>
 <body>
@@ -238,170 +254,79 @@
     <div id="loading" class="loading">Loading...</div>
     <div id="error" class="status err" hidden></div>
 
-    <!-- PIN screen: card maker only (?admin=1) -->
+    <!-- Staff PIN -->
     <div id="pin" hidden>
       <div class="title">Staff sign in</div>
-      <p class="subtitle">Enter the staff PIN to make NFC cards</p>
-      <label>PIN
-        <input type="password" id="pinInput" inputmode="numeric" autocomplete="off">
-      </label>
+      <p class="subtitle">Enter the staff PIN to open the dashboard</p>
+      <label for="pinInput">PIN</label>
+      <input type="password" id="pinInput" inputmode="numeric" autocomplete="off">
       <button type="button" id="pinBtn">Unlock</button>
-      <p id="pinMsg" class="msg err"></p>
+      <p id="pinMsg" class="msg err" role="alert"></p>
     </div>
 
-    <!-- NFC tap: status message (?t=TOKEN) -->
-    <div id="tap" hidden>
-      <div id="tapResult" class="status">Loading...</div>
-    </div>
+    <!-- Dashboard -->
+    <div id="dash" hidden>
+      <div class="topbar">
+        <div>
+          <div class="title">Dashboard</div>
+          <div class="updated" id="updated" aria-live="polite"></div>
+        </div>
+        <button type="button" class="ghost small" id="refreshBtn">Refresh</button>
+      </div>
+      <div id="dashErr" class="status err" hidden role="alert"></div>
 
-    <!-- NFC tap, first tap: purpose, school, duration -->
-    <div id="tapFormView" hidden>
-      <div class="title" id="tapWelcome"></div>
-      <p class="subtitle">Tell us about your visit</p>
-      <p id="tapNote" class="hint"></p>
-      <form id="tapForm">
-        <label>Purpose
-          <select id="tapPurpose">
-            <option value="Work">Work</option>
-            <option value="School">School</option>
-          </select>
-        </label>
-        <label id="tapSchoolWrap" hidden>School name
-          <input id="tapSchool" autocomplete="off">
-        </label>
-        <label>Duration
-          <select id="tapDuration" required></select>
-        </label>
-        <button type="submit" id="tapSubmit">Check in</button>
-      </form>
-      <p id="tapFormMsg" class="msg"></p>
-    </div>
+      <section class="section" aria-labelledby="kpiTitle">
+        <h2 class="section-title" id="kpiTitle">Today at a glance</h2>
+        <div class="kpis" id="kpis"></div>
+      </section>
 
-    <!-- NFC tap, second tap: check out (extend only for category cards) -->
-    <div id="tapAskView" hidden>
-      <div class="title">Still here?</div>
-      <p class="subtitle" id="askText"></p>
-      <button type="button" id="askYes">Yes, extend my duration</button>
-      <button type="button" id="askNo" class="ghost">No, check me out</button>
-    </div>
+      <section class="section" aria-labelledby="trendTitle">
+        <h2 class="section-title" id="trendTitle">Trend</h2>
+        <div class="seg" role="group" aria-label="Period">
+          <button type="button" data-period="daily" aria-pressed="true">Day</button>
+          <button type="button" data-period="weekly" aria-pressed="false">Week</button>
+          <button type="button" data-period="monthly" aria-pressed="false">Month</button>
+        </div>
+        <div class="seg" role="group" aria-label="Metric">
+          <button type="button" data-metric="visitors" aria-pressed="false">Visitors</button>
+          <button type="button" data-metric="sales" aria-pressed="true">Sales</button>
+        </div>
+        <div class="chart" id="chart" role="img" aria-label="Sales by day"></div>
+        <table>
+          <caption class="sr-only">Visitors and sales for each period</caption>
+          <thead>
+            <tr><th scope="col">Period</th><th scope="col" class="num">Visitors</th><th scope="col" class="num">Sales</th></tr>
+          </thead>
+          <tbody id="seriesBody"></tbody>
+        </table>
+      </section>
 
-    <!-- NFC tap: choose extra hours (category cards only) -->
-    <div id="tapExtendView" hidden>
-      <div class="title">Extend duration</div>
-      <p class="subtitle">How many more hours?</p>
-      <form id="extendForm">
-        <label>Extra hours
-          <select id="extendHours" required></select>
-        </label>
-        <button type="submit" id="extendSubmit">Confirm extension</button>
-      </form>
-      <button type="button" id="extendBack" class="ghost">Back</button>
-      <p id="extendMsg" class="msg"></p>
-    </div>
+      <section class="section" aria-labelledby="avgTitle">
+        <h2 class="section-title" id="avgTitle">Averages</h2>
+        <table>
+          <caption class="sr-only">Average visitors and sales per period</caption>
+          <thead>
+            <tr><th scope="col">Per</th><th scope="col" class="num">Visitors</th><th scope="col" class="num">Sales</th></tr>
+          </thead>
+          <tbody id="avgBody"></tbody>
+        </table>
+        <p class="note">Averages count only the days, weeks or months that had at least one closed visit.</p>
+      </section>
 
-    <!-- Card maker (?admin=1), PIN required -->
-    <div id="cards" hidden>
-      <div class="title">Make NFC Card</div>
-      <p class="subtitle">Name the card after its table, for example Focus table 1</p>
-      <label>Card name
+      <section class="section" aria-labelledby="cardTitle">
+        <h2 class="section-title" id="cardTitle">Make NFC Card</h2>
+        <p class="subtitle">Name the card after its table, for example Focus table 1</p>
+        <label for="cardName">Card name</label>
         <input id="cardName">
-      </label>
-      <label>Category
+        <label for="cardCategory">Category</label>
         <select id="cardCategory"></select>
-      </label>
-      <button type="button" id="mkToken" class="dark">Create card</button>
-      <div class="status" id="cardResult" hidden>
-        <div>Token: <b id="cardToken"></b></div>
-        <div class="hint" id="cardUrl"></div>
-      </div>
-      <p class="hint">Write the link above onto the NFC tag with NFC Tools (Write &gt; Add a record &gt; URL).</p>
-    </div>
-
-    <!-- Step 1: booking form (no PIN) -->
-    <div id="booking" hidden>
-      <div class="title">Booking</div>
-      <p class="subtitle">Save a guest's visit to the Study Hub sheet</p>
-      <form id="form">
-        <label>Name
-          <input id="name" required>
-        </label>
-        <label>Date
-          <div class="date-wrap">
-            <div id="dateDisplay" class="date-display"></div>
-            <input type="date" id="date" required class="date-native">
-          </div>
-        </label>
-        <label>Purpose
-          <select id="purpose">
-            <option value="School">School</option>
-            <option value="Work">Work</option>
-          </select>
-        </label>
-        <label id="schoolWrap">School name
-          <input id="school" autocomplete="off">
-        </label>
-        <label>Category
-          <select id="category" required></select>
-        </label>
-        <label>Time In
-          <select id="timeIn" required></select>
-        </label>
-        <label>Duration
-          <select id="duration" required></select>
-        </label>
-        <label>Number of people <span id="peopleHint" class="people-hint"></span>
-          <input type="number" id="people" min="1" value="1" required>
-        </label>
-        <button type="submit">Next</button>
-      </form>
-    </div>
-
-    <!-- Step 2: bill summary -->
-    <div id="summary" hidden>
-      <div class="title">Booking summary</div>
-      <p class="subtitle">Check the details before payment</p>
-      <div class="bill">
-        <div class="row"><span>Name</span><span id="sName"></span></div>
-        <div class="row"><span>Date</span><span id="sDate"></span></div>
-        <div class="row"><span>Purpose</span><span id="sPurpose"></span></div>
-        <div class="row"><span>Category</span><span id="sCategory"></span></div>
-        <div class="row"><span>Time In</span><span id="sIn"></span></div>
-        <div class="row"><span>Duration</span><span id="sDuration"></span></div>
-        <div class="row"><span>Time Out</span><span id="sOut"></span></div>
-        <div class="row"><span>Billed hours</span><span id="sBilled"></span></div>
-        <div class="row"><span>People</span><span id="sPeople"></span></div>
-      </div>
-      <div class="total">
-        <span>Total</span>
-        <b id="sTotal"></b>
-      </div>
-      <button type="button" id="nextBtn">Next</button>
-      <button type="button" id="backBtn" class="ghost">Back</button>
-    </div>
-
-    <!-- Step 3: payment QR and save -->
-    <div id="payment" hidden>
-      <div class="title">Scan to pay</div>
-      <p class="subtitle">Amount due</p>
-      <div class="pay-total" id="pTotal"></div>
-      <div class="qr-box">
-        <img id="qrImg" src="" alt="Payment QR code">
-      </div>
-      <p class="qr-hint">Show this screen to the staff after paying</p>
-      <button type="button" id="saveBtn">Save Booking</button>
-      <button type="button" id="payBackBtn" class="ghost">Back</button>
-      <p id="msg" class="msg"></p>
-    </div>
-
-    <!-- Step 4: thank you -->
-    <div id="thanks" hidden>
-      <div class="thanks">
-        <div class="thanks-icon">✓</div>
-        <h2>Thank you for booking, LCKies!</h2>
-        <p>Your booking for <span class="thanks-name" id="tName"></span> is saved.</p>
-        <p id="tDetails"></p>
-      </div>
-      <button type="button" id="newBookingBtn">Make another booking</button>
+        <button type="button" id="mkToken" class="dark">Create card</button>
+        <div class="status" id="cardResult" hidden>
+          <div>Token: <b id="cardToken"></b></div>
+          <div class="hint" id="cardUrl"></div>
+        </div>
+        <p class="hint">Write the link above onto the NFC tag with NFC Tools (Write &gt; Add a record &gt; URL).</p>
+      </section>
     </div>
   </div>
 </div>
@@ -412,130 +337,68 @@
 // ---- Connection ----
 // Must be the URL of the CURRENT deployment (Deploy > Manage deployments > New version)
 const API_URL = 'https://script.google.com/macros/s/AKfycbzlzbiuTATPOKUXBTQubIVFvLIgiHbWeUeZXTaUEgXV8NgiZb1JxZKf0HACJ4--dHHomA/exec';
-const PAYMENT_QR = 'gcash-qr.png.jpg';
-
-// ---- Must match the Apps Script ----
 const TZ = 'Asia/Manila';
-const PASS_DAILY_CAP_HOURS = 9;   // same as PASS_DAILY_CAP_HOURS in the script
-const GRACE_MINUTES = 20;         // same billing rule as writeFormulas() in the script
-const MIN_BILLED_HOURS = 1;
+const REFRESH_MS = 5 * 60 * 1000;   // reload the numbers every 5 minutes
 
-// Room order on the booking form. Rooms not in the Settings tab are skipped.
-const CATEGORY_NAMES = ['Focus', 'Focus+', 'Sync', 'The Lounge', 'The Huddle'];
-
-// People allowed per room. Must match the room's rules on the booking form.
-const PEOPLE_RULES = {
-  'Focus':      { min: 1, max: 1 },
-  'Focus+':     { min: 1, max: 1 },
-  'Sync':       { min: 2, max: 2 },
-  'The Lounge': { min: 3, max: 4 },
-  'The Huddle': { min: 5, max: 8 }
-};
-
-const DEFAULT_PASS_DAILY_CAP = PASS_DAILY_CAP_HOURS;
-
-// Every view that can be shown
-const VIEWS = ['tap', 'tapFormView', 'tapAskView', 'tapExtendView', 'cards', 'booking', 'summary', 'payment', 'thanks', 'pin'];
-
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const $ = id => document.getElementById(id);
-const params = new URLSearchParams(location.search);
-const token = params.get('t');
-const mode = token ? 'tap' : (params.get('admin') === '1' ? 'admin' : 'booking');
 
-// Kept in memory only, so a page refresh locks the card maker again
+// Kept in memory only, so a page refresh locks the dashboard again
 let staffPin = '';
-let rates = {};                              // category name -> hourly rate, from Settings
-let passDailyCap = DEFAULT_PASS_DAILY_CAP;   // from the server
-let pending = null;                          // booking waiting on the summary and payment pages
+let data = null;          // last dashboard response
+let period = 'daily';     // daily | weekly | monthly
+let metric = 'sales';     // sales | visitors
+let refreshTimer = null;
 
 function esc(s) {
   return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
-// Today's date in Manila, as YYYY-MM-DD
-function todayManila() {
-  return new Date().toLocaleDateString('en-CA', { timeZone: TZ });
+// 1234.5 -> "₱1,234.50"
+function peso(n) {
+  return '₱' + Number(n || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-// 0 -> "12:00 AM", 13 -> "1:00 PM"
-function hourLabel(h) {
-  const suffix = h < 12 ? 'AM' : 'PM';
-  const h12 = h % 12 === 0 ? 12 : h % 12;
-  return h12 + ':00 ' + suffix;
-}
-
-// '19:05' -> '7:05 PM'
-function to12h(hm) {
-  if (!hm) return '';
-  const [h, m] = String(hm).split(':').map(Number);
-  if (isNaN(h) || isNaN(m)) return hm;
-  const suffix = h < 12 ? 'AM' : 'PM';
-  const h12 = h % 12 === 0 ? 12 : h % 12;
-  return h12 + ':' + String(m).padStart(2, '0') + ' ' + suffix;
-}
-
-// 85 -> "1 hr 25 min", 22 -> "22 min", 60 -> "1 hr", 0 -> "0 min"
-function minsText(m) {
-  if (m === null || m === undefined) return 'no daily limit';
-  const h = Math.floor(m / 60), mm = m % 60;
-  let s = '';
-  if (h) s += h + ' hr' + (h > 1 ? 's' : '');
-  if (mm) s += (h ? ' ' : '') + mm + ' min';
-  return s || '0 min';
-}
-
-// Billed hours from a stay in minutes: up to 1 hr 20 min = 1 hr, 1 hr 21 min = 2 hrs
-function billedHours(stayMin) {
-  return Math.max(MIN_BILLED_HOURS, Math.ceil((stayMin - GRACE_MINUTES) / 60));
+function fmtNum(n) {
+  return Number(n || 0).toLocaleString('en-PH');
 }
 
 // '2026-10-22' -> 'Oct 22, 2026'
-function formatDateLabel(iso) {
-  if (!iso) return '';
+function dayLabel(iso) {
   const [y, m, d] = iso.split('-').map(Number);
-  const names = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  return names[m - 1] + ' ' + d + ', ' + y;
+  return MONTHS[m - 1] + ' ' + d + ', ' + y;
 }
 
-// Sets the date value and shows it as "Oct 24, 2026"
-function setDate(iso) {
-  $('date').value = iso;
-  $('dateDisplay').textContent = formatDateLabel(iso);
+// Full label for tables and tooltips
+function fullLabel(p, label) {
+  if (p === 'daily') return dayLabel(label);
+  if (p === 'weekly') return 'Week of ' + dayLabel(label);
+  const [y, m] = label.split('-').map(Number);
+  return MONTHS[m - 1] + ' ' + y;
 }
 
-// Fills a select with every hour of the day
-function fillHours(id) {
-  $(id).innerHTML = Array.from({ length: 24 }, (_, h) =>
-    `<option value="${h}">${hourLabel(h)}</option>`).join('');
+// Short label under each bar
+function shortLabel(p, label) {
+  if (p === 'daily') return String(Number(label.split('-')[2]));
+  if (p === 'weekly') {
+    const [, m, d] = label.split('-').map(Number);
+    return MONTHS[m - 1] + ' ' + d;
+  }
+  return MONTHS[Number(label.split('-')[1]) - 1];
 }
 
-// Fills a select with 1 to max hours (default 24)
-function fillDurations(id, max = 24) {
-  $(id).innerHTML = Array.from({ length: max }, (_, i) => {
-    const d = i + 1;
-    return `<option value="${d}">${d} hr${d > 1 ? 's' : ''}</option>`;
-  }).join('');
-}
-
-// Sets the people field to the room's starting value and limits it to the room's range
-function applyPeopleRule() {
-  const rule = PEOPLE_RULES[$('category').value] || { min: 1, max: 99 };
-  const input = $('people');
-  input.min = rule.min;
-  input.max = rule.max;
-  input.value = rule.min;
-  $('peopleHint').textContent = rule.min === rule.max
-    ? '(' + rule.min + ' person' + (rule.min > 1 ? 's' : '') + ')'
-    : '(' + rule.min + '-' + rule.max + ' people)';
-}
-
-// Shows/hides the school name field on the booking form
-function applySchoolRule() {
-  $('schoolWrap').hidden = $('purpose').value !== 'School';
+// Change against the previous day, shown in green for gains and red for losses, with a text arrow
+function deltaTag(cur, prev) {
+  if (!prev) return cur ? '<span class="delta up">▲ New</span>' : '<span class="delta">No change</span>';
+  const pct = Math.round((cur - prev) / prev * 100);
+  if (pct === 0) return '<span class="delta">No change</span>';
+  return pct > 0
+    ? '<span class="delta up">▲ ' + pct + '% vs yesterday</span>'
+    : '<span class="delta down">▼ ' + Math.abs(pct) + '% vs yesterday</span>';
 }
 
 function show(id) {
-  VIEWS.forEach(v => { $(v).hidden = v !== id; });
+  ['pin', 'dash'].forEach(v => { $(v).hidden = v !== id; });
   $('loading').hidden = true;
 }
 
@@ -545,14 +408,8 @@ function fail(msg) {
   $('error').textContent = 'Error: ' + msg;
 }
 
-function setStatus(el, text, kind) {
-  el.className = 'status' + (kind ? ' ' + kind : '');
-  el.textContent = text;
-}
-
-// Sends one action to the Apps Script. Reports a readable error if the reply is not JSON.
-async function post(body) {
-  const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(body) });
+// Reads the reply as text first, so a non-JSON page gives a clear message
+async function parseReply(res) {
   const text = await res.text();
   try {
     return JSON.parse(text);
@@ -561,11 +418,12 @@ async function post(body) {
   }
 }
 
-// ---- Card-maker PIN (only for ?admin=1) ----
-function getPin() {
-  return staffPin;
+async function post(body) {
+  const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(body) });
+  return parseReply(res);
 }
 
+// ---- Sign in ----
 async function unlock(pin) {
   const r = await post({ action: 'checkPin', pin });
   if (!r.ok) throw new Error(r.error);
@@ -581,7 +439,10 @@ function askPin() {
     try {
       await unlock($('pinInput').value);
       await loadConfig();
-      show('cards');
+      await loadDashboard();
+      show('dash');
+      clearInterval(refreshTimer);
+      refreshTimer = setInterval(loadDashboard, REFRESH_MS);
     } catch (e) {
       $('pinMsg').textContent = e.message;
     } finally {
@@ -590,188 +451,148 @@ function askPin() {
   };
 }
 
-// Loads rooms, rates and pass settings from the server (the Settings tab is the source of truth)
+// ---- Dashboard data ----
+async function loadDashboard() {
+  $('refreshBtn').disabled = true;
+  $('dashErr').hidden = true;
+  try {
+    const r = await post({ action: 'dashboard', pin: staffPin });
+    if (!r.ok) throw new Error(r.error);
+    data = r;
+    renderKpis();
+    renderSeries();
+    renderAverages();
+    $('updated').textContent = 'Updated ' + new Date().toLocaleTimeString('en-PH', {
+      timeZone: TZ, hour: 'numeric', minute: '2-digit'
+    });
+  } catch (e) {
+    if (/PIN/.test(e.message)) {
+      staffPin = '';
+      location.reload();
+      return;
+    }
+    $('dashErr').hidden = false;
+    $('dashErr').textContent = 'Could not load the dashboard: ' + e.message;
+  } finally {
+    $('refreshBtn').disabled = false;
+  }
+}
+
+// Top row: the numbers staff check first
+function renderKpis() {
+  const d = data.daily, w = data.weekly, m = data.monthly;
+  const today = d[d.length - 1], yest = d[d.length - 2];
+  const wk = w[w.length - 1], mo = m[m.length - 1];
+  const unpaid = data.totals.unpaid;
+
+  $('kpis').innerHTML = `
+    <div class="kpi">
+      <div class="label">Visitors today</div>
+      <div class="value">${fmtNum(today.visitors)}</div>
+      ${deltaTag(today.visitors, yest.visitors)}
+    </div>
+    <div class="kpi">
+      <div class="label">Sales today</div>
+      <div class="value">${peso(today.sales)}</div>
+      ${deltaTag(today.sales, yest.sales)}
+    </div>
+    <div class="kpi">
+      <div class="label">Sales this week (so far)</div>
+      <div class="value">${peso(wk.sales)}</div>
+      <div class="sub">${fmtNum(wk.visitors)} visitors</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Sales this month (so far)</div>
+      <div class="value">${peso(mo.sales)}</div>
+      <div class="sub">${fmtNum(mo.visitors)} visitors</div>
+    </div>
+    <div class="kpi wide ${unpaid > 0 ? 'alert' : ''}">
+      <div class="label">Unpaid balance (all time)</div>
+      <div class="value">${peso(unpaid)}</div>
+      <div class="sub">${unpaid > 0 ? 'Visits marked Out but not yet paid' : 'Nothing outstanding'}</div>
+    </div>`;
+}
+
+// Bar chart plus a table. Both come from the same numbers, so the table is the accessible fallback.
+function renderSeries() {
+  const series = data[period];
+  const max = Math.max(0, ...series.map(s => s[metric]));
+  const periodName = period === 'daily' ? 'day' : period === 'weekly' ? 'week' : 'month';
+  const metricName = metric === 'sales' ? 'Sales' : 'Visitors';
+
+  $('chart').setAttribute('aria-label', metricName + ' by ' + periodName);
+  $('chart').innerHTML = series.map(s => {
+    const v = s[metric];
+    const h = max && v ? Math.max(3, Math.round(v / max * 100)) : 0;
+    const title = fullLabel(period, s.label) + ': ' +
+      (metric === 'sales' ? peso(v) : fmtNum(v));
+    return `<div class="bar-col" title="${esc(title)}">
+      <div class="bar ${v ? '' : 'zero'}" style="height:${h}%"></div>
+      <div class="bar-label">${esc(shortLabel(period, s.label))}</div>
+    </div>`;
+  }).join('');
+
+  // Newest first in the table
+  $('seriesBody').innerHTML = series.slice().reverse().map(s => `
+    <tr>
+      <td>${esc(fullLabel(period, s.label))}</td>
+      <td class="num">${fmtNum(s.visitors)}</td>
+      <td class="num">${peso(s.sales)}</td>
+    </tr>`).join('');
+}
+
+function renderAverages() {
+  const a = data.averages;
+  const row = (label, x) => `
+    <tr>
+      <td>${label}</td>
+      <td class="num">${Number(x.visitors).toLocaleString('en-PH', { maximumFractionDigits: 1 })}</td>
+      <td class="num">${peso(x.sales)}</td>
+    </tr>`;
+  $('avgBody').innerHTML = row('Per day', a.perDay) + row('Per week', a.perWeek) + row('Per month', a.perMonth);
+}
+
+// Period and metric switches
+document.querySelectorAll('[data-period]').forEach(btn => {
+  btn.onclick = () => {
+    period = btn.dataset.period;
+    document.querySelectorAll('[data-period]').forEach(b =>
+      b.setAttribute('aria-pressed', String(b === btn)));
+    if (data) renderSeries();
+  };
+});
+
+document.querySelectorAll('[data-metric]').forEach(btn => {
+  btn.onclick = () => {
+    metric = btn.dataset.metric;
+    document.querySelectorAll('[data-metric]').forEach(b =>
+      b.setAttribute('aria-pressed', String(b === btn)));
+    if (data) renderSeries();
+  };
+});
+
+$('refreshBtn').onclick = loadDashboard;
+
+// ---- NFC card maker ----
 async function loadConfig() {
   const res = await fetch(API_URL);
-  const text = await res.text();
-  let r;
-  try { r = JSON.parse(text); } catch (e) { throw new Error('Server reply was not valid. Check the Apps Script deployment.'); }
+  const r = await parseReply(res);
   if (!r.ok) throw new Error(r.error || 'Could not load settings');
 
-  rates = {};
-  r.categories.forEach(c => { rates[c.name] = c.rate; });
-  passDailyCap = r.passDailyCap || DEFAULT_PASS_DAILY_CAP;
-
-  // Booking form: rooms that exist in Settings, in the order above
-  const shown = CATEGORY_NAMES.filter(n => n in rates);
-  $('category').innerHTML = shown.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('');
-
-  // Card maker: rooms with rates, then the passes (prices from Settings)
   const full = r.categories.map(c =>
     `<option value="${esc(c.name)}">${esc(c.name)} (₱${esc(c.rate)}/hr)</option>`).join('');
   const passes = Object.keys(r.passes || {}).map(p =>
-    `<option value="${esc(p)}">${esc(p)} (₱${r.passes[p]})</option>`).join('');
+    `<option value="${esc(p)}">${esc(p)} (₱${esc(r.passes[p])})</option>`).join('');
   $('cardCategory').innerHTML = full + passes;
 }
 
-// ---- NFC tap (?t=TOKEN, no PIN) ----
-function setTapStatus(text, kind) {
-  show('tap');
-  setStatus($('tapResult'), text, kind);
-}
-
-// Message after a check-in, using 12-hour times
-function checkedInText(r) {
-  return 'Checked IN at ' + to12h(r.time) + '\n' + r.name + '\nStay ends at ' + to12h(r.endTime);
-}
-
-async function runTap() {
-  setTapStatus('Loading...');
-  const r = await post({ action: 'tap', token });
-  if (!r.ok) return setTapStatus(r.error, 'err');
-
-  if (r.action === 'form') return showTapForm(r);
-  if (r.action === 'ask') return showTapAsk(r);
-  if (r.action === 'in') return setTapStatus(checkedInText(r), 'in');
-  setTapStatus('Unexpected response', 'err');
-}
-
-// First tap: purpose, school, duration. Passes show their remaining time.
-function showTapForm(r) {
-  const max = r.maxHours || 24;
-  fillDurations('tapDuration', max);
-  $('tapNote').textContent = r.isPass
-    ? r.category + (r.remainingMin !== null ? ' · ' + minsText(r.remainingMin) + ' left today' : ' · no daily hour limit')
-    : '';
-  $('tapWelcome').textContent = 'Welcome, LCKies!';
-  $('tapPurpose').value = 'Work';
-  $('tapSchool').value = '';
-  $('tapSchoolWrap').hidden = true;
-  $('tapDuration').value = '1';
-  $('tapFormMsg').textContent = '';
-  $('tapSubmit').disabled = false;
-  show('tapFormView');
-}
-
-$('tapPurpose').onchange = () => {
-  $('tapSchoolWrap').hidden = $('tapPurpose').value !== 'School';
-};
-
-$('tapForm').onsubmit = async e => {
-  e.preventDefault();
-  const msg = $('tapFormMsg');
-  const btn = $('tapSubmit');
-  const purpose = $('tapPurpose').value;
-  const school = $('tapSchool').value.trim();
-
-  if (purpose === 'School' && !school) {
-    msg.className = 'msg err';
-    msg.textContent = 'Type the name of your school';
-    return;
-  }
-
-  btn.disabled = true;
-  msg.className = 'msg';
-  msg.textContent = 'Checking in...';
-  try {
-    const r = await post({
-      action: 'checkin',
-      token,
-      purpose,
-      school,
-      duration: Number($('tapDuration').value)
-    });
-    if (!r.ok) throw new Error(r.error);
-    setTapStatus(checkedInText(r), 'in');
-  } catch (err) {
-    msg.className = 'msg err';
-    msg.textContent = 'Error: ' + err.message;
-    btn.disabled = false;
-  }
-};
-
-// Second tap: passes get a reminder and check-out only. Category cards keep the extend option.
-function showTapAsk(r) {
-  const isPass = !!r.isPass;
-
-  let text = 'Your stay ends at ' + to12h(r.endTime);
-  if (isPass) {
-    text += r.remainingMin === 0
-      ? '. Your ' + passDailyCap + '-hour limit for today is used up. Please check out and come back tomorrow.'
-      : '. Time left on your pass today: ' + minsText(r.remainingMin) + '.';
-  } else {
-    text += '. Do you want to extend your duration?';
-  }
-  $('askText').textContent = text;
-
-  $('askYes').hidden = isPass;
-  $('askNo').textContent = isPass ? 'Check me out' : 'No, check me out';
-  $('askYes').disabled = false;
-  $('askNo').disabled = false;
-  show('tapAskView');
-}
-
-$('askYes').onclick = () => {
-  $('extendMsg').textContent = '';
-  $('extendSubmit').disabled = false;
-  show('tapExtendView');
-};
-
-// Check-out: shows "Checking out..." right away, then time used and time left
-$('askNo').onclick = async () => {
-  const btn = $('askNo');
-  btn.disabled = true;
-  $('askYes').disabled = true;
-  setTapStatus('Checking out...', '');
-  try {
-    const r = await post({ action: 'leave', token });
-    if (!r.ok) throw new Error(r.error || 'Check-out failed');
-
-    let msg = 'Checked OUT at ' + to12h(r.time) + '\nTime used: ' + minsText(r.usedMin);
-    if (r.isPass) {
-      msg += '\nPass time left today: ' + minsText(r.leftMin);
-      if (r.leftMin === 0) msg += '\nYour ' + passDailyCap + '-hour limit is used up. Come back tomorrow.';
-    } else {
-      msg += '\n' + r.hours + ' hr  |  ₱' + r.total;
-    }
-    setTapStatus(msg, 'out');
-  } catch (e) {
-    setTapStatus('Error: ' + e.message + '\nPlease tell the staff.', 'err');
-    btn.disabled = false;
-    $('askYes').disabled = false;
-  }
-};
-
-$('extendBack').onclick = () => {
-  show('tapAskView');
-};
-
-$('extendForm').onsubmit = async e => {
-  e.preventDefault();
-  const msg = $('extendMsg');
-  const btn = $('extendSubmit');
-  btn.disabled = true;
-  msg.className = 'msg';
-  msg.textContent = 'Extending...';
-  try {
-    const r = await post({ action: 'extend', token, hours: Number($('extendHours').value) });
-    if (!r.ok) throw new Error(r.error);
-    setTapStatus('Extended. New end time: ' + to12h(r.endTime) + '\nTap again when you leave.', 'in');
-  } catch (err) {
-    msg.className = 'msg err';
-    msg.textContent = 'Error: ' + err.message;
-    btn.disabled = false;
-  }
-};
-
-// ---- Card maker (?admin=1, PIN required) ----
 $('mkToken').onclick = async () => {
   const name = $('cardName').value.trim();
   if (!name) return alert('Enter the card name first');
   const category = $('cardCategory').value;
   if (!category) return alert('Choose a category');
   try {
-    const r = await post({ action: 'newToken', name, category, pin: getPin() });
+    const r = await post({ action: 'newToken', name, category, pin: staffPin });
     if (!r.ok) throw new Error(r.error);
     $('cardToken').textContent = r.token;
     $('cardUrl').textContent = r.url;
@@ -787,155 +608,8 @@ $('mkToken').onclick = async () => {
   }
 };
 
-// ---- Step 1: booking form, Next goes to the summary ----
-$('form').onsubmit = e => {
-  e.preventDefault();
-  const timeInHour = Number($('timeIn').value);
-  const duration = Number($('duration').value);
-  const category = $('category').value;
-  const people = Number($('people').value);
-  const purposeType = $('purpose').value;
-  const school = $('school').value.trim();
-
-  if (purposeType === 'School' && !school) {
-    alert('Type the name of the school');
-    return;
-  }
-
-  const rule = PEOPLE_RULES[category] || { min: 1, max: 99 };
-  if (!(people >= rule.min && people <= rule.max)) {
-    alert('Number of people for ' + category + ' must be ' +
-      (rule.min === rule.max ? rule.min : rule.min + ' to ' + rule.max));
-    return;
-  }
-
-  // Time Out is calculated from Time In + Duration
-  const outHour = (timeInHour + duration) % 24;
-  const nextDay = timeInHour + duration >= 24;
-  const billed = billedHours(duration * 60);
-
-  pending = {
-    name: $('name').value.trim(),
-    date: $('date').value,
-    // Same format the script writes for tap check-ins
-    purpose: purposeType === 'School' ? 'School: ' + school : 'Work',
-    category,
-    timeInHour,
-    duration,
-    billed,
-    people,
-    timeIn: String(timeInHour).padStart(2, '0') + ':00',
-    timeOut: String(outHour).padStart(2, '0') + ':00',
-    outLabel: hourLabel(outHour) + (nextDay ? ' (next day)' : ''),
-    total: (rates[category] || 0) * billed * people
-  };
-
-  $('sName').textContent = pending.name;
-  $('sDate').textContent = formatDateLabel(pending.date);
-  $('sPurpose').textContent = pending.purpose;
-  $('sCategory').textContent = pending.category;
-  $('sIn').textContent = hourLabel(pending.timeInHour);
-  $('sDuration').textContent = pending.duration + ' hr' + (pending.duration > 1 ? 's' : '');
-  $('sOut').textContent = pending.outLabel;
-  $('sBilled').textContent = pending.billed + ' hr' + (pending.billed > 1 ? 's' : '');
-  $('sPeople').textContent = pending.people;
-  $('sTotal').textContent = '₱' + pending.total.toFixed(2);
-
-  show('summary');
-};
-
-// ---- Step 2: summary buttons ----
-$('backBtn').onclick = () => {
-  show('booking');
-};
-
-$('nextBtn').onclick = () => {
-  $('pTotal').textContent = '₱' + pending.total.toFixed(2);
-  $('qrImg').src = PAYMENT_QR;
-  $('msg').textContent = '';
-  $('saveBtn').disabled = false;
-  show('payment');
-};
-
-// ---- Step 3: payment buttons ----
-$('payBackBtn').onclick = () => {
-  show('summary');
-};
-
-$('saveBtn').onclick = async () => {
-  const btn = $('saveBtn');
-  const msg = $('msg');
-  btn.disabled = true;
-  msg.className = 'msg';
-  msg.textContent = 'Saving...';
-  try {
-    const r = await post({
-      action: 'visit',
-      name: pending.name,
-      date: pending.date,
-      purpose: pending.purpose,
-      category: pending.category,
-      timeIn: pending.timeIn,
-      timeOut: pending.timeOut,
-      people: pending.people
-    });
-    if (!r.ok) throw new Error(r.error);
-
-    $('tName').textContent = pending.name;
-    $('tDetails').textContent = formatDateLabel(pending.date) + ', ' +
-      hourLabel(pending.timeInHour) + ' to ' + pending.outLabel.replace(' (next day)', '');
-    msg.textContent = '';
-    pending = null;
-    show('thanks');
-  } catch (err) {
-    msg.className = 'msg err';
-    msg.textContent = 'Error: ' + err.message;
-    btn.disabled = false;
-  }
-};
-
-// ---- Step 4: make another booking ----
-$('newBookingBtn').onclick = () => {
-  $('form').reset();
-  setDate(todayManila());
-  applyPeopleRule();
-  applySchoolRule();
-  $('saveBtn').disabled = false;
-  show('booking');
-};
-
 // ---- Start ----
-async function init() {
-  fillDurations('tapDuration');
-  fillDurations('extendHours');
-
-  if (mode === 'tap') return runTap();
-  if (mode === 'admin') return askPin();
-
-  fillHours('timeIn');
-  fillDurations('duration');
-  setDate(todayManila());
-  $('date').addEventListener('input', () => setDate($('date').value));
-  $('dateDisplay').addEventListener('click', () => {
-    const d = $('date');
-    if (d.showPicker) d.showPicker(); else d.focus();
-  });
-  $('purpose').addEventListener('change', applySchoolRule);
-  $('category').addEventListener('change', applyPeopleRule);
-
-  // Give the settings request 15 seconds before showing an error
-  const timer = setTimeout(() => fail('Could not reach the booking server. Check the Apps Script deployment.'), 15000);
-  try {
-    await loadConfig();
-  } finally {
-    clearTimeout(timer);
-  }
-  applyPeopleRule();
-  applySchoolRule();
-  show('booking');
-}
-
-init().catch(e => fail(e.message));
+askPin();
 </script>
 </body>
 </html>
