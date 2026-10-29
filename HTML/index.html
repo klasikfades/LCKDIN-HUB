@@ -161,6 +161,22 @@
   .qr { display: block; width: 220px; max-width: 100%; margin: 14px auto 0; border-radius: 16px; }
   .reminder { margin-top: 14px; background: var(--yellow); color: var(--olive); font-size: 13px; }
 
+  /* Purpose toggle (used in booking and tap screens) */
+  .seg {
+    display: inline-flex;
+    background: var(--field);
+    border-radius: 999px;
+    padding: 4px;
+    gap: 4px;
+  }
+  .seg button {
+    margin: 0; width: auto; padding: 7px 14px; font-size: 12px;
+    background: transparent; box-shadow: none; color: var(--olive-2); border-radius: 999px;
+  }
+  .seg button[aria-pressed="true"] {
+    background: var(--olive); color: #fff; box-shadow: 0 4px 10px rgba(75, 83, 64, 0.3);
+  }
+
   /* ---------- Admin dashboard (Finexy-style layout) ---------- */
   .dhead { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
   .dhead .title { font-size: 22px; margin: 0; }
@@ -227,21 +243,6 @@
   .delta.up { background: var(--green-bg); color: var(--green-fg); }
   .delta.down { background: var(--red-bg); color: var(--red-fg); }
   .kpi.hl .delta { background: rgba(255, 255, 255, 0.25); color: #fff; }
-
-  .seg {
-    display: inline-flex;
-    background: var(--field);
-    border-radius: 999px;
-    padding: 4px;
-    gap: 4px;
-  }
-  .seg button {
-    margin: 0; width: auto; padding: 7px 14px; font-size: 12px;
-    background: transparent; box-shadow: none; color: var(--olive-2); border-radius: 999px;
-  }
-  .seg button[aria-pressed="true"] {
-    background: var(--olive); color: #fff; box-shadow: 0 4px 10px rgba(75, 83, 64, 0.3);
-  }
 
   .avg3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
   .avgtile {
@@ -378,6 +379,11 @@
         <button type="button" id="back3" class="ghost">Back</button>
         <p id="bookMsg" class="msg" role="alert"></p>
       </div>
+    </div>
+
+    <!-- NFC tap in / out (?t=TOKEN) -->
+    <div id="tap" hidden>
+      <div id="tapBody"></div>
     </div>
 
     <!-- Staff PIN -->
@@ -553,7 +559,7 @@ function deltaTag(cur, prev) {
 }
 
 function show(id) {
-  ['booking', 'pin', 'dash'].forEach(v => { $(v).hidden = v !== id; });
+  ['booking', 'tap', 'pin', 'dash'].forEach(v => { $(v).hidden = v !== id; });
   $('loading').hidden = true;
 }
 
@@ -738,6 +744,144 @@ $('saveBtn').onclick = async () => {
     $('saveBtn').disabled = false;
   }
 };
+
+// ---- NFC tap in / out (?t=TOKEN) ----
+const TAP_TOKEN = new URLSearchParams(location.search).get('t');
+
+// Minutes -> "2 hr 15 min"
+function fmtMin(m) {
+  m = Math.max(0, Math.round(Number(m) || 0));
+  const h = Math.floor(m / 60), mm = m % 60;
+  return (h ? h + ' hr ' : '') + mm + ' min';
+}
+
+async function tapAction(body) {
+  $('tapBody').innerHTML = '<div class="loading">Loading...</div>';
+  try {
+    const r = await post(body);
+    if (!r.ok) throw new Error(r.error);
+    renderTap(r, body.token);
+  } catch (e) {
+    $('tapBody').innerHTML = `<div class="status err">${esc(e.message)}</div>`;
+  }
+}
+
+function startTap(token) {
+  show('tap');
+  tapAction({ action: 'tap', token });
+}
+
+function renderTap(r, token) {
+  const body = $('tapBody');
+  const name = esc(r.name || '');
+
+  // First tap: walk-in form (Work or School, then duration)
+  if (r.action === 'form') {
+    const max = r.maxHours || 24;
+    const opts = [...Array(max)].map((_, i) =>
+      `<option value="${i + 1}">${i + 1} ${i === 0 ? 'hr' : 'hrs'}</option>`).join('');
+    const passNote = r.isPass && r.remainingMin !== null
+      ? `<p class="hint">Pass time left today: ${fmtMin(r.remainingMin)}</p>` : '';
+
+    body.innerHTML = `
+      <div class="title">Welcome, ${name}</div>
+      <p class="subtitle">Check in for a visit</p>
+      <label>Purpose</label>
+      <div class="seg">
+        <button type="button" id="tWork" aria-pressed="true">Work</button>
+        <button type="button" id="tSchool" aria-pressed="false">School</button>
+      </div>
+      <div id="tSchoolWrap" hidden>
+        <label for="tSchoolName">School name</label>
+        <input id="tSchoolName">
+      </div>
+      <label for="tDur">Duration</label>
+      <select id="tDur">${opts}</select>
+      ${passNote}
+      <button type="button" id="tStart" class="dark">Check in</button>
+      <p id="tMsg" class="msg err" role="alert"></p>`;
+
+    let purpose = 'Work';
+    const setPurpose = p => {
+      purpose = p;
+      $('tWork').setAttribute('aria-pressed', String(p === 'Work'));
+      $('tSchool').setAttribute('aria-pressed', String(p === 'School'));
+      $('tSchoolWrap').hidden = p !== 'School';
+    };
+    $('tWork').onclick = () => setPurpose('Work');
+    $('tSchool').onclick = () => setPurpose('School');
+
+    $('tStart').onclick = () => {
+      const school = $('tSchoolName').value.trim();
+      if (purpose === 'School' && !school) {
+        $('tMsg').textContent = 'Type the name of your school';
+        return;
+      }
+      tapAction({ action: 'checkin', token, purpose, school, duration: $('tDur').value });
+    };
+    return;
+  }
+
+  // After extending, reload the checked-in view with the new end time
+  if (r.action === 'extended') {
+    tapAction({ action: 'tap', token });
+    return;
+  }
+
+  // Already checked in (or just checked in): show end time, extend, check out
+  if (r.action === 'in' || r.action === 'ask') {
+    const canExtend = r.action === 'ask' && r.canExtend && !r.noExtend;
+    const passLeft = r.isPass && r.remainingMin !== null
+      ? `<p class="hint">Pass time left today: ${fmtMin(r.remainingMin)}</p>` : '';
+    const usedUp = r.noExtend
+      ? '<p class="hint">Your daily pass hours are used up. Check out when you leave.</p>' : '';
+    const extendBlock = canExtend ? `
+      <label for="tExtHours">Add time</label>
+      <select id="tExtHours">${[...Array(24)].map((_, i) =>
+        `<option value="${i + 1}">${i + 1} ${i === 0 ? 'hr' : 'hrs'}</option>`).join('')}</select>
+      <button type="button" id="tExtend" class="ghost">Extend</button>` : '';
+    const when = r.time ? 'Checked in at ' + esc(r.time) + '. ' : '';
+
+    body.innerHTML = `
+      <div class="title">${r.action === 'in' ? 'Checked in' : 'Currently checked in'}</div>
+      <p class="subtitle">${name}</p>
+      <div class="status">${when}Until ${esc(r.endTime)}</div>
+      ${passLeft}
+      ${usedUp}
+      ${extendBlock}
+      <button type="button" id="tLeave" class="dark">Check out</button>`;
+
+    if (canExtend) {
+      $('tExtend').onclick = () => tapAction({ action: 'extend', token, hours: $('tExtHours').value });
+    }
+    $('tLeave').onclick = () => tapAction({ action: 'leave', token });
+    return;
+  }
+
+  // Checked out: show time used and the amount due
+  if (r.action === 'out') {
+    const billing = r.isPass
+      ? '<div class="hint">Covered by your pass</div>'
+      : `<div>Billed ${esc(r.hours)} ${Number(r.hours) === 1 ? 'hr' : 'hrs'}</div>
+         <div class="value-big">${peso(r.total)} due</div>`;
+    const passLeft = r.isPass && r.leftMin !== null
+      ? `<div>Pass time left today ${fmtMin(r.leftMin)}</div>` : '';
+
+    body.innerHTML = `
+      <div class="title">Checked out</div>
+      <p class="subtitle">${name}</p>
+      <div class="status">
+        <div>Time out ${esc(r.time)}</div>
+        <div>Time used ${fmtMin(r.usedMin)}</div>
+        ${passLeft}
+        ${billing}
+      </div>
+      <p class="hint">Thank you for visiting LCKDIN Study Hub.</p>`;
+    return;
+  }
+
+  body.innerHTML = '<div class="status err">Unexpected reply. Please try again.</div>';
+}
 
 // ---- Staff sign in ----
 async function unlock(pin) {
@@ -964,8 +1108,10 @@ $('mkToken').onclick = async () => {
 };
 
 // ---- Start ----
-// Root link (no ?admin): booking flow. ?admin=1: staff sign-in and dashboard.
-if (new URLSearchParams(location.search).has('admin')) {
+// NFC tap (?t=TOKEN): tap in / out screen. Root link: booking flow. ?admin=1: staff dashboard.
+if (TAP_TOKEN) {
+  startTap(TAP_TOKEN);
+} else if (new URLSearchParams(location.search).has('admin')) {
   document.body.classList.add('admin');
   askPin();
 } else {
