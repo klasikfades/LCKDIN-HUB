@@ -322,11 +322,6 @@
           <div>Amount due</div>
           <div class="value-big" id="dueAmt"></div>
         </div>
-        <label for="bookPayment">Payment method</label>
-        <select id="bookPayment">
-          <option value="GCash">GCash</option>
-          <option value="Cash">Cash</option>
-        </select>
         <div id="qrBox">
           <img class="qr" src="gcash-qr.png" alt="GCash QR code">
           <p class="hint">Scan the code to pay with GCash, then show the payment confirmation to staff.</p>
@@ -636,11 +631,7 @@ $('next2').onclick = () => {
 $('back2').onclick = () => goStep(1);
 $('back3').onclick = () => goStep(2);
 
-$('bookPayment').onchange = () => {
-  $('qrBox').hidden = $('bookPayment').value !== 'GCash';
-};
-
-// Step 3: save the booking
+// Step 3: save the booking (GCash is the only payment method)
 $('saveBtn').onclick = async () => {
   $('saveBtn').disabled = true;
   $('bookMsg').textContent = '';
@@ -654,7 +645,7 @@ $('saveBtn').onclick = async () => {
       timeIn: S.startHHMM,
       timeOut: S.endHHMM,
       purpose: S.purpose,
-      payment: $('bookPayment').value
+      payment: 'GCash'
     });
     if (!r.ok) throw new Error(r.error);
 
