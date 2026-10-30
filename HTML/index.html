@@ -276,6 +276,20 @@
   th { color: var(--olive-2); font-weight: 600; font-size: 12px; }
   .num { text-align: right; }
 
+  /* Collapsible period table */
+  .hideable { margin-top: 12px; }
+  .hideable summary {
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--olive-2);
+    padding: 8px 0;
+    list-style: none;
+  }
+  .hideable summary::-webkit-details-marker { display: none; }
+  .hideable summary::before { content: '▸  '; }
+  .hideable[open] summary::before { content: '▾  '; }
+
   #cardResult { text-align: left; font-size: 14px; }
   #cardResult b { color: var(--olive); }
   .cardform { display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; align-items: end; }
@@ -458,13 +472,17 @@
             <span><i style="background: var(--orange);"></i>Sales (right scale, ₱)</span>
           </div>
           <div class="linechart" id="chart"></div>
-          <table>
-            <caption class="sr-only">Visitors and sales for each period</caption>
-            <thead>
-              <tr><th scope="col">Period</th><th scope="col" class="num">Visitors</th><th scope="col" class="num">Sales</th></tr>
-            </thead>
-            <tbody id="seriesBody"></tbody>
-          </table>
+
+          <details class="hideable">
+            <summary>Period table</summary>
+            <table>
+              <caption class="sr-only">Visitors and sales for each period</caption>
+              <thead>
+                <tr><th scope="col">Period</th><th scope="col" class="num">Visitors</th><th scope="col" class="num">Sales</th></tr>
+              </thead>
+              <tbody id="seriesBody"></tbody>
+            </table>
+          </details>
         </div>
       </section>
 
