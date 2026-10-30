@@ -339,6 +339,7 @@
         <select id="bookCategory"></select>
         <label for="bookPeople">People</label>
         <input type="number" id="bookPeople" min="1" value="1">
+        <p class="hint" id="peopleHint" style="text-align:left"></p>
 
         <label>Time in</label>
         <div class="row3">
@@ -616,6 +617,7 @@ async function post(body) {
 
 // ---- Booking flow (root link) ----
 const RATES = {};     // room name -> rate per hour
+const LIMITS = {};    // room name -> { min, max } people
 let S = {};           // booking in progress
 let plan = 'Full';    // Full | Down (50% downpayment)
 
@@ -658,13 +660,29 @@ async function showBooking() {
     const res = await fetch(API_URL);
     const r = await parseReply(res);
     if (!r.ok) throw new Error(r.error || 'Could not load rooms');
-    r.categories.forEach(c => { RATES[c.name] = c.rate; });
+    r.categories.forEach(c => {
+      RATES[c.name] = c.rate;
+      LIMITS[c.name] = { min: c.minPeople, max: c.maxPeople };
+    });
     $('bookCategory').innerHTML = r.categories.map(c =>
-      `<option value="${esc(c.name)}">${esc(c.name)} (₱${esc(c.rate)}/hr)</option>`).join('');
+      `<option value="${esc(c.name)}">${esc(c.name)} (${c.minPeople}-${c.maxPeople} persons, ₱${esc(c.rate)}/hr)</option>`).join('');
+    updatePeopleLimit();
   } catch (e) {
     fail(e.message);
   }
 }
+
+// Keeps the People box within the chosen room's limits
+function updatePeopleLimit() {
+  const lim = LIMITS[$('bookCategory').value];
+  if (!lim) return;
+  const p = $('bookPeople');
+  p.min = lim.min;
+  p.max = lim.max;
+  if (Number(p.value) < lim.min || Number(p.value) > lim.max) p.value = lim.min;
+  $('peopleHint').textContent = 'This room holds ' + lim.min + ' to ' + lim.max + ' persons.';
+}
+$('bookCategory').onchange = updatePeopleLimit;
 
 // Work or School
 document.querySelectorAll('[data-purpose]').forEach(btn => {
@@ -696,6 +714,11 @@ $('next1').onclick = () => {
 
   if (!name || !date || !category) {
     $('msg1').textContent = 'Name, date and room are required';
+    return;
+  }
+  const lim = LIMITS[category];
+  if (lim && (people < lim.min || people > lim.max)) {
+    $('msg1').textContent = category + ' allows ' + lim.min + ' to ' + lim.max + ' persons';
     return;
   }
   if (isSchool && !school) {
@@ -798,6 +821,7 @@ $('saveBtn').onclick = async () => {
     plan = 'Full';
     document.querySelectorAll('[data-plan]').forEach(b =>
       b.setAttribute('aria-pressed', String(b.dataset.plan === 'Full')));
+    updatePeopleLimit();
     goStep(1);
     $('msg1').className = 'msg ok';
     $('msg1').textContent = 'Booking saved.';
