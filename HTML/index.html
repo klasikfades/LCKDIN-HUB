@@ -214,17 +214,12 @@
     color: #fff;
     box-shadow: 0 12px 24px rgba(255, 107, 53, 0.3);
   }
-  .kcard.dark {
-    background: var(--olive);
-    border-color: transparent;
-    color: #fff;
-  }
   .klabel { font-size: 12px; color: var(--olive-2); font-weight: 600; }
-  .kcard.hl .klabel, .kcard.dark .klabel { color: rgba(255, 255, 255, 0.85); }
+  .kcard.hl .klabel { color: rgba(255, 255, 255, 0.85); }
   .kvalue { font-size: 24px; font-weight: 700; }
   .kcard.alert .kvalue { color: var(--red-fg); }
   .ksub { font-size: 11px; color: var(--olive-2); }
-  .kcard.hl .ksub, .kcard.dark .ksub { color: rgba(255, 255, 255, 0.85); }
+  .kcard.hl .ksub { color: rgba(255, 255, 255, 0.85); }
 
   .chg {
     display: inline-block; align-self: flex-start;
@@ -236,17 +231,6 @@
   .kcard.hl .chg { background: rgba(255, 255, 255, 0.25); color: #fff; }
   .chg-sub { font-size: 11px; color: var(--olive-2); margin-left: 6px; font-weight: 400; }
   .kcard.hl .chg-sub { color: rgba(255, 255, 255, 0.85); }
-
-  .spark {
-    display: flex; align-items: flex-end; gap: 4px;
-    height: 34px; margin-top: auto;
-  }
-  .spark i { flex: 1; background: var(--bar); border-radius: 4px; min-height: 3px; }
-  .spark i.last { background: var(--olive); }
-  .kcard.hl .spark i { background: rgba(255, 255, 255, 0.45); }
-  .kcard.hl .spark i.last { background: #fff; }
-  .kcard.dark .spark i { background: rgba(255, 255, 255, 0.3); }
-  .kcard.dark .spark i.last { background: var(--yellow); }
 
   .grid-main { display: grid; grid-template-columns: 1.6fr 1fr; gap: 14px; margin-top: 14px; }
   .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px; }
@@ -569,7 +553,7 @@
             </table>
           </details>
           <p class="hint-left">Pass purchases are kept separate from the Sales totals above.</p>
-        </section>
+        </div>
       </section>
 
       <!-- Averages -->
@@ -710,22 +694,13 @@ function chgTag(pct, text) {
     : `<span class="chg down">▼ ${Math.abs(pct)}%</span><span class="chg-sub">${esc(text)}</span>`;
 }
 
-// Mini bar chart of the last 10 periods, the newest bar in a darker shade
-function spark(series, metric) {
-  const last = series.slice(-10);
-  const max = Math.max(1, ...last.map(s => s[metric]));
-  return '<div class="spark">' + last.map((s, i) =>
-    `<i class="${i === last.length - 1 ? 'last' : ''}" style="height:${Math.max(8, Math.round(s[metric] / max * 100))}%"></i>`
-  ).join('') + '</div>';
+function periodWord() {
+  return { daily: 'today', weekly: 'this week', monthly: 'this month' }[period];
 }
 
 // Key used by the server's staff data for the selected period
 function periodKey() {
   return { daily: 'today', weekly: 'week', monthly: 'month' }[period];
-}
-
-function periodWord() {
-  return { daily: 'today', weekly: 'this week', monthly: 'this month' }[period];
 }
 
 function show(id) {
@@ -1011,7 +986,7 @@ function renderTap(r, token) {
       ? `<p class="hint">Pass time left today: ${fmtMin(r.remainingMin)}</p>` : '';
 
     body.innerHTML = `
-      <div class="title">Welcome, LCKieee! </div>
+      <div class="title">Welcome, LCKieee!</div>
       <p class="subtitle">Check in for a visit</p>
       <label for="tName">Your name</label>
       <input id="tName" autocomplete="off">
@@ -1183,7 +1158,7 @@ function renderAll() {
   renderAverages();
 }
 
-// Headline cards: sales, visitors, average sale, unpaid. Each has a mini bar chart.
+// Headline cards: sales (orange), visitors, average sale, unpaid (white)
 function renderKpis() {
   const ser = data[period];
   const cur = ser[ser.length - 1];
@@ -1201,13 +1176,11 @@ function renderKpis() {
       <div class="klabel">Sales · ${curName}</div>
       <div class="kvalue">${peso(cur.sales)}</div>
       <div>${chgTag(pctChange(cur.sales, prev.sales), vsName)}</div>
-      ${spark(ser, 'sales')}
     </div>
     <div class="kcard">
       <div class="klabel">Visitors · ${curName}</div>
       <div class="kvalue">${fmtNum(cur.visitors)}</div>
       <div>${chgTag(pctChange(cur.visitors, prev.visitors), vsName)}</div>
-      ${spark(ser, 'visitors')}
     </div>
     <div class="kcard">
       <div class="klabel">Avg sale per visit · ${curName}</div>
@@ -1215,7 +1188,7 @@ function renderKpis() {
       <div>${chgTag(pctChange(avgCur, avgPrev), vsName)}</div>
       <div class="ksub">${fmtNum(cur.visitors)} visits</div>
     </div>
-    <div class="kcard dark ${unpaid > 0 ? 'alert' : ''}">
+    <div class="kcard ${unpaid > 0 ? 'alert' : ''}">
       <div class="klabel">Unpaid balance (all time)</div>
       <div class="kvalue">${peso(unpaid)}</div>
       <div class="ksub">${unpaid > 0 ? 'Balances and visits not yet paid' : 'Nothing outstanding'}</div>
