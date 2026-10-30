@@ -178,7 +178,7 @@
     background: var(--olive); color: #fff; box-shadow: 0 4px 10px rgba(75, 83, 64, 0.3);
   }
 
-  /* Collapsible tap screen */
+  /* Card maker */
   #cardResult { text-align: left; font-size: 14px; }
   #cardResult b { color: var(--olive); }
   .cardform { display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; align-items: end; }
@@ -269,6 +269,7 @@
   table.dtable { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; }
   .dtable th, .dtable td { padding: 10px 6px; border-bottom: 1px dashed var(--line); text-align: left; }
   .dtable th { color: var(--olive-2); font-weight: 600; font-size: 12px; }
+  .dtable tr.total-row td { font-weight: 700; color: var(--olive); border-bottom: 0; }
   .num { text-align: right; }
 
   .hideable { margin-top: 12px; }
@@ -413,6 +414,7 @@
       <nav class="pills" aria-label="Dashboard sections">
         <a href="#overview">Overview</a>
         <a href="#chart">Chart</a>
+        <a href="#passes">Passes</a>
         <a href="#averages">Averages</a>
         <a href="#cards">NFC cards</a>
       </nav>
@@ -459,6 +461,48 @@
               <tbody id="seriesBody"></tbody>
             </table>
           </details>
+        </div>
+      </section>
+
+      <!-- Pass sales -->
+      <section id="passes" class="grid2" aria-labelledby="passTitle">
+        <div class="panel wide">
+          <div class="prow">
+            <div>
+              <div class="ptitle" id="passTitle">Pass sales</div>
+              <div class="updated" id="passPeriod"></div>
+            </div>
+          </div>
+          <table class="dtable">
+            <caption class="sr-only">Pass sales by type for the selected period</caption>
+            <thead>
+              <tr>
+                <th scope="col">Pass</th>
+                <th scope="col" class="num">Sold</th>
+                <th scope="col" class="num">Revenue</th>
+                <th scope="col" class="num">Active now</th>
+              </tr>
+            </thead>
+            <tbody id="passBody"></tbody>
+          </table>
+
+          <details class="hideable">
+            <summary>Recent passes</summary>
+            <table class="dtable">
+              <caption class="sr-only">Most recent passes sold</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Sold</th>
+                  <th scope="col">Name</th>
+                  <th scope="col">Pass</th>
+                  <th scope="col" class="num">Price</th>
+                  <th scope="col">Expires</th>
+                </tr>
+              </thead>
+              <tbody id="passRecent"></tbody>
+            </table>
+          </details>
+          <p class="peak-note">Pass purchases are kept separate from the Sales totals above.</p>
         </div>
       </section>
 
@@ -513,6 +557,7 @@ const TZ = 'Asia/Manila';
 const REFRESH_MS = 5 * 60 * 1000;   // reload the numbers every 5 minutes
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const PASS_NAMES = ['Day Pass', 'Weekly Pass', 'Monthly Pass'];
 const $ = id => document.getElementById(id);
 
 // Kept in memory only, so a page refresh locks the dashboard again
@@ -573,6 +618,14 @@ function niceMax(v) {
   if (v <= 0) return 10;
   const p = Math.pow(10, Math.floor(Math.log10(v)));
   return Math.ceil(v / p) * p;
+}
+
+// Monday of a 'yyyy-MM-dd' date (same rule as the server)
+function mondayOf(iso) {
+  const [y, m, d] = iso.split('-').map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  dt.setUTCDate(dt.getUTCDate() - ((dt.getUTCDay() + 6) % 7));
+  return dt.toISOString().slice(0, 10);
 }
 
 // Percent change, or null when there is no earlier value to compare with
@@ -1018,6 +1071,7 @@ async function loadDashboard() {
     renderKpis();
     renderChart();
     renderTable();
+    renderPasses();
     renderAverages();
     $('updated').textContent = 'Updated ' + new Date().toLocaleTimeString('en-PH', {
       timeZone: TZ, hour: 'numeric', minute: '2-digit'
@@ -1086,7 +1140,7 @@ function renderKpis() {
 }
 
 // Combo chart: visitors as bars (left scale), sales as a line (right scale).
-// The highest-visitor period is drawn darker so it stands out, like the peak bar in the reference design.
+// The highest-visitor period is drawn darker so it stands out.
 function renderChart() {
   const ser = data[period];
   const n = ser.length;
@@ -1174,6 +1228,62 @@ function renderTable() {
   }).join('');
 }
 
+// Is a pass sold on this date inside the period being viewed?
+function inCurrentPeriod(iso) {
+  const ser = data[period];
+  const label = ser[ser.length - 1].label;
+  if (period === 'daily') return iso === label;
+  if (period === 'weekly') return mondayOf(iso) === label;
+  return iso.slice(0, 7) === label;   // monthly label is 'yyyy-MM'
+}
+
+// Pass sales panel: sold, revenue and active passes for each pass type in the selected period
+function renderPasses() {
+  const list = data.passes || [];
+  const today = data.daily[data.daily.length - 1].label;
+  const periodWord = { daily: 'Today', weekly: 'This week', monthly: 'This month' }[period];
+
+  $('passPeriod').textContent = 'Showing: ' + periodWord.toLowerCase() + ' · active = not yet expired today';
+
+  let totSold = 0, totRev = 0, totActive = 0;
+  const rows = PASS_NAMES.map(name => {
+    const sold = list.filter(p => p.pass === name && inCurrentPeriod(p.sold));
+    const active = list.filter(p => p.pass === name && p.expires >= today).length;
+    const rev = sold.reduce((a, p) => a + p.price, 0);
+    totSold += sold.length;
+    totRev += rev;
+    totActive += active;
+    return `
+      <tr>
+        <td>${esc(name)}</td>
+        <td class="num">${fmtNum(sold.length)}</td>
+        <td class="num">${peso(rev)}</td>
+        <td class="num">${fmtNum(active)}</td>
+      </tr>`;
+  }).join('');
+
+  $('passBody').innerHTML = rows + `
+    <tr class="total-row">
+      <td><b>Total</b></td>
+      <td class="num"><b>${fmtNum(totSold)}</b></td>
+      <td class="num"><b>${peso(totRev)}</b></td>
+      <td class="num"><b>${fmtNum(totActive)}</b></td>
+    </tr>`;
+
+  // Ten most recent passes sold, newest first
+  const recent = list.slice().reverse().slice(0, 10);
+  $('passRecent').innerHTML = recent.length
+    ? recent.map(p => `
+      <tr>
+        <td>${p.sold ? esc(dayLabel(p.sold)) : '-'}</td>
+        <td>${esc(p.name)}</td>
+        <td>${esc(p.pass)}</td>
+        <td class="num">${peso(p.price)}</td>
+        <td>${p.expires ? esc(dayLabel(p.expires)) : '-'}</td>
+      </tr>`).join('')
+    : '<tr><td colspan="5">No passes sold yet.</td></tr>';
+}
+
 // Average sales and average visitors per day, week and month
 function renderAverages() {
   const a = data.averages;
@@ -1204,6 +1314,7 @@ document.querySelectorAll('[data-period]').forEach(btn => {
       renderKpis();
       renderChart();
       renderTable();
+      renderPasses();
     }
   };
 });
