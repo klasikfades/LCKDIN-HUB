@@ -863,7 +863,7 @@ function renderTap(r, token) {
   const body = $('tapBody');
   const name = esc(r.name || '');
 
-  // First tap: walk-in form (Work or School, then duration)
+  // First tap: walk-in form (guest name, Work or School, then duration)
   if (r.action === 'form') {
     const max = r.maxHours || 24;
     const opts = [...Array(max)].map((_, i) =>
@@ -872,8 +872,10 @@ function renderTap(r, token) {
       ? `<p class="hint">Pass time left today: ${fmtMin(r.remainingMin)}</p>` : '';
 
     body.innerHTML = `
-     <div class="title">Welcome, LCKieee!</div>
+      <div class="title">Welcome, ${name}!</div>
       <p class="subtitle">Check in for a visit</p>
+      <label for="tName">Your name</label>
+      <input id="tName" autocomplete="off">
       <label>Purpose</label>
       <div class="seg">
         <button type="button" id="tWork" aria-pressed="true">Work</button>
@@ -900,12 +902,17 @@ function renderTap(r, token) {
     $('tSchool').onclick = () => setPurpose('School');
 
     $('tStart').onclick = () => {
+      const guest = $('tName').value.trim();
+      if (!guest) {
+        $('tMsg').textContent = 'Type your name';
+        return;
+      }
       const school = $('tSchoolName').value.trim();
       if (purpose === 'School' && !school) {
         $('tMsg').textContent = 'Type the name of your school';
         return;
       }
-      tapAction({ action: 'checkin', token, purpose, school, duration: $('tDur').value });
+      tapAction({ action: 'checkin', token, name: guest, purpose, school, duration: $('tDur').value });
     };
     return;
   }
