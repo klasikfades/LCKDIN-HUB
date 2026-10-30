@@ -26,6 +26,7 @@
     --red-fg: #8A2B2B;
   }
   * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
   body {
     margin: 0;
     min-height: 100vh;
@@ -42,8 +43,9 @@
     box-shadow: 0 18px 40px rgba(75, 83, 64, 0.16), 0 2px 6px rgba(75, 83, 64, 0.06);
     overflow: hidden;
   }
-  /* Wider layout for the staff dashboard */
-  body.admin .app { max-width: 1160px; }
+  /* Staff pages (sign in + dashboard) use the full screen */
+  body.admin { padding: 0; background: #F4F8EC; }
+  body.admin .app, body.admin footer { display: none; }
 
   .hero {
     display: flex;
@@ -111,7 +113,7 @@
   button:hover { box-shadow: 0 10px 22px rgba(245, 201, 46, 0.45); }
   button:active { transform: scale(0.98); }
   button:disabled { opacity: 0.55; cursor: default; transform: none; }
-  button:focus-visible, input:focus-visible, select:focus-visible {
+  button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible {
     outline: 3px solid var(--yellow-2);
     outline-offset: 2px;
   }
@@ -186,31 +188,97 @@
   .cardform label { margin-top: 0; }
   .cardform input, .cardform select { margin-top: 6px; }
 
-  /* ---------- Dashboard ---------- */
-  .dhead { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
-  .dhead .title { font-size: 22px; margin: 0; }
-  .dtools { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-  .updated { font-size: 11px; color: var(--olive-2); margin-top: 2px; }
-
-  .kpis {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 14px;
-    margin-top: 18px;
+  /* ---------- Staff sign in (split screen) ---------- */
+  .signin { display: grid; grid-template-columns: 1fr 1fr; min-height: 100vh; background: #fff; }
+  .si-left { display: flex; flex-direction: column; padding: 28px 40px; }
+  .si-back { font-size: 12px; font-weight: 600; color: var(--olive-2); text-decoration: none; }
+  .si-back:hover { color: var(--olive); }
+  .si-form { width: 100%; max-width: 380px; margin: auto; }
+  .si-form .title { font-size: 30px; }
+  .si-form button { margin-top: 22px; }
+  .si-foot { font-size: 11px; color: var(--olive-3); }
+  .si-right {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px;
+    padding: 30px; color: #fff; text-align: center;
+    border-radius: 0 0 0 120px;
+    background: linear-gradient(135deg, var(--olive-3) 0%, var(--olive) 100%);
   }
+  .si-right .badge { width: 150px; height: 150px; }
+  .si-right .badge img { width: 116px; height: 116px; }
+  .si-right .wordmark { width: 260px; }
+  .si-pill {
+    border: 1px solid rgba(255, 255, 255, 0.35); background: rgba(255, 255, 255, 0.1);
+    border-radius: 18px; padding: 16px 28px; font-size: 13px; line-height: 1.6;
+  }
+
+  /* ---------- Dashboard shell (sidebar + main) ---------- */
+  .shell { display: grid; grid-template-columns: 250px 1fr; min-height: 100vh; }
+  .side {
+    position: sticky; top: 0; height: 100vh;
+    display: flex; flex-direction: column;
+    padding: 26px 18px 22px; background: #fff;
+  }
+  .side-logo { display: block; width: 150px; max-width: 100%; margin: 4px auto 18px; mix-blend-mode: multiply; }
+  .side hr { border: 0; border-top: 1px solid var(--line); margin: 0 0 14px; width: 100%; }
+  .side nav { display: flex; flex-direction: column; gap: 2px; }
+  .side nav a {
+    position: relative; display: flex; align-items: center; gap: 12px;
+    padding: 12px 14px; border-radius: 14px;
+    font-size: 14px; font-weight: 600; color: var(--olive-3); text-decoration: none;
+  }
+  .side nav a span { width: 20px; text-align: center; font-size: 16px; }
+  .side nav a:hover { background: var(--field); }
+  .side nav a.on { color: var(--olive); }
+  .side nav a.on::after {
+    content: ''; position: absolute; right: -18px; top: 8px; bottom: 8px; width: 4px;
+    border-radius: 4px 0 0 4px; background: var(--olive);
+  }
+  .side-card {
+    position: relative; margin-top: auto; padding: 44px 16px 18px; text-align: center;
+    border-radius: 20px; color: #fff; font-size: 12px; line-height: 1.5;
+    background: linear-gradient(135deg, var(--olive-3) 0%, var(--olive) 100%);
+  }
+  .side-card .badge { position: absolute; top: -32px; left: 50%; transform: translateX(-50%); width: 64px; height: 64px; }
+  .side-card .badge img { width: 48px; height: 48px; }
+  .side-card b { display: block; font-size: 13px; margin-bottom: 2px; }
+  .side-card button { margin-top: 12px; padding: 10px; font-size: 12px; }
+
+  .main { padding: 22px 26px 36px; min-width: 0; }
+  .topbar { display: flex; justify-content: space-between; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .crumb { font-size: 12px; color: var(--olive-3); }
+  .topbar .title { font-size: 28px; margin: 0; }
+  .updated { font-size: 11px; color: var(--olive-2); margin-top: 2px; }
+  .pill {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    padding: 8px 10px; background: #fff; border-radius: 999px;
+    box-shadow: 0 8px 24px rgba(75, 83, 64, 0.08);
+  }
+
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 20px; }
   .kcard {
     background: #fff;
-    border: 1px solid var(--line);
     border-radius: 22px;
-    padding: 16px;
-    min-height: 150px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
+    padding: 18px;
+    box-shadow: 0 8px 24px rgba(75, 83, 64, 0.07);
+    display: grid;
+    grid-template-columns: 48px 1fr;
+    column-gap: 14px;
+    align-content: center;
+    row-gap: 4px;
   }
+  .kcard > * { grid-column: 2; }
+  .kcard::before {
+    grid-column: 1; grid-row: 1 / span 4; align-self: center;
+    width: 48px; height: 48px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--field); color: var(--olive); font-size: 20px; font-weight: 700;
+  }
+  .kcard:nth-child(1)::before { content: '₱'; background: rgba(255, 255, 255, 0.25); color: #fff; }
+  .kcard:nth-child(2)::before { content: '☺'; }
+  .kcard:nth-child(3)::before { content: '≈'; }
+  .kcard:nth-child(4)::before { content: '!'; }
   .kcard.hl {
     background: linear-gradient(135deg, var(--orange-2) 0%, var(--orange) 100%);
-    border-color: transparent;
     color: #fff;
     box-shadow: 0 12px 24px rgba(255, 107, 53, 0.3);
   }
@@ -218,6 +286,7 @@
   .kcard.hl .klabel { color: rgba(255, 255, 255, 0.85); }
   .kvalue { font-size: 24px; font-weight: 700; }
   .kcard.alert .kvalue { color: var(--red-fg); }
+  .kcard.alert::before { background: var(--red-bg); color: var(--red-fg); }
   .ksub { font-size: 11px; color: var(--olive-2); }
   .kcard.hl .ksub { color: rgba(255, 255, 255, 0.85); }
 
@@ -234,14 +303,16 @@
 
   .grid-main { display: grid; grid-template-columns: 1.6fr 1fr; gap: 14px; margin-top: 14px; }
   .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px; }
-  .panel { background: #fff; border: 1px solid var(--line); border-radius: 22px; padding: 18px; min-width: 0; }
+  .panel { background: #fff; border-radius: 22px; padding: 20px; min-width: 0; box-shadow: 0 8px 24px rgba(75, 83, 64, 0.07); }
   .panel.wide { grid-column: 1 / -1; }
-  .panel.dark { background: var(--olive); border-color: transparent; color: #fff; }
+  .panel.dark { background: linear-gradient(160deg, var(--olive-2) 0%, var(--olive) 100%); color: #fff; }
   .panel.dark .muted, .panel.dark .peak-note { color: rgba(255, 255, 255, 0.75); }
-  .ptitle { font-size: 14px; font-weight: 700; margin: 0 0 4px; }
+  .ptitle { font-size: 15px; font-weight: 700; margin: 0 0 4px; }
   .pdesc { font-size: 11px; color: var(--olive-2); margin: 0 0 12px; }
   .panel.dark .pdesc { color: rgba(255, 255, 255, 0.75); }
   .prow { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+  #cards .subtitle { margin-bottom: 10px; }
+  section[id], header[id] { scroll-margin-top: 16px; }
 
   /* Combo chart */
   .legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; color: var(--olive-2); margin: 0 0 6px; }
@@ -305,9 +376,23 @@
   .hideable summary::before { content: '▸  '; }
   .hideable[open] summary::before { content: '▾  '; }
 
-  @media (max-width: 900px) {
+  @media (max-width: 1100px) {
     .kpis { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 900px) {
+    .shell { grid-template-columns: 1fr; }
+    .side { position: static; height: auto; padding: 18px 14px 10px; }
+    .side-logo { margin-bottom: 10px; }
+    .side nav { flex-direction: row; flex-wrap: wrap; }
+    .side nav a { padding: 9px 12px; }
+    .side nav a.on::after, .side-card { display: none; }
+    .main { padding: 18px 14px 32px; }
     .grid-main, .grid2 { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 800px) {
+    .signin { grid-template-columns: 1fr; }
+    .si-right { display: none; }
+    .si-left { padding: 22px; }
   }
   @media (max-width: 560px) {
     .kpis { grid-template-columns: 1fr; }
@@ -414,187 +499,220 @@
     <div id="tap" hidden>
       <div id="tapBody"></div>
     </div>
+  </div>
+</div>
 
-    <!-- Staff PIN -->
-    <div id="pin" hidden>
-      <div class="title">Staff sign in</div>
+<!-- Staff PIN (split screen sign in) -->
+<div id="pin" class="signin" hidden>
+  <div class="si-left">
+    <a class="si-back" href="./">&lsaquo; Back to booking</a>
+    <div class="si-form">
+      <div class="title">Staff Sign In</div>
       <p class="subtitle">Enter the staff PIN to open the dashboard</p>
-      <label for="pinInput">PIN</label>
-      <input type="password" id="pinInput" inputmode="numeric" autocomplete="off">
-      <button type="button" id="pinBtn">Unlock</button>
+      <label for="pinInput">PIN*</label>
+      <input type="password" id="pinInput" inputmode="numeric" autocomplete="off" placeholder="Staff PIN">
+      <button type="button" id="pinBtn" class="dark">Unlock</button>
       <p id="pinMsg" class="msg err" role="alert"></p>
     </div>
+    <div class="si-foot">&copy; LCKDIN Study Hub. Staff access only.</div>
+  </div>
+  <div class="si-right">
+    <div class="badge"><img src="logo-mark.png.jpg" alt="LCKDIN logo"></div>
+    <img class="wordmark" src="logo-wordmark.png.jpg" alt="LCKDIN Study Hub">
+    <div class="si-pill">Tables, visits, payments and passes<br>all in one staff dashboard</div>
+  </div>
+</div>
 
-    <!-- Admin dashboard -->
-    <div id="dash" hidden>
-      <div class="dhead">
-        <div>
-          <div class="title">Dashboard</div>
-          <div class="updated" id="updated" aria-live="polite"></div>
-        </div>
-        <div class="dtools">
-          <div class="seg" role="group" aria-label="Period">
-            <button type="button" data-period="daily" aria-pressed="true">Day</button>
-            <button type="button" data-period="weekly" aria-pressed="false">Week</button>
-            <button type="button" data-period="monthly" aria-pressed="false">Month</button>
-          </div>
-          <button type="button" class="ghost small" id="refreshBtn">Refresh</button>
-        </div>
+<!-- Admin dashboard -->
+<div id="dash" class="shell" hidden>
+  <aside class="side">
+    <img class="side-logo" src="logo-wordmark.png.jpg" alt="LCKDIN Study Hub">
+    <hr>
+    <nav aria-label="Dashboard sections">
+      <a href="#top" class="on"><span>⌂</span>Dashboard</a>
+      <a href="#chart"><span>▥</span>Sales trends</a>
+      <a href="#staffSec"><span>☺</span>Staff</a>
+      <a href="#passes"><span>▤</span>Pass sales</a>
+      <a href="#cards"><span>◉</span>NFC cards</a>
+      <a href="#" id="signOut"><span>⏻</span>Sign out</a>
+    </nav>
+    <div class="side-card">
+      <div class="badge"><img src="logo-mark.png.jpg" alt=""></div>
+      <b>New table?</b>
+      Make an NFC card so guests can tap in and out.
+      <button type="button" id="goCards">Make NFC card</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar" id="top">
+      <div>
+        <div class="crumb">Pages / Dashboard</div>
+        <div class="title">Main Dashboard</div>
+        <div class="updated" id="updated" aria-live="polite"></div>
       </div>
+      <div class="pill">
+        <div class="seg" role="group" aria-label="Period">
+          <button type="button" data-period="daily" aria-pressed="true">Day</button>
+          <button type="button" data-period="weekly" aria-pressed="false">Week</button>
+          <button type="button" data-period="monthly" aria-pressed="false">Month</button>
+        </div>
+        <button type="button" class="ghost small" id="refreshBtn">Refresh</button>
+      </div>
+    </header>
 
-      <div id="dashErr" class="status err" hidden role="alert"></div>
+    <div id="dashErr" class="status err" hidden role="alert"></div>
 
-      <!-- Headline numbers -->
-      <section class="kpis" id="kpis" aria-label="Headline numbers"></section>
+    <!-- Headline numbers -->
+    <section class="kpis" id="kpis" aria-label="Headline numbers"></section>
 
-      <!-- Chart and staff performance -->
-      <div class="grid-main">
-        <section class="panel" id="chart" aria-labelledby="trendTitle">
-          <div class="prow">
-            <div class="ptitle" id="trendTitle">Visitors vs sales</div>
-          </div>
-          <div class="legend">
-            <span><i class="sw" style="background: var(--bar);"></i>Visitors (bars, left scale)</span>
-            <span><i class="sw" style="background: var(--olive);"></i>Peak visitors</span>
-            <span><i class="ln" style="background: var(--orange);"></i>Sales (line, right scale, ₱)</span>
-          </div>
-          <div class="chart-wrap" id="chartBox"></div>
-          <p class="peak-note" id="peakNote"></p>
+    <!-- Chart and staff performance -->
+    <div class="grid-main">
+      <section class="panel" id="chart" aria-labelledby="trendTitle">
+        <div class="prow">
+          <div class="ptitle" id="trendTitle">Visitors vs sales</div>
+        </div>
+        <div class="legend">
+          <span><i class="sw" style="background: var(--bar);"></i>Visitors (bars, left scale)</span>
+          <span><i class="sw" style="background: var(--olive);"></i>Peak visitors</span>
+          <span><i class="ln" style="background: var(--orange);"></i>Sales (line, right scale, ₱)</span>
+        </div>
+        <div class="chart-wrap" id="chartBox"></div>
+        <p class="peak-note" id="peakNote"></p>
 
-          <details class="hideable">
-            <summary>Period table</summary>
-            <table class="dtable">
-              <caption class="sr-only">Visitors, sales and average sale per visit for each period</caption>
-              <thead>
-                <tr>
-                  <th scope="col">Period</th>
-                  <th scope="col" class="num">Visitors</th>
-                  <th scope="col" class="num">Sales</th>
-                  <th scope="col" class="num">Avg per visit</th>
-                </tr>
-              </thead>
-              <tbody id="seriesBody"></tbody>
-            </table>
-          </details>
-        </section>
-
-        <section class="panel dark" aria-labelledby="staffTitle">
-          <div class="ptitle" id="staffTitle">Staff performance</div>
-          <p class="pdesc" id="staffWord"></p>
+        <details class="hideable">
+          <summary>Period table</summary>
           <table class="dtable">
-            <caption class="sr-only">Clients and payments accepted by each staff member</caption>
+            <caption class="sr-only">Visitors, sales and average sale per visit for each period</caption>
             <thead>
               <tr>
-                <th scope="col">Staff</th>
-                <th scope="col" class="num">Clients</th>
-                <th scope="col" class="num">Collected</th>
-                <th scope="col" class="num">GCash</th>
-                <th scope="col" class="num">Cash</th>
+                <th scope="col">Period</th>
+                <th scope="col" class="num">Visitors</th>
+                <th scope="col" class="num">Sales</th>
+                <th scope="col" class="num">Avg per visit</th>
               </tr>
             </thead>
-            <tbody id="staffBody"></tbody>
+            <tbody id="seriesBody"></tbody>
           </table>
-          <p class="pdesc" style="margin: 10px 0 0;">Tap a staff member to see their clients. Staff are assigned in the Personnel column of each day tab.</p>
-        </section>
-      </div>
-
-      <!-- Clients and payment methods -->
-      <div class="grid2">
-        <section class="panel" aria-labelledby="clientTitle">
-          <div class="ptitle" id="clientTitle">Clients</div>
-          <p class="pdesc" id="clientWord"></p>
-          <ul class="clist" id="clientList"></ul>
-        </section>
-
-        <section class="panel" aria-labelledby="payTitle">
-          <div class="ptitle" id="payTitle">Payment methods</div>
-          <p class="pdesc" id="payWord"></p>
-          <div class="pm-total" id="payTotal"></div>
-          <div id="payMethods"></div>
-        </section>
-      </div>
-
-      <!-- Pass sales -->
-      <section id="passes" class="grid2" aria-labelledby="passTitle">
-        <div class="panel wide">
-          <div class="prow">
-            <div>
-              <div class="ptitle" id="passTitle">Pass sales</div>
-              <div class="pdesc" id="passPeriod"></div>
-            </div>
-          </div>
-          <table class="dtable">
-            <caption class="sr-only">Pass sales by type for the selected period</caption>
-            <thead>
-              <tr>
-                <th scope="col">Pass</th>
-                <th scope="col" class="num">Sold</th>
-                <th scope="col" class="num">Revenue</th>
-                <th scope="col" class="num">Active now</th>
-              </tr>
-            </thead>
-            <tbody id="passBody"></tbody>
-          </table>
-
-          <details class="hideable">
-            <summary>Recent passes</summary>
-            <table class="dtable">
-              <caption class="sr-only">Most recent passes sold</caption>
-              <thead>
-                <tr>
-                  <th scope="col">Sold</th>
-                  <th scope="col">Name</th>
-                  <th scope="col">Pass</th>
-                  <th scope="col" class="num">Price</th>
-                  <th scope="col">Expires</th>
-                </tr>
-              </thead>
-              <tbody id="passRecent"></tbody>
-            </table>
-          </details>
-          <p class="hint-left">Pass purchases are kept separate from the Sales totals above.</p>
-        </div>
+        </details>
       </section>
 
-      <!-- Averages -->
-      <section class="grid2" aria-labelledby="avgTitle">
-        <div class="panel">
-          <div class="ptitle">Average sales</div>
-          <div class="avg3" id="avgSales"></div>
-        </div>
-        <div class="panel">
-          <div class="ptitle">Average visitors</div>
-          <div class="avg3" id="avgVisitors"></div>
-        </div>
-        <p class="hint-left" style="grid-column: 1 / -1;">Averages count only the days, weeks or months that had at least one closed visit.</p>
-      </section>
-      <h2 class="sr-only" id="avgTitle">Averages</h2>
-
-      <!-- NFC cards -->
-      <section id="cards" class="grid2" aria-labelledby="cardTitle">
-        <div class="panel wide">
-          <div class="ptitle" id="cardTitle">Make NFC card</div>
-          <p class="subtitle">Name the card after its table, for example Focus table 1</p>
-          <div class="cardform">
-            <div>
-              <label for="cardName">Card name</label>
-              <input id="cardName">
-            </div>
-            <div>
-              <label for="cardCategory">Category</label>
-              <select id="cardCategory"></select>
-            </div>
-            <button type="button" id="mkToken" class="dark">Create card</button>
-          </div>
-          <div class="status" id="cardResult" hidden>
-            <div>Token: <b id="cardToken"></b></div>
-            <div class="hint" id="cardUrl"></div>
-          </div>
-          <p class="hint">Write the link above onto the NFC tag with NFC Tools (Write &gt; Add a record &gt; URL).</p>
-        </div>
+      <section class="panel dark" id="staffSec" aria-labelledby="staffTitle">
+        <div class="ptitle" id="staffTitle">Staff performance</div>
+        <p class="pdesc" id="staffWord"></p>
+        <table class="dtable">
+          <caption class="sr-only">Clients and payments accepted by each staff member</caption>
+          <thead>
+            <tr>
+              <th scope="col">Staff</th>
+              <th scope="col" class="num">Clients</th>
+              <th scope="col" class="num">Collected</th>
+              <th scope="col" class="num">GCash</th>
+              <th scope="col" class="num">Cash</th>
+            </tr>
+          </thead>
+          <tbody id="staffBody"></tbody>
+        </table>
+        <p class="pdesc" style="margin: 10px 0 0;">Tap a staff member to see their clients. Staff are assigned in the Personnel column of each day tab.</p>
       </section>
     </div>
-  </div>
+
+    <!-- Clients and payment methods -->
+    <div class="grid2">
+      <section class="panel" aria-labelledby="clientTitle">
+        <div class="ptitle" id="clientTitle">Clients</div>
+        <p class="pdesc" id="clientWord"></p>
+        <ul class="clist" id="clientList"></ul>
+      </section>
+
+      <section class="panel" aria-labelledby="payTitle">
+        <div class="ptitle" id="payTitle">Payment methods</div>
+        <p class="pdesc" id="payWord"></p>
+        <div class="pm-total" id="payTotal"></div>
+        <div id="payMethods"></div>
+      </section>
+    </div>
+
+    <!-- Pass sales -->
+    <section id="passes" class="grid2" aria-labelledby="passTitle">
+      <div class="panel wide">
+        <div class="prow">
+          <div>
+            <div class="ptitle" id="passTitle">Pass sales</div>
+            <div class="pdesc" id="passPeriod"></div>
+          </div>
+        </div>
+        <table class="dtable">
+          <caption class="sr-only">Pass sales by type for the selected period</caption>
+          <thead>
+            <tr>
+              <th scope="col">Pass</th>
+              <th scope="col" class="num">Sold</th>
+              <th scope="col" class="num">Revenue</th>
+              <th scope="col" class="num">Active now</th>
+            </tr>
+          </thead>
+          <tbody id="passBody"></tbody>
+        </table>
+
+        <details class="hideable">
+          <summary>Recent passes</summary>
+          <table class="dtable">
+            <caption class="sr-only">Most recent passes sold</caption>
+            <thead>
+              <tr>
+                <th scope="col">Sold</th>
+                <th scope="col">Name</th>
+                <th scope="col">Pass</th>
+                <th scope="col" class="num">Price</th>
+                <th scope="col">Expires</th>
+              </tr>
+            </thead>
+            <tbody id="passRecent"></tbody>
+          </table>
+        </details>
+        <p class="hint-left">Pass purchases are kept separate from the Sales totals above.</p>
+      </div>
+    </section>
+
+    <!-- Averages -->
+    <section class="grid2" aria-labelledby="avgTitle">
+      <div class="panel">
+        <div class="ptitle">Average sales</div>
+        <div class="avg3" id="avgSales"></div>
+      </div>
+      <div class="panel">
+        <div class="ptitle">Average visitors</div>
+        <div class="avg3" id="avgVisitors"></div>
+      </div>
+      <p class="hint-left" style="grid-column: 1 / -1;">Averages count only the days, weeks or months that had at least one closed visit.</p>
+    </section>
+    <h2 class="sr-only" id="avgTitle">Averages</h2>
+
+    <!-- NFC cards -->
+    <section id="cards" class="grid2" aria-labelledby="cardTitle">
+      <div class="panel wide">
+        <div class="ptitle" id="cardTitle">Make NFC card</div>
+        <p class="subtitle">Name the card after its table, for example Focus table 1</p>
+        <div class="cardform">
+          <div>
+            <label for="cardName">Card name</label>
+            <input id="cardName">
+          </div>
+          <div>
+            <label for="cardCategory">Category</label>
+            <select id="cardCategory"></select>
+          </div>
+          <button type="button" id="mkToken" class="dark">Create card</button>
+        </div>
+        <div class="status" id="cardResult" hidden>
+          <div>Token: <b id="cardToken"></b></div>
+          <div class="hint" id="cardUrl"></div>
+        </div>
+        <p class="hint">Write the link above onto the NFC tag with NFC Tools (Write &gt; Add a record &gt; URL).</p>
+      </div>
+    </section>
+  </main>
 </div>
 
 <footer>LCKDIN Study Hub</footer>
@@ -1118,6 +1236,8 @@ function askPin() {
       $('pinBtn').disabled = false;
     }
   };
+  // Enter key unlocks too
+  $('pinInput').onkeydown = e => { if (e.key === 'Enter') $('pinBtn').click(); };
 }
 
 // ---- Dashboard data ----
@@ -1450,6 +1570,20 @@ document.querySelectorAll('[data-period]').forEach(btn => {
 });
 
 $('refreshBtn').onclick = loadDashboard;
+
+// Sidebar: highlight the clicked link, sign out, and the shortcut to the card maker
+document.querySelectorAll('.side nav a[href^="#"]').forEach(a => {
+  a.onclick = e => {
+    if (a.id === 'signOut') {
+      e.preventDefault();
+      staffPin = '';
+      location.reload();
+      return;
+    }
+    document.querySelectorAll('.side nav a').forEach(x => x.classList.toggle('on', x === a));
+  };
+});
+$('goCards').onclick = () => $('cards').scrollIntoView({ behavior: 'smooth' });
 
 // ---- NFC card maker ----
 async function loadConfig() {
