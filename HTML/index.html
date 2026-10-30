@@ -189,20 +189,10 @@
   /* ---------- Dashboard ---------- */
   .dhead { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
   .dhead .title { font-size: 22px; margin: 0; }
+  .dtools { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
   .updated { font-size: 11px; color: var(--olive-2); margin-top: 2px; }
 
-  .pills {
-    display: flex; gap: 6px; flex-wrap: wrap;
-    margin-top: 16px; padding: 6px;
-    background: var(--field); border-radius: 999px; width: fit-content; max-width: 100%;
-  }
-  .pills a {
-    padding: 8px 16px; border-radius: 999px; font-size: 13px; font-weight: 600;
-    color: var(--olive-2); text-decoration: none;
-  }
-  .pills a:first-child { background: var(--olive); color: #fff; }
-
-  .kpis4 {
+  .kpis {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 14px;
@@ -211,38 +201,63 @@
   .kcard {
     background: #fff;
     border: 1px solid var(--line);
-    border-radius: 20px;
-    padding: 18px;
-    min-height: 140px;
+    border-radius: 22px;
+    padding: 16px;
+    min-height: 150px;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
+    gap: 6px;
   }
-  .kcard .klabel { font-size: 12px; color: var(--olive-2); font-weight: 600; }
-  .kcard .kvalue { font-size: 26px; font-weight: 700; margin-top: 6px; }
-  .kcard .ksub { font-size: 11px; color: var(--olive-2); margin-top: 4px; }
+  .kcard.hl {
+    background: linear-gradient(135deg, var(--orange-2) 0%, var(--orange) 100%);
+    border-color: transparent;
+    color: #fff;
+    box-shadow: 0 12px 24px rgba(255, 107, 53, 0.3);
+  }
   .kcard.dark {
-    background: linear-gradient(135deg, var(--olive-3) 0%, var(--olive) 100%);
+    background: var(--olive);
     border-color: transparent;
     color: #fff;
   }
-  .kcard.dark .klabel, .kcard.dark .ksub { color: rgba(255, 255, 255, 0.85); }
+  .klabel { font-size: 12px; color: var(--olive-2); font-weight: 600; }
+  .kcard.hl .klabel, .kcard.dark .klabel { color: rgba(255, 255, 255, 0.85); }
+  .kvalue { font-size: 24px; font-weight: 700; }
+  .kcard.alert .kvalue { color: var(--red-fg); }
+  .ksub { font-size: 11px; color: var(--olive-2); }
+  .kcard.hl .ksub, .kcard.dark .ksub { color: rgba(255, 255, 255, 0.85); }
 
   .chg {
-    display: inline-block; align-self: flex-start; margin-top: 10px;
+    display: inline-block; align-self: flex-start;
     padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 600;
     background: #E3E6DC; color: var(--olive);
   }
   .chg.up { background: var(--green-bg); color: var(--green-fg); }
   .chg.down { background: var(--red-bg); color: var(--red-fg); }
+  .kcard.hl .chg { background: rgba(255, 255, 255, 0.25); color: #fff; }
   .chg-sub { font-size: 11px; color: var(--olive-2); margin-left: 6px; font-weight: 400; }
+  .kcard.hl .chg-sub { color: rgba(255, 255, 255, 0.85); }
 
+  .spark {
+    display: flex; align-items: flex-end; gap: 4px;
+    height: 34px; margin-top: auto;
+  }
+  .spark i { flex: 1; background: var(--bar); border-radius: 4px; min-height: 3px; }
+  .spark i.last { background: var(--olive); }
+  .kcard.hl .spark i { background: rgba(255, 255, 255, 0.45); }
+  .kcard.hl .spark i.last { background: #fff; }
+  .kcard.dark .spark i { background: rgba(255, 255, 255, 0.3); }
+  .kcard.dark .spark i.last { background: var(--yellow); }
+
+  .grid-main { display: grid; grid-template-columns: 1.6fr 1fr; gap: 14px; margin-top: 14px; }
   .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px; }
-  .panel { background: #fff; border: 1px solid var(--line); border-radius: 22px; padding: 18px; }
+  .panel { background: #fff; border: 1px solid var(--line); border-radius: 22px; padding: 18px; min-width: 0; }
   .panel.wide { grid-column: 1 / -1; }
-  .ptitle { font-size: 14px; font-weight: 700; margin: 0 0 12px; }
+  .panel.dark { background: var(--olive); border-color: transparent; color: #fff; }
+  .panel.dark .muted, .panel.dark .peak-note { color: rgba(255, 255, 255, 0.75); }
+  .ptitle { font-size: 14px; font-weight: 700; margin: 0 0 4px; }
+  .pdesc { font-size: 11px; color: var(--olive-2); margin: 0 0 12px; }
+  .panel.dark .pdesc { color: rgba(255, 255, 255, 0.75); }
   .prow { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
-  .prow .ptitle { margin: 0; }
 
   /* Combo chart */
   .legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; color: var(--olive-2); margin: 0 0 6px; }
@@ -261,16 +276,41 @@
   .chart-wrap .dot-s { fill: var(--orange); stroke: #fff; stroke-width: 1.5; }
   .peak-note { font-size: 11px; color: var(--olive-2); margin-top: 8px; }
 
-  .avg3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-  .avgtile { background: var(--band); border-radius: 16px; padding: 14px 12px; text-align: center; }
-  .avgtile .label { font-size: 11px; color: var(--olive-2); font-weight: 600; }
-  .avgtile .value { font-size: 18px; font-weight: 700; margin-top: 6px; word-break: break-word; }
-
+  /* Tables */
   table.dtable { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; }
   .dtable th, .dtable td { padding: 10px 6px; border-bottom: 1px dashed var(--line); text-align: left; }
   .dtable th { color: var(--olive-2); font-weight: 600; font-size: 12px; }
   .dtable tr.total-row td { font-weight: 700; color: var(--olive); border-bottom: 0; }
   .num { text-align: right; }
+  .panel.dark .dtable th, .panel.dark .dtable td { color: #fff; border-bottom-color: rgba(255, 255, 255, 0.15); }
+  .panel.dark .dtable th { color: rgba(255, 255, 255, 0.7); }
+  .panel.dark .dtable tr.staff-row { cursor: pointer; }
+  .panel.dark .dtable tr.staff-row:hover td { background: rgba(255, 255, 255, 0.08); }
+  .panel.dark .dtable tr.staff-row.sel td { background: rgba(255, 255, 255, 0.18); }
+
+  /* Client list */
+  .clist { list-style: none; margin: 8px 0 0; padding: 0; max-height: 300px; overflow-y: auto; }
+  .clist li {
+    display: flex; justify-content: space-between; align-items: center; gap: 10px;
+    padding: 10px 0; border-bottom: 1px dashed var(--line); font-size: 13px;
+  }
+  .clist li small { display: block; font-size: 11px; color: var(--olive-2); margin-top: 2px; }
+  .clist li b { white-space: nowrap; }
+
+  /* Payment methods */
+  .pm { margin-top: 14px; }
+  .pm .pmrow { display: flex; justify-content: space-between; font-size: 13px; font-weight: 600; }
+  .pm small { font-size: 11px; color: var(--olive-2); }
+  .mbar { height: 10px; border-radius: 999px; background: var(--field); overflow: hidden; margin: 6px 0 4px; }
+  .mbar i { display: block; height: 100%; background: linear-gradient(90deg, var(--olive-3), var(--olive)); border-radius: 999px; }
+  .pm-total { font-size: 22px; font-weight: 700; margin-top: 4px; }
+
+  .avg3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .avgtile { background: var(--band); border-radius: 16px; padding: 14px 12px; text-align: center; }
+  .avgtile .label { font-size: 11px; color: var(--olive-2); font-weight: 600; }
+  .avgtile .value { font-size: 18px; font-weight: 700; margin-top: 6px; word-break: break-word; }
+
+  .hint-left { font-size: 11px; color: var(--olive-2); margin: 0; }
 
   .hideable { margin-top: 12px; }
   .hideable summary {
@@ -282,11 +322,11 @@
   .hideable[open] summary::before { content: '▾  '; }
 
   @media (max-width: 900px) {
-    .kpis4 { grid-template-columns: repeat(2, 1fr); }
-    .grid2 { grid-template-columns: 1fr; }
+    .kpis { grid-template-columns: repeat(2, 1fr); }
+    .grid-main, .grid2 { grid-template-columns: 1fr; }
   }
   @media (max-width: 560px) {
-    .kpis4 { grid-template-columns: 1fr; }
+    .kpis { grid-template-columns: 1fr; }
     .avg3 { grid-template-columns: 1fr; }
     .cardform { grid-template-columns: 1fr; }
     .cardform button { width: 100%; }
@@ -408,35 +448,26 @@
           <div class="title">Dashboard</div>
           <div class="updated" id="updated" aria-live="polite"></div>
         </div>
-        <button type="button" class="ghost small" id="refreshBtn">Refresh</button>
+        <div class="dtools">
+          <div class="seg" role="group" aria-label="Period">
+            <button type="button" data-period="daily" aria-pressed="true">Day</button>
+            <button type="button" data-period="weekly" aria-pressed="false">Week</button>
+            <button type="button" data-period="monthly" aria-pressed="false">Month</button>
+          </div>
+          <button type="button" class="ghost small" id="refreshBtn">Refresh</button>
+        </div>
       </div>
-
-      <nav class="pills" aria-label="Dashboard sections">
-        <a href="#overview">Overview</a>
-        <a href="#chart">Chart</a>
-        <a href="#passes">Passes</a>
-        <a href="#averages">Averages</a>
-        <a href="#cards">NFC cards</a>
-      </nav>
 
       <div id="dashErr" class="status err" hidden role="alert"></div>
 
-      <!-- Overview cards -->
-      <section id="overview" aria-labelledby="kpiTitle">
-        <h2 class="sr-only" id="kpiTitle">Overview</h2>
-        <div class="kpis4" id="kpis"></div>
-      </section>
+      <!-- Headline numbers -->
+      <section class="kpis" id="kpis" aria-label="Headline numbers"></section>
 
-      <!-- Chart and table -->
-      <section id="chart" class="grid2" aria-labelledby="trendTitle">
-        <div class="panel wide">
+      <!-- Chart and staff performance -->
+      <div class="grid-main">
+        <section class="panel" id="chart" aria-labelledby="trendTitle">
           <div class="prow">
             <div class="ptitle" id="trendTitle">Visitors vs sales</div>
-            <div class="seg" role="group" aria-label="Period">
-              <button type="button" data-period="daily" aria-pressed="true">Day</button>
-              <button type="button" data-period="weekly" aria-pressed="false">Week</button>
-              <button type="button" data-period="monthly" aria-pressed="false">Month</button>
-            </div>
           </div>
           <div class="legend">
             <span><i class="sw" style="background: var(--bar);"></i>Visitors (bars, left scale)</span>
@@ -461,8 +492,43 @@
               <tbody id="seriesBody"></tbody>
             </table>
           </details>
-        </div>
-      </section>
+        </section>
+
+        <section class="panel dark" aria-labelledby="staffTitle">
+          <div class="ptitle" id="staffTitle">Staff performance</div>
+          <p class="pdesc" id="staffWord"></p>
+          <table class="dtable">
+            <caption class="sr-only">Clients and payments accepted by each staff member</caption>
+            <thead>
+              <tr>
+                <th scope="col">Staff</th>
+                <th scope="col" class="num">Clients</th>
+                <th scope="col" class="num">Collected</th>
+                <th scope="col" class="num">GCash</th>
+                <th scope="col" class="num">Cash</th>
+              </tr>
+            </thead>
+            <tbody id="staffBody"></tbody>
+          </table>
+          <p class="pdesc" style="margin: 10px 0 0;">Tap a staff member to see their clients. Staff are assigned in the Personnel column of each day tab.</p>
+        </section>
+      </div>
+
+      <!-- Clients and payment methods -->
+      <div class="grid2">
+        <section class="panel" aria-labelledby="clientTitle">
+          <div class="ptitle" id="clientTitle">Clients</div>
+          <p class="pdesc" id="clientWord"></p>
+          <ul class="clist" id="clientList"></ul>
+        </section>
+
+        <section class="panel" aria-labelledby="payTitle">
+          <div class="ptitle" id="payTitle">Payment methods</div>
+          <p class="pdesc" id="payWord"></p>
+          <div class="pm-total" id="payTotal"></div>
+          <div id="payMethods"></div>
+        </section>
+      </div>
 
       <!-- Pass sales -->
       <section id="passes" class="grid2" aria-labelledby="passTitle">
@@ -470,7 +536,7 @@
           <div class="prow">
             <div>
               <div class="ptitle" id="passTitle">Pass sales</div>
-              <div class="updated" id="passPeriod"></div>
+              <div class="pdesc" id="passPeriod"></div>
             </div>
           </div>
           <table class="dtable">
@@ -502,12 +568,12 @@
               <tbody id="passRecent"></tbody>
             </table>
           </details>
-          <p class="peak-note">Pass purchases are kept separate from the Sales totals above.</p>
-        </div>
+          <p class="hint-left">Pass purchases are kept separate from the Sales totals above.</p>
+        </section>
       </section>
 
       <!-- Averages -->
-      <section id="averages" class="grid2" aria-labelledby="avgTitle">
+      <section class="grid2" aria-labelledby="avgTitle">
         <div class="panel">
           <div class="ptitle">Average sales</div>
           <div class="avg3" id="avgSales"></div>
@@ -516,7 +582,7 @@
           <div class="ptitle">Average visitors</div>
           <div class="avg3" id="avgVisitors"></div>
         </div>
-        <p class="hint" style="grid-column: 1 / -1; margin: 0; text-align: left;">Averages count only the days, weeks or months that had at least one closed visit.</p>
+        <p class="hint-left" style="grid-column: 1 / -1;">Averages count only the days, weeks or months that had at least one closed visit.</p>
       </section>
       <h2 class="sr-only" id="avgTitle">Averages</h2>
 
@@ -564,6 +630,7 @@ const $ = id => document.getElementById(id);
 let staffPin = '';
 let data = null;          // last dashboard response
 let period = 'daily';     // daily | weekly | monthly
+let selectedStaff = null; // staff member whose clients are listed
 let refreshTimer = null;
 
 function esc(s) {
@@ -641,6 +708,24 @@ function chgTag(pct, text) {
   return pct > 0
     ? `<span class="chg up">▲ ${pct}%</span><span class="chg-sub">${esc(text)}</span>`
     : `<span class="chg down">▼ ${Math.abs(pct)}%</span><span class="chg-sub">${esc(text)}</span>`;
+}
+
+// Mini bar chart of the last 10 periods, the newest bar in a darker shade
+function spark(series, metric) {
+  const last = series.slice(-10);
+  const max = Math.max(1, ...last.map(s => s[metric]));
+  return '<div class="spark">' + last.map((s, i) =>
+    `<i class="${i === last.length - 1 ? 'last' : ''}" style="height:${Math.max(8, Math.round(s[metric] / max * 100))}%"></i>`
+  ).join('') + '</div>';
+}
+
+// Key used by the server's staff data for the selected period
+function periodKey() {
+  return { daily: 'today', weekly: 'week', monthly: 'month' }[period];
+}
+
+function periodWord() {
+  return { daily: 'today', weekly: 'this week', monthly: 'this month' }[period];
 }
 
 function show(id) {
@@ -926,7 +1011,7 @@ function renderTap(r, token) {
       ? `<p class="hint">Pass time left today: ${fmtMin(r.remainingMin)}</p>` : '';
 
     body.innerHTML = `
-      <div class="title">Welcome, LCKieee!</div>
+      <div class="title">Welcome, LCKieee! </div>
       <p class="subtitle">Check in for a visit</p>
       <label for="tName">Your name</label>
       <input id="tName" autocomplete="off">
@@ -1068,11 +1153,7 @@ async function loadDashboard() {
     const r = await post({ action: 'dashboard', pin: staffPin });
     if (!r.ok) throw new Error(r.error);
     data = r;
-    renderKpis();
-    renderChart();
-    renderTable();
-    renderPasses();
-    renderAverages();
+    renderAll();
     $('updated').textContent = 'Updated ' + new Date().toLocaleTimeString('en-PH', {
       timeZone: TZ, hour: 'numeric', minute: '2-digit'
     });
@@ -1089,7 +1170,20 @@ async function loadDashboard() {
   }
 }
 
-// Four summary cards. The first three compare the latest period with the one before it.
+// Redraws every dashboard section from the last response
+function renderAll() {
+  if (!data) return;
+  renderKpis();
+  renderChart();
+  renderTable();
+  renderStaff();
+  renderClients();
+  renderPayMethods();
+  renderPasses();
+  renderAverages();
+}
+
+// Headline cards: sales, visitors, average sale, unpaid. Each has a mini bar chart.
 function renderKpis() {
   const ser = data[period];
   const cur = ser[ser.length - 1];
@@ -1100,42 +1194,31 @@ function renderKpis() {
 
   const avgCur = cur.visitors ? cur.sales / cur.visitors : 0;
   const avgPrev = prev.visitors ? prev.sales / prev.visitors : 0;
-
-  // Busiest day in the last 30 days (daily series)
-  let busiest = data.daily[0];
-  data.daily.forEach(d => { if (d.visitors >= busiest.visitors) busiest = d; });
-  const busiestText = busiest.visitors
-    ? `${dayLabel(busiest.label)}`
-    : 'No visits yet';
+  const unpaid = data.totals.unpaid;
 
   $('kpis').innerHTML = `
-    <div class="kcard">
-      <div>
-        <div class="klabel">Visitors · ${curName} (so far)</div>
-        <div class="kvalue">${fmtNum(cur.visitors)}</div>
-      </div>
-      <div>${chgTag(pctChange(cur.visitors, prev.visitors), vsName)}</div>
-    </div>
-    <div class="kcard">
-      <div>
-        <div class="klabel">Sales · ${curName} (so far)</div>
-        <div class="kvalue">${peso(cur.sales)}</div>
-      </div>
+    <div class="kcard hl">
+      <div class="klabel">Sales · ${curName}</div>
+      <div class="kvalue">${peso(cur.sales)}</div>
       <div>${chgTag(pctChange(cur.sales, prev.sales), vsName)}</div>
+      ${spark(ser, 'sales')}
     </div>
     <div class="kcard">
-      <div>
-        <div class="klabel">Avg sale per visit · ${curName}</div>
-        <div class="kvalue">${peso(avgCur)}</div>
-      </div>
-      <div>${chgTag(pctChange(avgCur, avgPrev), vsName)}</div>
+      <div class="klabel">Visitors · ${curName}</div>
+      <div class="kvalue">${fmtNum(cur.visitors)}</div>
+      <div>${chgTag(pctChange(cur.visitors, prev.visitors), vsName)}</div>
+      ${spark(ser, 'visitors')}
     </div>
-    <div class="kcard dark">
-      <div>
-        <div class="klabel">Busiest day (last 30 days)</div>
-        <div class="kvalue">${esc(busiestText)}</div>
-        <div class="ksub">${busiest.visitors ? fmtNum(busiest.visitors) + ' visitors' : ''}</div>
-      </div>
+    <div class="kcard">
+      <div class="klabel">Avg sale per visit · ${curName}</div>
+      <div class="kvalue">${peso(avgCur)}</div>
+      <div>${chgTag(pctChange(avgCur, avgPrev), vsName)}</div>
+      <div class="ksub">${fmtNum(cur.visitors)} visits</div>
+    </div>
+    <div class="kcard dark ${unpaid > 0 ? 'alert' : ''}">
+      <div class="klabel">Unpaid balance (all time)</div>
+      <div class="kvalue">${peso(unpaid)}</div>
+      <div class="ksub">${unpaid > 0 ? 'Balances and visits not yet paid' : 'Nothing outstanding'}</div>
     </div>`;
 }
 
@@ -1198,9 +1281,9 @@ function renderChart() {
     }
   });
 
-  const periodWord = { daily: 'day', weekly: 'week', monthly: 'month' }[period];
+  const periodWord2 = { daily: 'day', weekly: 'week', monthly: 'month' }[period];
   $('chartBox').innerHTML = `
-    <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Visitors as bars and sales as a line, by ${periodWord}">
+    <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Visitors as bars and sales as a line, by ${periodWord2}">
       ${grid}
       ${bars}
       <path class="line-s" d="${pathS}"></path>
@@ -1210,7 +1293,7 @@ function renderChart() {
 
   const pk = ser[peak];
   $('peakNote').textContent = pk.visitors
-    ? 'Busiest ' + periodWord + ': ' + fullLabel(period, pk.label) + ' with ' + fmtNum(pk.visitors) + ' visitors.'
+    ? 'Busiest ' + periodWord2 + ': ' + fullLabel(period, pk.label) + ' with ' + fmtNum(pk.visitors) + ' visitors.'
     : 'No visits in this period yet.';
 }
 
@@ -1228,6 +1311,86 @@ function renderTable() {
   }).join('');
 }
 
+// Staff performance: clients, collected, GCash and cash for the selected period
+function renderStaff() {
+  const rows = ((data.staff || {})[periodKey()] || [])
+    .slice()
+    .sort((a, b) => b.collected - a.collected || b.clients - a.clients);
+
+  $('staffWord').textContent = 'Showing ' + periodWord() + ' · collected = amount paid so far';
+
+  $('staffBody').innerHTML = rows.length ? rows.map(s => `
+    <tr class="staff-row ${s.name === selectedStaff ? 'sel' : ''}" data-staff="${esc(s.name)}">
+      <td>${esc(s.name)}</td>
+      <td class="num">${fmtNum(s.clients)}</td>
+      <td class="num">${peso(s.collected)}</td>
+      <td class="num">${peso(s.gcash)}</td>
+      <td class="num">${peso(s.cash)}</td>
+    </tr>`).join('')
+    : '<tr><td colspan="5">No staff set up in Settings.</td></tr>';
+
+  // Keep a valid selection: the top earner if the current one is gone
+  if (!rows.some(s => s.name === selectedStaff)) {
+    const top = rows.find(s => s.clients > 0) || rows[0];
+    selectedStaff = top ? top.name : null;
+    $('staffBody').querySelectorAll('tr.staff-row').forEach(tr =>
+      tr.classList.toggle('sel', tr.dataset.staff === selectedStaff));
+  }
+}
+
+// Clicking a staff row selects it and lists their clients
+$('staffBody').onclick = e => {
+  const tr = e.target.closest('tr[data-staff]');
+  if (!tr) return;
+  selectedStaff = tr.dataset.staff;
+  renderStaff();
+  renderClients();
+};
+
+// Client list for the selected staff member
+function renderClients() {
+  const rows = (data.staff || {})[periodKey()] || [];
+  const s = rows.find(r => r.name === selectedStaff);
+
+  $('clientTitle').textContent = s ? 'Clients of ' + s.name : 'Clients';
+  $('clientWord').textContent = s
+    ? fmtNum(s.clients) + ' client' + (s.clients === 1 ? '' : 's') + ' ' + periodWord() + (s.clients > s.list.length ? ' · showing latest ' + s.list.length : '')
+    : 'Pick a staff member above.';
+
+  if (!s || !s.list.length) {
+    $('clientList').innerHTML = '<li><span>No clients in this period.</span></li>';
+    return;
+  }
+  $('clientList').innerHTML = s.list.map(c => `
+    <li>
+      <span>${esc(c.name)}<small>${esc(dayLabel(c.date))} · ${esc(c.method || 'Unpaid')}</small></span>
+      <b>${peso(c.amount)}</b>
+    </li>`).join('');
+}
+
+// Payment methods: how much was collected by GCash and by cash for all staff in the period
+function renderPayMethods() {
+  const rows = (data.staff || {})[periodKey()] || [];
+  const g = rows.reduce((a, s) => a + s.gcash, 0);
+  const c = rows.reduce((a, s) => a + s.cash, 0);
+  const tot = g + c;
+  const pct = v => tot ? Math.round(v / tot * 100) : 0;
+
+  $('payWord').textContent = 'Collected ' + periodWord();
+  $('payTotal').textContent = peso(tot);
+  $('payMethods').innerHTML = `
+    <div class="pm">
+      <div class="pmrow"><span>GCash</span><span>${peso(g)}</span></div>
+      <div class="mbar"><i style="width:${pct(g)}%"></i></div>
+      <small>${pct(g)}% of collected</small>
+    </div>
+    <div class="pm">
+      <div class="pmrow"><span>Cash</span><span>${peso(c)}</span></div>
+      <div class="mbar"><i style="width:${pct(c)}%"></i></div>
+      <small>${pct(c)}% of collected</small>
+    </div>`;
+}
+
 // Is a pass sold on this date inside the period being viewed?
 function inCurrentPeriod(iso) {
   const ser = data[period];
@@ -1241,9 +1404,8 @@ function inCurrentPeriod(iso) {
 function renderPasses() {
   const list = data.passes || [];
   const today = data.daily[data.daily.length - 1].label;
-  const periodWord = { daily: 'Today', weekly: 'This week', monthly: 'This month' }[period];
 
-  $('passPeriod').textContent = 'Showing: ' + periodWord.toLowerCase() + ' · active = not yet expired today';
+  $('passPeriod').textContent = 'Showing: ' + periodWord() + ' · active = not yet expired today';
 
   let totSold = 0, totRev = 0, totActive = 0;
   const rows = PASS_NAMES.map(name => {
@@ -1304,18 +1466,13 @@ function renderAverages() {
     tile('Per month', fmtAvg(a.perMonth.visitors));
 }
 
-// Period switches
+// Period switches: one set of buttons drives every section
 document.querySelectorAll('[data-period]').forEach(btn => {
   btn.onclick = () => {
     period = btn.dataset.period;
     document.querySelectorAll('[data-period]').forEach(b =>
       b.setAttribute('aria-pressed', String(b === btn)));
-    if (data) {
-      renderKpis();
-      renderChart();
-      renderTable();
-      renderPasses();
-    }
+    renderAll();
   };
 });
 
