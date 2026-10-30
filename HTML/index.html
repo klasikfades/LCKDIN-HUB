@@ -840,12 +840,12 @@ function renderTap(r, token) {
       <select id="tExtHours">${[...Array(24)].map((_, i) =>
         `<option value="${i + 1}">${i + 1} ${i === 0 ? 'hr' : 'hrs'}</option>`).join('')}</select>
       <button type="button" id="tExtend" class="ghost">Extend</button>` : '';
-    const when = r.time ? 'Checked in at ' + esc(r.time) + '. ' : '';
+    const when = r.time ? 'Checked in at ' + esc(fmt12str(r.time)) + '. ' : '';
 
     body.innerHTML = `
       <div class="title">${r.action === 'in' ? 'Checked in' : 'Currently checked in'}</div>
       <p class="subtitle">${name}</p>
-      <div class="status">${when}Until ${esc(r.endTime)}</div>
+      <div class="status">${when}Until ${esc(fmt12str(r.endTime))}</div>
       ${passLeft}
       ${usedUp}
       ${extendBlock}
@@ -871,7 +871,7 @@ function renderTap(r, token) {
       <div class="title">Checked out</div>
       <p class="subtitle">${name}</p>
       <div class="status">
-        <div>Time out ${esc(r.time)}</div>
+        <div>Time out ${esc(fmt12str(r.time))}</div>
         <div>Time used ${fmtMin(r.usedMin)}</div>
         ${passLeft}
         ${billing}
