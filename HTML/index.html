@@ -16,6 +16,7 @@
     --yellow-2: #F5C92E;
     --orange: #FF6B35;
     --orange-2: #FF8A5B;
+    --bar: #C9D2B2;
     --line: #D5DCC5;
     --band: #F6FBEF;
     --field: #F3F7EC;
@@ -142,7 +143,6 @@
   .msg.err { color: var(--red-fg); }
   .loading { text-align: center; color: var(--olive-2); padding: 24px 0; font-size: 14px; }
   .hint { font-size: 12px; color: var(--olive-2); margin-top: 10px; line-height: 1.5; text-align: center; }
-  .note { font-size: 11px; color: var(--olive-2); margin-top: 10px; line-height: 1.5; }
   footer { text-align: center; font-size: 12px; color: var(--olive-2); margin-top: 20px; }
   [hidden] { display: none !important; }
   .sr-only {
@@ -153,14 +153,15 @@
   /* Booking flow */
   .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
   .row3 select { margin-top: 6px; }
-  #summary { margin-top: 12px; }
+  #summary { margin-top: 12px; width: 100%; border-collapse: collapse; font-size: 13px; }
+  #summary td { padding: 9px 6px; border-bottom: 1px dashed var(--line); }
   #summary td:last-child { text-align: right; font-weight: 600; }
   #summary tr.total td { font-weight: 700; color: var(--olive); border-bottom: 0; }
   .value-big { font-size: 22px; font-weight: 700; margin-top: 4px; }
   .qr { display: block; width: 220px; max-width: 100%; margin: 14px auto 0; border-radius: 16px; }
   .reminder { margin-top: 14px; background: var(--yellow); color: var(--olive); font-size: 13px; }
 
-  /* Segmented toggles (booking purpose, payment option, tap purpose, dashboard) */
+  /* Segmented toggles */
   .seg {
     display: inline-flex;
     background: var(--field);
@@ -177,7 +178,15 @@
     background: var(--olive); color: #fff; box-shadow: 0 4px 10px rgba(75, 83, 64, 0.3);
   }
 
-  /* ---------- Admin dashboard (Finexy-style layout) ---------- */
+  /* Collapsible tap screen */
+  #cardResult { text-align: left; font-size: 14px; }
+  #cardResult b { color: var(--olive); }
+  .cardform { display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; align-items: end; }
+  .cardform button { margin-top: 0; width: auto; padding: 13px 22px; }
+  .cardform label { margin-top: 0; }
+  .cardform input, .cardform select { margin-top: 6px; }
+
+  /* ---------- Dashboard ---------- */
   .dhead { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
   .dhead .title { font-size: 22px; margin: 0; }
   .updated { font-size: 11px; color: var(--olive-2); margin-top: 2px; }
@@ -193,117 +202,90 @@
   }
   .pills a:first-child { background: var(--olive); color: #fff; }
 
-  .dgrid {
+  .kpis4 {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 14px;
     margin-top: 18px;
   }
-  .grid2 {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 14px;
-    margin-top: 14px;
-  }
-  .panel {
+  .kcard {
     background: #fff;
     border: 1px solid var(--line);
-    border-radius: 22px;
+    border-radius: 20px;
     padding: 18px;
+    min-height: 140px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
   }
+  .kcard .klabel { font-size: 12px; color: var(--olive-2); font-weight: 600; }
+  .kcard .kvalue { font-size: 26px; font-weight: 700; margin-top: 6px; }
+  .kcard .ksub { font-size: 11px; color: var(--olive-2); margin-top: 4px; }
+  .kcard.dark {
+    background: linear-gradient(135deg, var(--olive-3) 0%, var(--olive) 100%);
+    border-color: transparent;
+    color: #fff;
+  }
+  .kcard.dark .klabel, .kcard.dark .ksub { color: rgba(255, 255, 255, 0.85); }
+
+  .chg {
+    display: inline-block; align-self: flex-start; margin-top: 10px;
+    padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 600;
+    background: #E3E6DC; color: var(--olive);
+  }
+  .chg.up { background: var(--green-bg); color: var(--green-fg); }
+  .chg.down { background: var(--red-bg); color: var(--red-fg); }
+  .chg-sub { font-size: 11px; color: var(--olive-2); margin-left: 6px; font-weight: 400; }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px; }
+  .panel { background: #fff; border: 1px solid var(--line); border-radius: 22px; padding: 18px; }
   .panel.wide { grid-column: 1 / -1; }
   .ptitle { font-size: 14px; font-weight: 700; margin: 0 0 12px; }
   .prow { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
   .prow .ptitle { margin: 0; }
 
-  .kpi {
-    background: #fff;
-    border: 1px solid var(--line);
-    border-radius: 22px;
-    padding: 16px;
-    min-height: 118px;
-  }
-  .kpi.hl {
-    background: linear-gradient(135deg, var(--orange-2) 0%, var(--orange) 100%);
-    border-color: transparent;
-    color: #fff;
-    box-shadow: 0 12px 24px rgba(255, 107, 53, 0.3);
-  }
-  .kpi .label { font-size: 12px; color: var(--olive-2); font-weight: 600; }
-  .kpi.hl .label { color: rgba(255, 255, 255, 0.85); }
-  .kpi .value { font-size: 24px; font-weight: 700; margin-top: 6px; }
-  .kpi .sub { font-size: 11px; color: var(--olive-2); margin-top: 4px; }
-  .kpi.hl .sub { color: rgba(255, 255, 255, 0.85); }
-  .kpi.alert .value { color: var(--red-fg); }
-
-  .delta {
-    display: inline-block; margin-top: 8px; padding: 2px 8px; border-radius: 999px;
-    font-size: 11px; font-weight: 600; background: #E3E6DC; color: var(--olive);
-  }
-  .delta.up { background: var(--green-bg); color: var(--green-fg); }
-  .delta.down { background: var(--red-bg); color: var(--red-fg); }
-  .kpi.hl .delta { background: rgba(255, 255, 255, 0.25); color: #fff; }
+  /* Combo chart */
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; color: var(--olive-2); margin: 0 0 6px; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend .sw { display: inline-block; width: 12px; height: 12px; border-radius: 3px; }
+  .legend .ln { display: inline-block; width: 18px; height: 3px; border-radius: 2px; }
+  .chart-wrap { background: var(--band); border-radius: 18px; padding: 14px 10px 6px; }
+  .chart-wrap svg { width: 100%; height: auto; display: block; }
+  .chart-wrap .axis { font-size: 10px; fill: var(--olive-2); font-family: 'Poppins', system-ui, sans-serif; }
+  .chart-wrap .axis-r { font-size: 10px; fill: var(--orange); font-family: 'Poppins', system-ui, sans-serif; }
+  .chart-wrap .grid { stroke: var(--line); stroke-width: 1; stroke-dasharray: 3 4; }
+  .chart-wrap .bar { fill: var(--bar); transition: opacity 0.2s; }
+  .chart-wrap .bar.peak { fill: var(--olive); }
+  .chart-wrap .bar:hover { opacity: 0.8; }
+  .chart-wrap .line-s { fill: none; stroke: var(--orange); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+  .chart-wrap .dot-s { fill: var(--orange); stroke: #fff; stroke-width: 1.5; }
+  .peak-note { font-size: 11px; color: var(--olive-2); margin-top: 8px; }
 
   .avg3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-  .avgtile {
-    background: var(--band);
-    border-radius: 16px;
-    padding: 14px 12px;
-    text-align: center;
-  }
+  .avgtile { background: var(--band); border-radius: 16px; padding: 14px 12px; text-align: center; }
   .avgtile .label { font-size: 11px; color: var(--olive-2); font-weight: 600; }
   .avgtile .value { font-size: 18px; font-weight: 700; margin-top: 6px; word-break: break-word; }
 
-  /* Line chart */
-  .legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; color: var(--olive-2); margin: 4px 0 8px; }
-  .legend span { display: inline-flex; align-items: center; gap: 6px; }
-  .legend i { display: inline-block; width: 18px; height: 3px; border-radius: 2px; }
-  .linechart {
-    background: var(--band);
-    border-radius: 18px;
-    padding: 12px 8px 4px;
-  }
-  .linechart svg { width: 100%; height: auto; display: block; }
-  .linechart .axis { font-size: 10px; fill: var(--olive-2); font-family: 'Poppins', system-ui, sans-serif; }
-  .linechart .grid { stroke: var(--line); stroke-width: 1; stroke-dasharray: 3 4; }
-  .linechart .line-v { fill: none; stroke: var(--olive); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
-  .linechart .line-s { fill: none; stroke: var(--orange); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
-  .linechart .dot-v { fill: var(--olive); stroke: #fff; stroke-width: 1.5; }
-  .linechart .dot-s { fill: var(--orange); stroke: #fff; stroke-width: 1.5; }
-
-  table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 12px; }
-  th, td { padding: 10px 6px; border-bottom: 1px dashed var(--line); text-align: left; }
-  th { color: var(--olive-2); font-weight: 600; font-size: 12px; }
+  table.dtable { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; }
+  .dtable th, .dtable td { padding: 10px 6px; border-bottom: 1px dashed var(--line); text-align: left; }
+  .dtable th { color: var(--olive-2); font-weight: 600; font-size: 12px; }
   .num { text-align: right; }
 
-  /* Collapsible period table */
   .hideable { margin-top: 12px; }
   .hideable summary {
-    cursor: pointer;
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--olive-2);
-    padding: 8px 0;
-    list-style: none;
+    cursor: pointer; font-size: 13px; font-weight: 600; color: var(--olive-2);
+    padding: 8px 0; list-style: none;
   }
   .hideable summary::-webkit-details-marker { display: none; }
   .hideable summary::before { content: '▸  '; }
   .hideable[open] summary::before { content: '▾  '; }
 
-  #cardResult { text-align: left; font-size: 14px; }
-  #cardResult b { color: var(--olive); }
-  .cardform { display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; align-items: end; }
-  .cardform button { margin-top: 0; width: auto; padding: 13px 22px; }
-  .cardform label { margin-top: 0; }
-  .cardform input, .cardform select { margin-top: 6px; }
-
-  /* Responsive */
   @media (max-width: 900px) {
-    .dgrid { grid-template-columns: repeat(2, 1fr); }
+    .kpis4 { grid-template-columns: repeat(2, 1fr); }
     .grid2 { grid-template-columns: 1fr; }
   }
   @media (max-width: 560px) {
-    .dgrid { grid-template-columns: 1fr; }
+    .kpis4 { grid-template-columns: 1fr; }
     .avg3 { grid-template-columns: 1fr; }
     .cardform { grid-template-columns: 1fr; }
     .cardform button { width: 100%; }
@@ -422,7 +404,7 @@
     <div id="dash" hidden>
       <div class="dhead">
         <div>
-          <div class="title">Dashboard</div>
+          <div class="title">Sales report</div>
           <div class="updated" id="updated" aria-live="polite"></div>
         </div>
         <button type="button" class="ghost small" id="refreshBtn">Refresh</button>
@@ -430,17 +412,54 @@
 
       <nav class="pills" aria-label="Dashboard sections">
         <a href="#overview">Overview</a>
+        <a href="#chart">Chart</a>
         <a href="#averages">Averages</a>
-        <a href="#trend">Trend</a>
         <a href="#cards">NFC cards</a>
       </nav>
 
       <div id="dashErr" class="status err" hidden role="alert"></div>
 
-      <!-- Overview -->
+      <!-- Overview cards -->
       <section id="overview" aria-labelledby="kpiTitle">
-        <h2 class="ptitle" id="kpiTitle" hidden>Overview</h2>
-        <div class="dgrid" id="kpis"></div>
+        <h2 class="sr-only" id="kpiTitle">Overview</h2>
+        <div class="kpis4" id="kpis"></div>
+      </section>
+
+      <!-- Chart and table -->
+      <section id="chart" class="grid2" aria-labelledby="trendTitle">
+        <div class="panel wide">
+          <div class="prow">
+            <div class="ptitle" id="trendTitle">Visitors vs sales</div>
+            <div class="seg" role="group" aria-label="Period">
+              <button type="button" data-period="daily" aria-pressed="true">Day</button>
+              <button type="button" data-period="weekly" aria-pressed="false">Week</button>
+              <button type="button" data-period="monthly" aria-pressed="false">Month</button>
+            </div>
+          </div>
+          <div class="legend">
+            <span><i class="sw" style="background: var(--bar);"></i>Visitors (bars, left scale)</span>
+            <span><i class="sw" style="background: var(--olive);"></i>Peak visitors</span>
+            <span><i class="ln" style="background: var(--orange);"></i>Sales (line, right scale, ₱)</span>
+          </div>
+          <div class="chart-wrap" id="chartBox"></div>
+          <p class="peak-note" id="peakNote"></p>
+
+          <details class="hideable">
+            <summary>Period table</summary>
+            <table class="dtable">
+              <caption class="sr-only">Visitors, sales and average sale per visit for each period</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Period</th>
+                  <th scope="col" class="num">Visitors</th>
+                  <th scope="col" class="num">Sales</th>
+                  <th scope="col" class="num">Avg per visit</th>
+                </tr>
+              </thead>
+              <tbody id="seriesBody"></tbody>
+            </table>
+          </details>
+        </div>
       </section>
 
       <!-- Averages -->
@@ -453,39 +472,9 @@
           <div class="ptitle">Average visitors</div>
           <div class="avg3" id="avgVisitors"></div>
         </div>
-        <p class="note" style="grid-column: 1 / -1; margin: 0;">Averages count only the days, weeks or months that had at least one closed visit.</p>
+        <p class="hint" style="grid-column: 1 / -1; margin: 0; text-align: left;">Averages count only the days, weeks or months that had at least one closed visit.</p>
       </section>
       <h2 class="sr-only" id="avgTitle">Averages</h2>
-
-      <!-- Trend -->
-      <section id="trend" class="grid2" aria-labelledby="trendTitle">
-        <div class="panel wide">
-          <div class="prow">
-            <div class="ptitle" id="trendTitle">Trend</div>
-            <div class="seg" role="group" aria-label="Period">
-              <button type="button" data-period="daily" aria-pressed="true">Day</button>
-              <button type="button" data-period="weekly" aria-pressed="false">Week</button>
-              <button type="button" data-period="monthly" aria-pressed="false">Month</button>
-            </div>
-          </div>
-          <div class="legend">
-            <span><i style="background: var(--olive);"></i>Visitors (left scale, people)</span>
-            <span><i style="background: var(--orange);"></i>Sales (right scale, ₱)</span>
-          </div>
-          <div class="linechart" id="chart"></div>
-
-          <details class="hideable">
-            <summary>Period table</summary>
-            <table>
-              <caption class="sr-only">Visitors and sales for each period</caption>
-              <thead>
-                <tr><th scope="col">Period</th><th scope="col" class="num">Visitors</th><th scope="col" class="num">Sales</th></tr>
-              </thead>
-              <tbody id="seriesBody"></tbody>
-            </table>
-          </details>
-        </div>
-      </section>
 
       <!-- NFC cards -->
       <section id="cards" class="grid2" aria-labelledby="cardTitle">
@@ -569,7 +558,7 @@ function fullLabel(p, label) {
   return MONTHS[m - 1] + ' ' + y;
 }
 
-// Short label under each point on the chart
+// Short label under each bar
 function shortLabel(p, label) {
   if (p === 'daily') return String(Number(label.split('-')[2]));
   if (p === 'weekly') {
@@ -579,14 +568,26 @@ function shortLabel(p, label) {
   return MONTHS[Number(label.split('-')[1]) - 1];
 }
 
-// Change against the previous day, shown in green for gains and red for losses, with a text arrow
-function deltaTag(cur, prev) {
-  if (!prev) return cur ? '<span class="delta up">▲ New</span>' : '<span class="delta">No change</span>';
-  const pct = Math.round((cur - prev) / prev * 100);
-  if (pct === 0) return '<span class="delta">No change</span>';
+// Rounds a maximum up to a clean number for the axis (e.g. 37 -> 40, 1260 -> 1300)
+function niceMax(v) {
+  if (v <= 0) return 10;
+  const p = Math.pow(10, Math.floor(Math.log10(v)));
+  return Math.ceil(v / p) * p;
+}
+
+// Percent change, or null when there is no earlier value to compare with
+function pctChange(cur, prev) {
+  if (!prev) return cur ? null : 0;
+  return Math.round((cur - prev) / prev * 100);
+}
+
+// Green arrow up, red arrow down, grey for no change
+function chgTag(pct, text) {
+  if (pct === null) return `<span class="chg up">▲ New</span><span class="chg-sub">${esc(text)}</span>`;
+  if (pct === 0) return `<span class="chg">No change</span><span class="chg-sub">${esc(text)}</span>`;
   return pct > 0
-    ? '<span class="delta up">▲ ' + pct + '% vs yesterday</span>'
-    : '<span class="delta down">▼ ' + Math.abs(pct) + '% vs yesterday</span>';
+    ? `<span class="chg up">▲ ${pct}%</span><span class="chg-sub">${esc(text)}</span>`
+    : `<span class="chg down">▼ ${Math.abs(pct)}%</span><span class="chg-sub">${esc(text)}</span>`;
 }
 
 function show(id) {
@@ -872,7 +873,7 @@ function renderTap(r, token) {
       ? `<p class="hint">Pass time left today: ${fmtMin(r.remainingMin)}</p>` : '';
 
     body.innerHTML = `
-      <div class="title">Welcome, ${name}!</div>
+      <div class="title">Welcome, LCKieee!</div>
       <p class="subtitle">Check in for a visit</p>
       <label for="tName">Your name</label>
       <input id="tName" autocomplete="off">
@@ -1015,7 +1016,8 @@ async function loadDashboard() {
     if (!r.ok) throw new Error(r.error);
     data = r;
     renderKpis();
-    renderSeries();
+    renderChart();
+    renderTable();
     renderAverages();
     $('updated').textContent = 'Updated ' + new Date().toLocaleTimeString('en-PH', {
       timeZone: TZ, hour: 'numeric', minute: '2-digit'
@@ -1033,34 +1035,143 @@ async function loadDashboard() {
   }
 }
 
-// Top row: the numbers staff check first
+// Four summary cards. The first three compare the latest period with the one before it.
 function renderKpis() {
-  const d = data.daily, w = data.weekly, m = data.monthly;
-  const today = d[d.length - 1], yest = d[d.length - 2];
-  const wk = w[w.length - 1], mo = m[m.length - 1];
-  const unpaid = data.totals.unpaid;
+  const ser = data[period];
+  const cur = ser[ser.length - 1];
+  const prev = ser[ser.length - 2];
+
+  const curName = { daily: 'Today', weekly: 'This week', monthly: 'This month' }[period];
+  const vsName = { daily: 'vs yesterday', weekly: 'vs last week', monthly: 'vs last month' }[period];
+
+  const avgCur = cur.visitors ? cur.sales / cur.visitors : 0;
+  const avgPrev = prev.visitors ? prev.sales / prev.visitors : 0;
+
+  // Busiest day in the last 30 days (daily series)
+  let busiest = data.daily[0];
+  data.daily.forEach(d => { if (d.visitors >= busiest.visitors) busiest = d; });
+  const busiestText = busiest.visitors
+    ? `${dayLabel(busiest.label)}`
+    : 'No visits yet';
 
   $('kpis').innerHTML = `
-    <div class="kpi hl">
-      <div class="label">Sales today</div>
-      <div class="value">${peso(today.sales)}</div>
-      ${deltaTag(today.sales, yest.sales)}
+    <div class="kcard">
+      <div>
+        <div class="klabel">Visitors · ${curName} (so far)</div>
+        <div class="kvalue">${fmtNum(cur.visitors)}</div>
+      </div>
+      <div>${chgTag(pctChange(cur.visitors, prev.visitors), vsName)}</div>
     </div>
-    <div class="kpi">
-      <div class="label">Visitors today</div>
-      <div class="value">${fmtNum(today.visitors)}</div>
-      ${deltaTag(today.visitors, yest.visitors)}
+    <div class="kcard">
+      <div>
+        <div class="klabel">Sales · ${curName} (so far)</div>
+        <div class="kvalue">${peso(cur.sales)}</div>
+      </div>
+      <div>${chgTag(pctChange(cur.sales, prev.sales), vsName)}</div>
     </div>
-    <div class="kpi">
-      <div class="label">Sales this month (so far)</div>
-      <div class="value">${peso(mo.sales)}</div>
-      <div class="sub">${fmtNum(mo.visitors)} visitors · week so far ${peso(wk.sales)}</div>
+    <div class="kcard">
+      <div>
+        <div class="klabel">Avg sale per visit · ${curName}</div>
+        <div class="kvalue">${peso(avgCur)}</div>
+      </div>
+      <div>${chgTag(pctChange(avgCur, avgPrev), vsName)}</div>
     </div>
-    <div class="kpi ${unpaid > 0 ? 'alert' : ''}">
-      <div class="label">Unpaid balance (all time)</div>
-      <div class="value">${peso(unpaid)}</div>
-      <div class="sub">${unpaid > 0 ? 'Balances and visits not yet paid' : 'Nothing outstanding'}</div>
+    <div class="kcard dark">
+      <div>
+        <div class="klabel">Busiest day (last 30 days)</div>
+        <div class="kvalue">${esc(busiestText)}</div>
+        <div class="ksub">${busiest.visitors ? fmtNum(busiest.visitors) + ' visitors' : ''}</div>
+      </div>
     </div>`;
+}
+
+// Combo chart: visitors as bars (left scale), sales as a line (right scale).
+// The highest-visitor period is drawn darker so it stands out, like the peak bar in the reference design.
+function renderChart() {
+  const ser = data[period];
+  const n = ser.length;
+
+  const W = 700, H = 300, pl = 46, pr = 54, pt = 18, pb = 36;
+  const iw = W - pl - pr, ih = H - pt - pb;
+
+  const vMax = niceMax(Math.max(0, ...ser.map(s => s.visitors)));
+  const sMax = niceMax(Math.max(0, ...ser.map(s => s.sales)));
+
+  let peak = 0;
+  ser.forEach((s, i) => { if (s.visitors > ser[peak].visitors) peak = i; });
+
+  const slot = iw / n;
+  const bw = Math.max(6, Math.min(34, slot * 0.6));
+  const cx = i => pl + slot * i + slot / 2;
+  const yV = v => pt + ih - (v / vMax) * ih;
+  const yS = v => pt + ih - (v / sMax) * ih;
+
+  // Grid lines and both axis scales (4 steps)
+  let grid = '';
+  for (let k = 0; k <= 4; k++) {
+    const y = pt + ih * k / 4;
+    const lv = Math.round(vMax * (1 - k / 4));
+    const ls = Math.round(sMax * (1 - k / 4));
+    grid += `<line class="grid" x1="${pl}" x2="${W - pr}" y1="${y}" y2="${y}"></line>`;
+    grid += `<text class="axis" x="${pl - 8}" y="${y + 3}" text-anchor="end">${fmtNum(lv)}</text>`;
+    grid += `<text class="axis-r" x="${W - pr + 8}" y="${y + 3}" text-anchor="start">₱${fmtNum(ls)}</text>`;
+  }
+
+  // Bars: visitors, with a tooltip on each
+  let bars = '';
+  ser.forEach((s, i) => {
+    const y = yV(s.visitors);
+    const h = Math.max(0, pt + ih - y);
+    const cls = (i === peak && s.visitors > 0) ? 'bar peak' : 'bar';
+    bars += `<rect class="${cls}" x="${(cx(i) - bw / 2).toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="5">
+      <title>${esc(fullLabel(period, s.label))}: ${fmtNum(s.visitors)} visitors</title></rect>`;
+  });
+
+  // Sales line with dots
+  const pathS = ser.map((s, i) => `${i ? 'L' : 'M'}${cx(i).toFixed(1)},${yS(s.sales).toFixed(1)}`).join(' ');
+  let dots = '';
+  ser.forEach((s, i) => {
+    dots += `<circle class="dot-s" cx="${cx(i).toFixed(1)}" cy="${yS(s.sales).toFixed(1)}" r="3.5">
+      <title>${esc(fullLabel(period, s.label))}: ${peso(s.sales)} sales</title></circle>`;
+  });
+
+  // X-axis labels: about 8 labels so they don't crowd together
+  const step = Math.max(1, Math.ceil(n / 8));
+  let xLabels = '';
+  ser.forEach((s, i) => {
+    if (i % step === 0 || i === n - 1) {
+      xLabels += `<text class="axis" x="${cx(i).toFixed(1)}" y="${H - 10}" text-anchor="middle">${esc(shortLabel(period, s.label))}</text>`;
+    }
+  });
+
+  const periodWord = { daily: 'day', weekly: 'week', monthly: 'month' }[period];
+  $('chartBox').innerHTML = `
+    <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Visitors as bars and sales as a line, by ${periodWord}">
+      ${grid}
+      ${bars}
+      <path class="line-s" d="${pathS}"></path>
+      ${dots}
+      ${xLabels}
+    </svg>`;
+
+  const pk = ser[peak];
+  $('peakNote').textContent = pk.visitors
+    ? 'Busiest ' + periodWord + ': ' + fullLabel(period, pk.label) + ' with ' + fmtNum(pk.visitors) + ' visitors.'
+    : 'No visits in this period yet.';
+}
+
+// Period table, newest first, with the average sale per visit
+function renderTable() {
+  $('seriesBody').innerHTML = data[period].slice().reverse().map(s => {
+    const avg = s.visitors ? s.sales / s.visitors : 0;
+    return `
+    <tr>
+      <td>${esc(fullLabel(period, s.label))}</td>
+      <td class="num">${fmtNum(s.visitors)}</td>
+      <td class="num">${peso(s.sales)}</td>
+      <td class="num">${peso(avg)}</td>
+    </tr>`;
+  }).join('');
 }
 
 // Average sales and average visitors per day, week and month
@@ -1083,85 +1194,17 @@ function renderAverages() {
     tile('Per month', fmtAvg(a.perMonth.visitors));
 }
 
-// Rounds a maximum up to a clean number for the axis (e.g. 37 -> 40, 1260 -> 1300)
-function niceMax(v) {
-  if (v <= 0) return 10;
-  const p = Math.pow(10, Math.floor(Math.log10(v)));
-  return Math.ceil(v / p) * p;
-}
-
-// Two-line chart: visitors on the left axis, sales on the right axis
-function renderSeries() {
-  const series = data[period];
-  const n = series.length;
-
-  const W = 640, H = 260, pl = 52, pr = 60, pt = 14, pb = 30;
-  const iw = W - pl - pr, ih = H - pt - pb;
-
-  const vMax = niceMax(Math.max(0, ...series.map(s => s.visitors)));
-  const sMax = niceMax(Math.max(0, ...series.map(s => s.sales)));
-
-  const x = i => n === 1 ? pl + iw / 2 : pl + i * iw / (n - 1);
-  const yV = v => pt + ih - (v / vMax) * ih;
-  const yS = v => pt + ih - (v / sMax) * ih;
-
-  const pathV = series.map((s, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${yV(s.visitors).toFixed(1)}`).join(' ');
-  const pathS = series.map((s, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${yS(s.sales).toFixed(1)}`).join(' ');
-
-  // Horizontal grid lines and axis labels (4 steps)
-  let grid = '';
-  for (let k = 0; k <= 4; k++) {
-    const y = pt + ih * k / 4;
-    const lv = Math.round(vMax * (1 - k / 4));
-    const ls = Math.round(sMax * (1 - k / 4));
-    grid += `<line class="grid" x1="${pl}" x2="${W - pr}" y1="${y}" y2="${y}"></line>`;
-    grid += `<text class="axis" x="${pl - 8}" y="${y + 3}" text-anchor="end">${fmtNum(lv)}</text>`;
-    grid += `<text class="axis" x="${W - pr + 8}" y="${y + 3}" text-anchor="start">₱${fmtNum(ls)}</text>`;
-  }
-
-  // X-axis labels: show about 8 labels so they don't crowd together
-  const step = Math.max(1, Math.ceil(n / 8));
-  let xLabels = '';
-  series.forEach((s, i) => {
-    if (i % step === 0 || i === n - 1) {
-      xLabels += `<text class="axis" x="${x(i).toFixed(1)}" y="${H - 8}" text-anchor="middle">${esc(shortLabel(period, s.label))}</text>`;
-    }
-  });
-
-  // Dots with hover tooltips
-  let dots = '';
-  series.forEach((s, i) => {
-    dots += `<circle class="dot-v" cx="${x(i).toFixed(1)}" cy="${yV(s.visitors).toFixed(1)}" r="3.5">
-      <title>${esc(fullLabel(period, s.label))}: ${fmtNum(s.visitors)} visitors</title></circle>`;
-    dots += `<circle class="dot-s" cx="${x(i).toFixed(1)}" cy="${yS(s.sales).toFixed(1)}" r="3.5">
-      <title>${esc(fullLabel(period, s.label))}: ${peso(s.sales)} sales</title></circle>`;
-  });
-
-  $('chart').innerHTML = `
-    <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Line chart of visitors and sales by ${period === 'daily' ? 'day' : period === 'weekly' ? 'week' : 'month'}">
-      ${grid}
-      <path class="line-v" d="${pathV}"></path>
-      <path class="line-s" d="${pathS}"></path>
-      ${dots}
-      ${xLabels}
-    </svg>`;
-
-  // Newest first in the table
-  $('seriesBody').innerHTML = series.slice().reverse().map(s => `
-    <tr>
-      <td>${esc(fullLabel(period, s.label))}</td>
-      <td class="num">${fmtNum(s.visitors)}</td>
-      <td class="num">${peso(s.sales)}</td>
-    </tr>`).join('');
-}
-
 // Period switches
 document.querySelectorAll('[data-period]').forEach(btn => {
   btn.onclick = () => {
     period = btn.dataset.period;
     document.querySelectorAll('[data-period]').forEach(b =>
       b.setAttribute('aria-pressed', String(b === btn)));
-    if (data) renderSeries();
+    if (data) {
+      renderKpis();
+      renderChart();
+      renderTable();
+    }
   };
 });
 
