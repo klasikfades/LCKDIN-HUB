@@ -33,34 +33,13 @@
     min-height: 100vh;
     font-family: 'Poppins', system-ui, sans-serif;
     color: var(--olive);
-    background:
-      radial-gradient(900px 500px at 0% 0%, #E7F1D8 0%, transparent 60%),
-      linear-gradient(160deg, #F7FBF1 0%, var(--mint) 100%);
-    padding: max(16px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
+    background: linear-gradient(160deg, #F7FBF1 0%, var(--mint) 100%);
   }
-  body.admin { padding: 0; background: #F4F8EC; }
+  body.admin { background: #F4F8EC; }
   body.admin .app, body.admin footer { display: none; }
+  [hidden] { display: none !important; }
 
-  /* ---------- Public pages: booking and tap in/out ---------- */
-  .app {
-    width: 100%;
-    max-width: 1080px;
-    margin: 0 auto;
-    background: #fff;
-    border-radius: 26px;
-    box-shadow: 0 18px 40px rgba(75, 83, 64, 0.14), 0 2px 6px rgba(75, 83, 64, 0.05);
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-  }
-  .hero {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    padding: 18px 20px 22px;
-    border-radius: 0 0 36px 36px;
-    background: linear-gradient(135deg, var(--olive-3) 0%, var(--olive) 100%);
-  }
+  /* ---------- Shared pieces ---------- */
   .badge {
     flex-shrink: 0;
     width: 64px;
@@ -73,70 +52,68 @@
     overflow: hidden;
     box-shadow: 0 8px 18px rgba(0, 0, 0, 0.22), 0 0 0 4px rgba(255, 255, 255, 0.22);
   }
-  .badge img {
-    width: 52px;
-    height: 52px;
-    object-fit: contain;
-    border-radius: 50%;
-    mix-blend-mode: normal;
-  }
-  .wordmark { width: 150px; max-width: 60%; height: auto; filter: invert(1) brightness(1.8); mix-blend-mode: screen; }
-
-  .body { padding: 22px 18px 28px; flex: 1; min-width: 0; }
-  .body > * { max-width: 520px; margin-left: auto; margin-right: auto; }
-
-  .title { font-size: 20px; font-weight: 700; margin: 0 0 4px; line-height: 1.3; }
-  .subtitle { font-size: 13px; color: var(--olive-2); margin: 0 0 16px; line-height: 1.5; }
+  .badge img { width: 52px; height: 52px; object-fit: contain; border-radius: 50%; mix-blend-mode: normal; }
+  .wordmark { width: 150px; max-width: 100%; height: auto; filter: invert(1) brightness(1.8); mix-blend-mode: screen; }
+  .title { font-size: 18px; font-weight: 700; margin: 0 0 4px; }
+  .subtitle { font-size: 13px; color: var(--olive-2); margin: 0 0 14px; line-height: 1.5; }
   .crumb { font-size: 12px; color: var(--olive-3); }
+  .msg { margin-top: 12px; text-align: center; font-weight: 600; font-size: 14px; min-height: 18px; }
+  .msg.ok { color: #3f6212; }
+  .msg.err { color: var(--red-fg); }
+  .status {
+    text-align: center;
+    padding: 20px 16px;
+    margin-top: 14px;
+    border-radius: 18px;
+    font-size: 15px;
+    font-weight: 600;
+    background: var(--band);
+  }
+  .status.err { background: var(--red-bg); color: var(--red-fg); }
+  .loading { text-align: center; color: var(--olive-2); padding: 24px 0; font-size: 14px; }
+  .hint { font-size: 12px; color: var(--olive-2); margin-top: 10px; line-height: 1.5; text-align: center; }
+  .sr-only {
+    position: absolute; width: 1px; height: 1px; overflow: hidden;
+    clip: rect(0 0 0 0); white-space: nowrap;
+  }
 
-  label { display: block; margin-top: 14px; font-weight: 600; font-size: 13px; color: var(--olive-2); }
+  /* Generic controls (staff dashboard and card maker) */
+  label { display: block; margin-top: 12px; font-weight: 600; font-size: 13px; color: var(--olive-2); }
   input, select {
     width: 100%;
     margin-top: 6px;
     padding: 13px 16px;
-    font-size: 16px; /* 16px stops iPhone zoom-in on focus */
+    font-size: 15px;
     font-family: inherit;
     color: var(--olive);
     background: var(--field);
     border: 1px solid transparent;
-    border-radius: 14px;
+    border-radius: 16px;
     box-shadow: inset 3px 3px 7px rgba(75, 83, 64, 0.08), inset -3px -3px 7px #fff;
     outline: none;
     transition: box-shadow 0.2s, border-color 0.2s;
-    -webkit-appearance: none;
-    appearance: none;
-  }
-  select {
-    background-image: linear-gradient(45deg, transparent 50%, var(--olive-2) 50%), linear-gradient(135deg, var(--olive-2) 50%, transparent 50%);
-    background-position: calc(100% - 18px) 55%, calc(100% - 13px) 55%;
-    background-size: 5px 5px, 5px 5px;
-    background-repeat: no-repeat;
-    padding-right: 36px;
   }
   input:focus, select:focus {
     border-color: var(--yellow-2);
     box-shadow: inset 3px 3px 7px rgba(75, 83, 64, 0.1), 0 0 0 3px rgba(255, 221, 87, 0.35);
   }
-
   button {
     width: 100%;
-    margin-top: 18px;
-    min-height: 50px;
-    padding: 14px 18px;
+    margin-top: 20px;
+    padding: 15px;
     font-size: 15px;
     font-weight: 700;
     font-family: inherit;
-    letter-spacing: 0.3px;
+    letter-spacing: 0.5px;
     color: var(--olive);
     background: linear-gradient(180deg, #FFE377 0%, var(--yellow) 100%);
     border: 0;
     border-radius: 999px;
     cursor: pointer;
-    box-shadow: 0 8px 18px rgba(245, 201, 46, 0.3);
+    box-shadow: 0 8px 18px rgba(245, 201, 46, 0.35);
     transition: transform 0.1s, box-shadow 0.2s;
-    -webkit-tap-highlight-color: transparent;
   }
-  button:hover { box-shadow: 0 10px 22px rgba(245, 201, 46, 0.42); }
+  button:hover { box-shadow: 0 10px 22px rgba(245, 201, 46, 0.45); }
   button:active { transform: scale(0.98); }
   button:disabled { opacity: 0.55; cursor: default; transform: none; }
   button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible {
@@ -146,46 +123,15 @@
   button.dark {
     color: #fff;
     background: linear-gradient(180deg, var(--olive-2) 0%, var(--olive) 100%);
-    box-shadow: 0 8px 18px rgba(75, 83, 64, 0.28);
+    box-shadow: 0 8px 18px rgba(75, 83, 64, 0.3);
   }
   button.ghost {
-    margin-top: 10px;
+    margin-top: 0;
     color: var(--olive);
     background: #fff;
     box-shadow: inset 2px 2px 6px rgba(75, 83, 64, 0.08), 0 4px 10px rgba(75, 83, 64, 0.1);
   }
-  button.small { width: auto; margin: 0; min-height: 0; padding: 9px 16px; font-size: 12px; }
-
-  .status {
-    text-align: center;
-    padding: 18px 16px;
-    margin-top: 14px;
-    border-radius: 16px;
-    font-size: 15px;
-    font-weight: 600;
-    background: var(--band);
-  }
-  .status.err { background: var(--red-bg); color: var(--red-fg); }
-  .msg { margin-top: 12px; text-align: center; font-weight: 600; font-size: 14px; min-height: 18px; }
-  .msg.ok { color: #3f6212; }
-  .msg.err { color: var(--red-fg); }
-  .loading { text-align: center; color: var(--olive-2); padding: 24px 0; font-size: 14px; }
-  .hint { font-size: 12px; color: var(--olive-2); margin-top: 8px; line-height: 1.5; text-align: center; }
-  footer { text-align: center; font-size: 12px; color: var(--olive-2); margin-top: 20px; padding: 0 12px; }
-  [hidden] { display: none !important; }
-  .sr-only {
-    position: absolute; width: 1px; height: 1px; overflow: hidden;
-    clip: rect(0 0 0 0); white-space: nowrap;
-  }
-
-  /* Form layout: one column on phones, two columns on laptops */
-  .fields { display: grid; grid-template-columns: 1fr; column-gap: 16px; }
-  .f { min-width: 0; }
-  .f.full { grid-column: 1 / -1; }
-  .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
-  .row3 select { margin-top: 6px; padding-right: 30px; }
-
-  /* Segmented toggles (purpose, payment, check-in purpose) */
+  button.small { width: auto; margin: 0; padding: 9px 16px; font-size: 12px; }
   .seg {
     display: inline-flex;
     background: var(--field);
@@ -193,73 +139,195 @@
     padding: 4px;
     gap: 4px;
     flex-wrap: wrap;
-    margin-top: 6px;
   }
-  .seg.full { display: flex; width: 100%; }
   .seg button {
-    margin: 0; width: auto; min-height: 0; padding: 10px 16px; font-size: 13px;
+    margin: 0; width: auto; padding: 7px 14px; font-size: 12px;
     background: transparent; box-shadow: none; color: var(--olive-2); border-radius: 999px;
   }
-  .seg.full button { flex: 1; }
   .seg button[aria-pressed="true"] {
     background: var(--olive); color: #fff; box-shadow: 0 4px 10px rgba(75, 83, 64, 0.28);
   }
 
-  /* Booking summary and payment */
-  #summary { margin-top: 12px; width: 100%; border-collapse: collapse; font-size: 14px; }
-  #summary td { padding: 11px 4px; border-bottom: 1px dashed var(--line); vertical-align: top; }
-  #summary td:last-child { text-align: right; font-weight: 600; }
-  #summary tr.total td { font-weight: 700; color: var(--olive); border-bottom: 0; font-size: 15px; }
-  .value-big { font-size: 26px; font-weight: 700; margin-top: 4px; color: var(--olive); }
-  .qr { display: block; width: 220px; max-width: 80%; margin: 14px auto 0; border-radius: 16px; }
-  .reminder { margin-top: 14px; background: var(--yellow); color: var(--olive); font-size: 13px; }
-  .stepbar { display: flex; gap: 6px; margin: 0 0 14px; }
-  .stepbar i { flex: 1; height: 5px; border-radius: 999px; background: var(--field); }
+  /* ---------- Public pages: full screen split layout ---------- */
+  body:not(.admin) footer { display: none; }
+  body:not(.admin) .app {
+    display: grid;
+    grid-template-columns: 40% 1fr;
+    min-height: 100vh;
+    width: 100%;
+    margin: 0;
+    background: #fff;
+  }
+
+  /* Left brand panel */
+  body:not(.admin) .app .hero {
+    position: relative;
+    height: auto;
+    min-height: 100vh;
+    padding: 56px 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 26px;
+    text-align: center;
+    border-radius: 0;
+    background: linear-gradient(160deg, #8A9372 0%, #4B5340 100%);
+  }
+  body:not(.admin) .app .hero .badge { width: 132px; height: 132px; }
+  body:not(.admin) .app .hero .badge img { width: 104px; height: 104px; }
+  body:not(.admin) .app .hero .wordmark { width: 260px; }
+  .hero-tag { color: rgba(255, 255, 255, 0.85); font-size: 14px; line-height: 1.6; max-width: 320px; margin: 0; }
+  .hero-foot {
+    position: absolute; bottom: 24px; left: 0; right: 0;
+    font-size: 12px; color: rgba(255, 255, 255, 0.7); letter-spacing: 0.3px;
+  }
+
+  /* Right form panel */
+  body:not(.admin) .app .body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 56px 7vw;
+    min-width: 0;
+  }
+  body:not(.admin) .app .body > * { width: 100%; max-width: 460px; margin: 0 auto; }
+  body:not(.admin) .app .title { font-size: 28px; line-height: 1.2; margin: 0 0 6px; }
+  body:not(.admin) .app .subtitle { font-size: 14px; margin: 0 0 26px; }
+  body:not(.admin) .app .crumb {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.8px; text-transform: uppercase; margin-bottom: 10px;
+  }
+
+  .stepbar { display: flex; gap: 6px; margin: 0 0 26px; }
+  .stepbar i { flex: 1; height: 3px; border-radius: 3px; background: #E6EBDA; }
   .stepbar i.on { background: var(--olive); }
 
-  /* Tap in / out screen */
-  #tapBody .title { font-size: 22px; }
-  #tapBody .status { font-size: 15px; }
+  /* Form fields */
+  .fields { display: grid; grid-template-columns: 1fr 1fr; column-gap: 16px; row-gap: 2px; }
+  .f { min-width: 0; }
+  .f.full { grid-column: 1 / -1; }
+  .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
 
-  /* Booking on laptops: two columns and a brand panel on the left */
-  @media (min-width: 760px) {
-    .app { flex-direction: row; min-height: 640px; }
-    .hero {
-      width: 40%;
-      flex-direction: column;
-      justify-content: center;
-      text-align: center;
-      gap: 26px;
-      padding: 56px 36px;
-      border-radius: 0;
+  body:not(.admin) .app label {
+    margin-top: 16px; font-size: 12px; font-weight: 600; letter-spacing: 0.2px; color: var(--olive-2);
+  }
+  body:not(.admin) .app input,
+  body:not(.admin) .app select {
+    margin-top: 8px;
+    padding: 14px 16px;
+    font-size: 15px;
+    background: #F7F9F1;
+    border: 1px solid #E3E9D6;
+    border-radius: 12px;
+    box-shadow: none;
+    -webkit-appearance: none;
+    appearance: none;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  body:not(.admin) .app input:focus,
+  body:not(.admin) .app select:focus {
+    border-color: var(--olive-2);
+    background: #fff;
+    box-shadow: none;
+  }
+  body:not(.admin) .app select {
+    background-image: linear-gradient(45deg, transparent 50%, var(--olive-2) 50%), linear-gradient(135deg, var(--olive-2) 50%, transparent 50%);
+    background-position: calc(100% - 18px) 55%, calc(100% - 13px) 55%;
+    background-size: 5px 5px, 5px 5px;
+    background-repeat: no-repeat;
+    padding-right: 36px;
+  }
+  .row3 select { margin-top: 8px; padding-right: 30px; }
+
+  /* Date shown as "Oct 31, 2026" over a transparent date input that opens the calendar */
+  .datebox { position: relative; margin-top: 8px; }
+  .datetxt {
+    display: flex; justify-content: space-between; align-items: center;
+    min-height: 50px; padding: 14px 16px;
+    font-size: 15px; color: var(--olive);
+    background: #F7F9F1; border: 1px solid #E3E9D6; border-radius: 12px;
+    pointer-events: none;
+  }
+  .datetxt::after { content: '▾'; font-size: 12px; color: var(--olive-2); }
+  .datebox input {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    margin: 0; padding: 0; opacity: 0; cursor: pointer;
+    border: 0; border-radius: 12px; box-shadow: none; background: transparent;
+  }
+
+  .hint-left { font-size: 12px; color: var(--olive-2); margin: 8px 0 0; text-align: left; }
+
+  /* Buttons for the public pages */
+  body:not(.admin) .app button {
+    margin-top: 22px;
+    min-height: 52px;
+    padding: 14px 18px;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+    color: #fff;
+    background: var(--olive);
+    border: 0;
+    border-radius: 12px;
+    box-shadow: none;
+  }
+  body:not(.admin) .app button:hover { background: #3d4331; box-shadow: none; }
+  body:not(.admin) .app button.ghost {
+    margin-top: 10px;
+    color: var(--olive);
+    background: #fff;
+    border: 1px solid #E3E9D6;
+    box-shadow: none;
+  }
+  body:not(.admin) .app button.ghost:hover { background: #F7F9F1; }
+  body:not(.admin) .app .seg {
+    background: #F3F6EC; border-radius: 12px; padding: 4px; gap: 4px; margin-top: 8px; width: 100%;
+  }
+  body:not(.admin) .app .seg button {
+    margin: 0; min-height: 40px; padding: 10px 14px; font-size: 13px; font-weight: 600;
+    background: transparent; color: var(--olive-2); border-radius: 9px; box-shadow: none;
+  }
+  body:not(.admin) .app .seg button[aria-pressed="true"] {
+    background: #fff; color: var(--olive); box-shadow: 0 1px 3px rgba(75, 83, 64, 0.15);
+  }
+  body:not(.admin) .app .seg.full button { flex: 1; }
+
+  .status { border-radius: 14px; }
+  .reminder { margin-top: 14px; background: #FBF7E6; color: #5C4B12; font-size: 13px; }
+  #summary { margin-top: 14px; width: 100%; border-collapse: collapse; font-size: 14px; }
+  #summary td { padding: 12px 2px; border-bottom: 1px solid #ECEFE3; vertical-align: top; }
+  #summary td:last-child { text-align: right; font-weight: 600; }
+  #summary tr.total td { font-weight: 700; color: var(--olive); border-bottom: 0; font-size: 15px; }
+  .value-big { font-size: 28px; font-weight: 700; margin-top: 4px; color: var(--olive); }
+  .qr { display: block; width: 220px; max-width: 80%; margin: 16px auto 0; border-radius: 14px; }
+
+  /* Tap in / out */
+  #tapBody .title { font-size: 26px; }
+
+  /* Phones and small tablets: stacked layout with a compact header */
+  @media (max-width: 860px) {
+    body:not(.admin) .app { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+    body:not(.admin) .app .hero {
+      min-height: 0;
+      flex-direction: row;
+      justify-content: flex-start;
+      text-align: left;
+      gap: 14px;
+      padding: 20px;
+      border-radius: 0 0 26px 26px;
     }
-    .badge { width: 112px; height: 112px; }
-    .badge img { width: 88px; height: 88px; }
-    .wordmark { width: 230px; max-width: 100%; }
-    .body { padding: 48px 52px; display: flex; flex-direction: column; justify-content: center; }
-    .body > * { max-width: 560px; }
-    .title { font-size: 26px; }
-    .subtitle { font-size: 14px; }
-    .fields { grid-template-columns: 1fr 1fr; }
-    .qr { width: 240px; }
+    body:not(.admin) .app .hero .badge { width: 64px; height: 64px; }
+    body:not(.admin) .app .hero .badge img { width: 52px; height: 52px; }
+    body:not(.admin) .app .hero .wordmark { width: 150px; }
+    .hero-tag, .hero-foot { display: none; }
+    body:not(.admin) .app .body { align-items: flex-start; padding: 26px 20px 44px; }
+    body:not(.admin) .app .title { font-size: 22px; }
   }
-  @media (min-width: 1100px) {
-    .body > * { max-width: 600px; }
-  }
-  @media (max-width: 380px) {
+  @media (max-width: 480px) {
+    .fields { grid-template-columns: 1fr; }
     .row3 { grid-template-columns: 1fr 1fr; }
     .row3 > :last-child { grid-column: 1 / -1; }
-    .hero { padding: 14px 16px 18px; }
-    .wordmark { width: 128px; }
   }
-
-  /* Card maker */
-  #cardResult { text-align: left; font-size: 14px; }
-  #cardResult b { color: var(--olive); }
-  .cardform { display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; align-items: end; }
-  .cardform button { margin-top: 0; width: auto; padding: 13px 22px; }
-  .cardform label { margin-top: 0; }
-  .cardform input, .cardform select { margin-top: 6px; }
 
   /* ---------- Staff sign in (split screen) ---------- */
   .signin { display: grid; grid-template-columns: 1fr 1fr; min-height: 100vh; background: #fff; }
@@ -314,7 +382,7 @@
   .side-card .badge { position: absolute; top: -32px; left: 50%; transform: translateX(-50%); width: 64px; height: 64px; }
   .side-card .badge img { width: 48px; height: 48px; }
   .side-card b { display: block; font-size: 13px; margin-bottom: 2px; }
-  .side-card button { margin-top: 12px; padding: 10px; font-size: 12px; min-height: 0; }
+  .side-card button { margin-top: 12px; padding: 10px; font-size: 12px; }
 
   .main { padding: 22px 26px 36px; min-width: 0; }
   .topbar { display: flex; justify-content: space-between; align-items: center; gap: 14px; flex-wrap: wrap; }
@@ -327,7 +395,6 @@
   }
   section[id], header[id] { scroll-margin-top: 16px; }
 
-  /* Headline cards */
   .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 20px; }
   .kcard {
     background: #fff;
@@ -376,7 +443,6 @@
   .chg-sub { font-size: 11px; color: var(--olive-2); margin-left: 6px; font-weight: 400; }
   .kcard.hl .chg-sub { color: rgba(255, 255, 255, 0.85); }
 
-  /* Panels */
   .grid-main { display: grid; grid-template-columns: 1.6fr 1fr; gap: 14px; margin-top: 14px; }
   .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px; }
   .panel { background: #fff; border-radius: 22px; padding: 20px; min-width: 0; box-shadow: var(--card-shadow); }
@@ -388,7 +454,6 @@
   .prow { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
   #cards .subtitle { margin-bottom: 10px; }
 
-  /* Past days */
   .days { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 10px; margin-top: 4px; }
   .day {
     background: var(--band); border-radius: 18px; padding: 12px 10px;
@@ -406,7 +471,6 @@
   .day .ds { font-size: 12px; font-weight: 600; }
   .recent-sum { font-size: 12px; color: var(--olive-2); margin: 12px 0 0; line-height: 1.6; }
 
-  /* Combo chart */
   .legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; color: var(--olive-2); margin: 0 0 6px; }
   .legend span { display: inline-flex; align-items: center; gap: 6px; }
   .legend .sw { display: inline-block; width: 12px; height: 12px; border-radius: 3px; }
@@ -423,7 +487,6 @@
   .chart-wrap .dot-s { fill: var(--orange); stroke: #fff; stroke-width: 1.5; }
   .peak-note { font-size: 11px; color: var(--olive-2); margin-top: 8px; }
 
-  /* Tables */
   table.dtable { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; }
   .dtable th, .dtable td { padding: 10px 6px; border-bottom: 1px dashed var(--line); text-align: left; }
   .dtable th { color: var(--olive-2); font-weight: 600; font-size: 12px; }
@@ -435,7 +498,6 @@
   .panel.dark .dtable tr.staff-row.sel td { background: rgba(255, 255, 255, 0.18); }
   .dtable tr.total-row td { font-weight: 700; color: var(--olive); border-bottom: 0; }
 
-  /* Client list */
   .clist { list-style: none; margin: 8px 0 0; padding: 0; max-height: 300px; overflow-y: auto; }
   .clist li {
     display: flex; justify-content: space-between; align-items: center; gap: 10px;
@@ -444,7 +506,6 @@
   .clist li small { display: block; font-size: 11px; color: var(--olive-2); margin-top: 2px; }
   .clist li b { white-space: nowrap; }
 
-  /* Payment methods */
   .pm { margin-top: 14px; }
   .pm .pmrow { display: flex; justify-content: space-between; font-size: 13px; font-weight: 600; }
   .pm small { font-size: 11px; color: var(--olive-2); }
@@ -457,8 +518,6 @@
   .avgtile .label { font-size: 11px; color: var(--olive-2); font-weight: 600; }
   .avgtile .value { font-size: 18px; font-weight: 700; margin-top: 6px; word-break: break-word; }
 
-  .hint-left { font-size: 11px; color: var(--olive-2); margin: 0; }
-
   .hideable { margin-top: 12px; }
   .hideable summary {
     cursor: pointer; font-size: 13px; font-weight: 600; color: var(--olive-2);
@@ -467,6 +526,13 @@
   .hideable summary::-webkit-details-marker { display: none; }
   .hideable summary::before { content: '▸  '; }
   .hideable[open] summary::before { content: '▾  '; }
+
+  #cardResult { text-align: left; font-size: 14px; }
+  #cardResult b { color: var(--olive); }
+  .cardform { display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; align-items: end; }
+  .cardform button { margin-top: 0; width: auto; padding: 13px 22px; }
+  .cardform label { margin-top: 0; }
+  .cardform input, .cardform select { margin-top: 6px; }
 
   @media (max-width: 1100px) {
     .kpis { grid-template-columns: repeat(2, 1fr); }
@@ -498,14 +564,16 @@
 <body>
 
 <div class="app">
-  <div class="hero">
+  <aside class="hero">
     <div class="badge">
       <img src="logo-mark.png.jpg" alt="LCKDIN logo">
     </div>
     <img class="wordmark" src="logo-wordmark.png.jpg" alt="LCKDIN Study Hub">
-  </div>
+    <p class="hero-tag">Book a visit, or tap your card to check in and out.</p>
+    <div class="hero-foot">LCKDIN Study Hub</div>
+  </aside>
 
-  <div class="body">
+  <main class="body">
     <div id="loading" class="loading">Loading...</div>
     <div id="error" class="status err" hidden></div>
 
@@ -519,13 +587,20 @@
         <div class="title">Book a visit</div>
         <p class="subtitle">Fill in the details, then continue to the billing summary.</p>
         <div class="fields">
-          <div class="f">
+          <div class="f full">
             <label for="bookName">Name</label>
             <input id="bookName" autocomplete="name">
           </div>
           <div class="f">
             <label for="bookDate">Date</label>
-            <input type="date" id="bookDate">
+            <div class="datebox">
+              <div class="datetxt" id="dateTxt">Pick a date</div>
+              <input type="date" id="bookDate" aria-label="Date">
+            </div>
+          </div>
+          <div class="f">
+            <label for="bookHours">Duration</label>
+            <select id="bookHours"></select>
           </div>
           <div class="f full">
             <label for="bookCategory">Room</label>
@@ -534,11 +609,7 @@
           <div class="f">
             <label for="bookPeople">People</label>
             <input type="number" id="bookPeople" min="1" value="1" inputmode="numeric">
-            <p class="hint" id="peopleHint" style="text-align:left"></p>
-          </div>
-          <div class="f">
-            <label for="bookHours">Duration</label>
-            <select id="bookHours"></select>
+            <p class="hint-left" id="peopleHint"></p>
           </div>
           <div class="f full">
             <label>Time in</label>
@@ -571,7 +642,7 @@
           </div>
         </div>
 
-        <button type="button" id="next1" class="dark">Next</button>
+        <button type="button" id="next1" class="dark">Continue</button>
         <p id="msg1" class="msg err" role="alert"></p>
       </div>
 
@@ -580,7 +651,7 @@
         <div class="title">Billing summary</div>
         <p class="subtitle">Check the details before continuing.</p>
         <table id="summary"></table>
-        <button type="button" id="next2" class="dark">Next</button>
+        <button type="button" id="next2" class="dark">Continue</button>
         <button type="button" id="back2" class="ghost">Back</button>
       </div>
 
@@ -609,7 +680,7 @@
     <div id="tap" hidden>
       <div id="tapBody"></div>
     </div>
-  </div>
+  </main>
 </div>
 
 <!-- Staff PIN (split screen sign in) -->
@@ -674,10 +745,8 @@
 
     <div id="dashErr" class="status err" hidden role="alert"></div>
 
-    <!-- Headline numbers -->
     <section class="kpis" id="kpis" aria-label="Headline numbers"></section>
 
-    <!-- Past days -->
     <section class="panel" id="recent" style="margin-top: 14px;" aria-labelledby="recentTitle">
       <div class="prow">
         <div>
@@ -694,7 +763,6 @@
       <p class="recent-sum" id="recentSum"></p>
     </section>
 
-    <!-- Chart and staff performance -->
     <div class="grid-main">
       <section class="panel" id="chart" aria-labelledby="trendTitle">
         <div class="prow">
@@ -745,7 +813,6 @@
       </section>
     </div>
 
-    <!-- Clients and payment methods -->
     <div class="grid2">
       <section class="panel" aria-labelledby="clientTitle">
         <div class="ptitle" id="clientTitle">Clients</div>
@@ -761,7 +828,6 @@
       </section>
     </div>
 
-    <!-- Pass sales -->
     <section id="passes" class="grid2" aria-labelledby="passTitle">
       <div class="panel wide">
         <div class="prow">
@@ -803,7 +869,6 @@
       </div>
     </section>
 
-    <!-- Averages -->
     <section class="grid2" aria-labelledby="avgTitle">
       <div class="panel">
         <div class="ptitle">Average sales</div>
@@ -817,7 +882,6 @@
     </section>
     <h2 class="sr-only" id="avgTitle">Averages</h2>
 
-    <!-- NFC cards -->
     <section id="cards" class="grid2" aria-labelledby="cardTitle">
       <div class="panel wide">
         <div class="ptitle" id="cardTitle">Make NFC card</div>
@@ -887,7 +951,7 @@ function fmtAvg(n) {
   return Number(n || 0).toLocaleString('en-PH', { maximumFractionDigits: 1 });
 }
 
-// '2026-10-22' -> 'Oct 22, 2026'
+// '2026-10-22' -> 'Oct 22, 2026'  (month, day, year)
 function dayLabel(iso) {
   const [y, m, d] = iso.split('-').map(Number);
   return MONTHS[m - 1] + ' ' + d + ', ' + y;
@@ -1004,6 +1068,14 @@ function fmt12str(hhmm) {
   return h + ':' + pad(m) + ' ' + ap;
 }
 
+// Shows the chosen date as "Oct 31, 2026"
+function syncDate() {
+  const v = $('bookDate').value;
+  $('dateTxt').textContent = v ? dayLabel(v) : 'Pick a date';
+}
+$('bookDate').onchange = syncDate;
+$('bookDate').oninput = syncDate;
+
 // Moves between the three booking steps and updates the progress bar
 function goStep(n) {
   [1, 2, 3].forEach(i => { $('step' + i).hidden = i !== n; });
@@ -1016,6 +1088,7 @@ async function showBooking() {
   show('booking');
   goStep(1);
   $('bookDate').value = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date());
+  syncDate();
 
   $('bookHour').innerHTML = [...Array(12)].map((_, i) => `<option>${i + 1}</option>`).join('');
   $('bookHour').value = '9';
@@ -1049,7 +1122,7 @@ function updatePeopleLimit() {
   p.min = lim.min;
   p.max = lim.max;
   if (Number(p.value) < lim.min || Number(p.value) > lim.max) p.value = lim.min;
-  $('peopleHint').textContent = 'This room holds ' + lim.min + ' to ' + lim.max + ' persons.';
+  $('peopleHint').textContent = 'Holds ' + lim.min + ' to ' + lim.max + ' persons';
 }
 $('bookCategory').onchange = updatePeopleLimit;
 
