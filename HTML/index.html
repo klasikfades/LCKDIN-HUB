@@ -24,6 +24,7 @@
     --green-fg: #2F5D1E;
     --red-bg: #FBE3E3;
     --red-fg: #8A2B2B;
+    --card-shadow: 0 8px 24px rgba(75, 83, 64, 0.07);
   }
   * { box-sizing: border-box; }
   html { scroll-behavior: smooth; }
@@ -251,15 +252,17 @@
   .pill {
     display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
     padding: 8px 10px; background: #fff; border-radius: 999px;
-    box-shadow: 0 8px 24px rgba(75, 83, 64, 0.08);
+    box-shadow: var(--card-shadow);
   }
+  section[id], header[id] { scroll-margin-top: 16px; }
 
+  /* Headline cards */
   .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 20px; }
   .kcard {
     background: #fff;
     border-radius: 22px;
     padding: 18px;
-    box-shadow: 0 8px 24px rgba(75, 83, 64, 0.07);
+    box-shadow: var(--card-shadow);
     display: grid;
     grid-template-columns: 48px 1fr;
     column-gap: 14px;
@@ -273,7 +276,7 @@
     display: flex; align-items: center; justify-content: center;
     background: var(--field); color: var(--olive); font-size: 20px; font-weight: 700;
   }
-  .kcard:nth-child(1)::before { content: '₱'; background: rgba(255, 255, 255, 0.25); color: #fff; }
+  .kcard:nth-child(1)::before { content: '₱'; }
   .kcard:nth-child(2)::before { content: '#'; }
   .kcard:nth-child(3)::before { content: '≈'; }
   .kcard:nth-child(4)::before { content: '!'; }
@@ -282,6 +285,7 @@
     color: #fff;
     box-shadow: 0 12px 24px rgba(255, 107, 53, 0.3);
   }
+  .kcard.hl::before { background: rgba(255, 255, 255, 0.25); color: #fff; }
   .klabel { font-size: 12px; color: var(--olive-2); font-weight: 600; }
   .kcard.hl .klabel { color: rgba(255, 255, 255, 0.85); }
   .kvalue { font-size: 24px; font-weight: 700; }
@@ -301,18 +305,35 @@
   .chg-sub { font-size: 11px; color: var(--olive-2); margin-left: 6px; font-weight: 400; }
   .kcard.hl .chg-sub { color: rgba(255, 255, 255, 0.85); }
 
+  /* Panels */
   .grid-main { display: grid; grid-template-columns: 1.6fr 1fr; gap: 14px; margin-top: 14px; }
   .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px; }
-  .panel { background: #fff; border-radius: 22px; padding: 20px; min-width: 0; box-shadow: 0 8px 24px rgba(75, 83, 64, 0.07); }
+  .panel { background: #fff; border-radius: 22px; padding: 20px; min-width: 0; box-shadow: var(--card-shadow); }
   .panel.wide { grid-column: 1 / -1; }
   .panel.dark { background: linear-gradient(160deg, var(--olive-2) 0%, var(--olive) 100%); color: #fff; }
-  .panel.dark .muted, .panel.dark .peak-note { color: rgba(255, 255, 255, 0.75); }
   .ptitle { font-size: 15px; font-weight: 700; margin: 0 0 4px; }
   .pdesc { font-size: 11px; color: var(--olive-2); margin: 0 0 12px; }
   .panel.dark .pdesc { color: rgba(255, 255, 255, 0.75); }
   .prow { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
   #cards .subtitle { margin-bottom: 10px; }
-  section[id], header[id] { scroll-margin-top: 16px; }
+
+  /* Past days */
+  .days { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 10px; margin-top: 4px; }
+  .day {
+    background: var(--band); border-radius: 18px; padding: 12px 10px;
+    text-align: center; display: flex; flex-direction: column; align-items: center; gap: 2px;
+  }
+  .day.today { background: linear-gradient(135deg, var(--orange-2) 0%, var(--orange) 100%); color: #fff; }
+  .day .dw { font-size: 11px; font-weight: 600; color: var(--olive-2); }
+  .day.today .dw { color: rgba(255, 255, 255, 0.85); }
+  .day .dd { font-size: 13px; font-weight: 700; }
+  .dbar { width: 100%; height: 56px; display: flex; align-items: flex-end; margin: 8px 0 6px; }
+  .dbar i { display: block; width: 100%; min-height: 4px; border-radius: 8px 8px 4px 4px; background: var(--olive-3); }
+  .day.today .dbar i { background: rgba(255, 255, 255, 0.85); }
+  .day .dv { font-size: 16px; font-weight: 700; }
+  .day .dv small { font-size: 10px; font-weight: 500; opacity: 0.8; }
+  .day .ds { font-size: 12px; font-weight: 600; }
+  .recent-sum { font-size: 12px; color: var(--olive-2); margin: 12px 0 0; line-height: 1.6; }
 
   /* Combo chart */
   .legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; color: var(--olive-2); margin: 0 0 6px; }
@@ -335,13 +356,13 @@
   table.dtable { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; }
   .dtable th, .dtable td { padding: 10px 6px; border-bottom: 1px dashed var(--line); text-align: left; }
   .dtable th { color: var(--olive-2); font-weight: 600; font-size: 12px; }
-  .dtable tr.total-row td { font-weight: 700; color: var(--olive); border-bottom: 0; }
   .num { text-align: right; }
   .panel.dark .dtable th, .panel.dark .dtable td { color: #fff; border-bottom-color: rgba(255, 255, 255, 0.15); }
   .panel.dark .dtable th { color: rgba(255, 255, 255, 0.7); }
   .panel.dark .dtable tr.staff-row { cursor: pointer; }
   .panel.dark .dtable tr.staff-row:hover td { background: rgba(255, 255, 255, 0.08); }
   .panel.dark .dtable tr.staff-row.sel td { background: rgba(255, 255, 255, 0.18); }
+  .dtable tr.total-row td { font-weight: 700; color: var(--olive); border-bottom: 0; }
 
   /* Client list */
   .clist { list-style: none; margin: 8px 0 0; padding: 0; max-height: 300px; overflow-y: auto; }
@@ -399,6 +420,7 @@
     .avg3 { grid-template-columns: 1fr; }
     .cardform { grid-template-columns: 1fr; }
     .cardform button { width: 100%; }
+    .days { grid-template-columns: repeat(2, 1fr); }
   }
 </style>
 </head>
@@ -530,6 +552,7 @@
     <hr>
     <nav aria-label="Dashboard sections">
       <a href="#top" class="on"><span>⌂</span>Dashboard</a>
+      <a href="#recent"><span>▦</span>Past days</a>
       <a href="#chart"><span>▥</span>Sales trends</a>
       <a href="#staffSec"><span>#</span>Staff</a>
       <a href="#passes"><span>▤</span>Pass sales</a>
@@ -565,6 +588,23 @@
 
     <!-- Headline numbers -->
     <section class="kpis" id="kpis" aria-label="Headline numbers"></section>
+
+    <!-- Past days: sales and visitors for the last few days -->
+    <section class="panel" id="recent" style="margin-top: 14px;" aria-labelledby="recentTitle">
+      <div class="prow">
+        <div>
+          <div class="ptitle" id="recentTitle">Past days</div>
+          <div class="pdesc" id="recentWord"></div>
+        </div>
+        <div class="seg" role="group" aria-label="Number of days">
+          <button type="button" data-range="3" aria-pressed="false">3 days</button>
+          <button type="button" data-range="7" aria-pressed="true">7 days</button>
+          <button type="button" data-range="14" aria-pressed="false">14 days</button>
+        </div>
+      </div>
+      <div class="days" id="recentGrid"></div>
+      <p class="recent-sum" id="recentSum"></p>
+    </section>
 
     <!-- Chart and staff performance -->
     <div class="grid-main">
@@ -732,6 +772,7 @@ const $ = id => document.getElementById(id);
 let staffPin = '';
 let data = null;          // last dashboard response
 let period = 'daily';     // daily | weekly | monthly
+let recentRange = 7;      // days shown in the Past days panel
 let selectedStaff = null; // staff member whose clients are listed
 let refreshTimer = null;
 
@@ -780,6 +821,11 @@ function shortLabel(p, label) {
     return MONTHS[m - 1] + ' ' + d;
   }
   return MONTHS[Number(label.split('-')[1]) - 1];
+}
+
+// Short weekday name for a 'yyyy-MM-dd' date, in Manila time
+function weekdayOf(iso) {
+  return new Date(iso + 'T00:00:00+08:00').toLocaleDateString('en-PH', { weekday: 'short', timeZone: TZ });
 }
 
 // Rounds a maximum up to a clean number for the axis (e.g. 37 -> 40, 1260 -> 1300)
@@ -1269,6 +1315,7 @@ async function loadDashboard() {
 function renderAll() {
   if (!data) return;
   renderKpis();
+  renderRecent();
   renderChart();
   renderTable();
   renderStaff();
@@ -1278,7 +1325,7 @@ function renderAll() {
   renderAverages();
 }
 
-// Headline cards: sales (orange), visitors, average sale, unpaid (white)
+// Headline cards: sales (orange), visitors, average sale, unpaid
 function renderKpis() {
   const ser = data[period];
   const cur = ser[ser.length - 1];
@@ -1313,6 +1360,37 @@ function renderKpis() {
       <div class="kvalue">${peso(unpaid)}</div>
       <div class="ksub">${unpaid > 0 ? 'Balances and visits not yet paid' : 'Nothing outstanding'}</div>
     </div>`;
+}
+
+// Past days: one tile per day with visitors, sales and a bar sized to that day's sales
+function renderRecent() {
+  const n = recentRange;
+  const days = data.daily.slice(-n);
+  const todayIso = data.daily[data.daily.length - 1].label;
+  const max = Math.max(1, ...days.map(d => d.sales));
+
+  const totV = days.reduce((a, d) => a + d.visitors, 0);
+  const totS = days.reduce((a, d) => a + d.sales, 0);
+  const avgDay = totS / n;
+
+  $('recentWord').textContent = 'Last ' + n + ' days, including today';
+
+  $('recentGrid').innerHTML = days.map(d => {
+    const h = Math.max(4, Math.round(d.sales / max * 100));
+    const short = dayLabel(d.label).replace(/,\s\d{4}$/, '');
+    return `
+      <div class="day ${d.label === todayIso ? 'today' : ''}" title="${esc(dayLabel(d.label))}">
+        <div class="dw">${esc(weekdayOf(d.label))}</div>
+        <div class="dd">${esc(short)}</div>
+        <div class="dbar"><i style="height:${h}%"></i></div>
+        <div class="dv">${fmtNum(d.visitors)} <small>visitors</small></div>
+        <div class="ds">${peso(d.sales)}</div>
+      </div>`;
+  }).join('');
+
+  $('recentSum').innerHTML =
+    '<b>' + fmtNum(totV) + '</b> visitors and <b>' + peso(totS) + '</b> sales over these ' + n +
+    ' days. Average per day: <b>' + fmtNum(fmtAvg(totV / n)) + '</b> visitors, <b>' + peso(avgDay) + '</b> sales.';
 }
 
 // Combo chart: visitors as bars (left scale), sales as a line (right scale).
@@ -1559,13 +1637,23 @@ function renderAverages() {
     tile('Per month', fmtAvg(a.perMonth.visitors));
 }
 
-// Period switches: one set of buttons drives every section
+// Period switches: one set of buttons drives the headline cards, chart and staff
 document.querySelectorAll('[data-period]').forEach(btn => {
   btn.onclick = () => {
     period = btn.dataset.period;
     document.querySelectorAll('[data-period]').forEach(b =>
       b.setAttribute('aria-pressed', String(b === btn)));
     renderAll();
+  };
+});
+
+// Past days switch: 3, 7 or 14 days
+document.querySelectorAll('[data-range]').forEach(btn => {
+  btn.onclick = () => {
+    recentRange = Number(btn.dataset.range);
+    document.querySelectorAll('[data-range]').forEach(b =>
+      b.setAttribute('aria-pressed', String(b === btn)));
+    if (data) renderRecent();
   };
 });
 
