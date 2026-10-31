@@ -2,10 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>LCKDIN Study Hub</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
     --olive: #4B5340;
@@ -27,75 +27,91 @@
     --card-shadow: 0 8px 24px rgba(75, 83, 64, 0.07);
   }
   * { box-sizing: border-box; }
-  html { scroll-behavior: smooth; }
+  html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
   body {
     margin: 0;
     min-height: 100vh;
     font-family: 'Poppins', system-ui, sans-serif;
     color: var(--olive);
-    background: linear-gradient(160deg, #F7FBF1 0%, var(--mint) 100%);
-    padding: 24px 14px 32px;
+    background:
+      radial-gradient(900px 500px at 0% 0%, #E7F1D8 0%, transparent 60%),
+      linear-gradient(160deg, #F7FBF1 0%, var(--mint) 100%);
+    padding: max(16px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
   }
-  .app {
-    max-width: 640px;
-    margin: 0 auto;
-    background: #fff;
-    border-radius: 28px;
-    box-shadow: 0 18px 40px rgba(75, 83, 64, 0.16), 0 2px 6px rgba(75, 83, 64, 0.06);
-    overflow: hidden;
-  }
-  /* Staff pages (sign in + dashboard) use the full screen */
   body.admin { padding: 0; background: #F4F8EC; }
   body.admin .app, body.admin footer { display: none; }
 
+  /* ---------- Public pages: booking and tap in/out ---------- */
+  .app {
+    width: 100%;
+    max-width: 1080px;
+    margin: 0 auto;
+    background: #fff;
+    border-radius: 26px;
+    box-shadow: 0 18px 40px rgba(75, 83, 64, 0.14), 0 2px 6px rgba(75, 83, 64, 0.05);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
   .hero {
     display: flex;
     align-items: center;
     gap: 14px;
-    height: 120px;
-    padding: 0 22px 14px;
-    border-radius: 28px 28px 50px 50px / 28px 28px 24px 24px;
+    padding: 18px 20px 22px;
+    border-radius: 0 0 36px 36px;
     background: linear-gradient(135deg, var(--olive-3) 0%, var(--olive) 100%);
   }
-    .badge {
+  .badge {
     flex-shrink: 0;
-    width: 76px;
-    height: 76px;
+    width: 64px;
+    height: 64px;
     border-radius: 50%;
     background: #fff;
     display: flex;
     align-items: center;
     justify-content: center;
     overflow: hidden;
-    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.25), 0 0 0 4px rgba(255, 255, 255, 0.25);
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.22), 0 0 0 4px rgba(255, 255, 255, 0.22);
   }
   .badge img {
-    width: 58px;
-    height: 58px;
+    width: 52px;
+    height: 52px;
     object-fit: contain;
     border-radius: 50%;
     mix-blend-mode: normal;
   }
-  .wordmark { width: 170px; max-width: 100%; filter: invert(1) brightness(1.8); mix-blend-mode: screen; }
+  .wordmark { width: 150px; max-width: 60%; height: auto; filter: invert(1) brightness(1.8); mix-blend-mode: screen; }
 
-  .body { padding: 22px 22px 26px; }
-  .title { font-size: 18px; font-weight: 700; margin: 0 0 4px; }
-  .subtitle { font-size: 13px; color: var(--olive-2); margin: 0 0 14px; }
+  .body { padding: 22px 18px 28px; flex: 1; min-width: 0; }
+  .body > * { max-width: 520px; margin-left: auto; margin-right: auto; }
 
-  label { display: block; margin-top: 12px; font-weight: 600; font-size: 13px; color: var(--olive-2); }
+  .title { font-size: 20px; font-weight: 700; margin: 0 0 4px; line-height: 1.3; }
+  .subtitle { font-size: 13px; color: var(--olive-2); margin: 0 0 16px; line-height: 1.5; }
+  .crumb { font-size: 12px; color: var(--olive-3); }
+
+  label { display: block; margin-top: 14px; font-weight: 600; font-size: 13px; color: var(--olive-2); }
   input, select {
     width: 100%;
     margin-top: 6px;
     padding: 13px 16px;
-    font-size: 15px;
+    font-size: 16px; /* 16px stops iPhone zoom-in on focus */
     font-family: inherit;
     color: var(--olive);
     background: var(--field);
     border: 1px solid transparent;
-    border-radius: 16px;
+    border-radius: 14px;
     box-shadow: inset 3px 3px 7px rgba(75, 83, 64, 0.08), inset -3px -3px 7px #fff;
     outline: none;
     transition: box-shadow 0.2s, border-color 0.2s;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  select {
+    background-image: linear-gradient(45deg, transparent 50%, var(--olive-2) 50%), linear-gradient(135deg, var(--olive-2) 50%, transparent 50%);
+    background-position: calc(100% - 18px) 55%, calc(100% - 13px) 55%;
+    background-size: 5px 5px, 5px 5px;
+    background-repeat: no-repeat;
+    padding-right: 36px;
   }
   input:focus, select:focus {
     border-color: var(--yellow-2);
@@ -104,21 +120,23 @@
 
   button {
     width: 100%;
-    margin-top: 20px;
-    padding: 15px;
+    margin-top: 18px;
+    min-height: 50px;
+    padding: 14px 18px;
     font-size: 15px;
     font-weight: 700;
     font-family: inherit;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.3px;
     color: var(--olive);
     background: linear-gradient(180deg, #FFE377 0%, var(--yellow) 100%);
     border: 0;
     border-radius: 999px;
     cursor: pointer;
-    box-shadow: 0 8px 18px rgba(245, 201, 46, 0.35);
+    box-shadow: 0 8px 18px rgba(245, 201, 46, 0.3);
     transition: transform 0.1s, box-shadow 0.2s;
+    -webkit-tap-highlight-color: transparent;
   }
-  button:hover { box-shadow: 0 10px 22px rgba(245, 201, 46, 0.45); }
+  button:hover { box-shadow: 0 10px 22px rgba(245, 201, 46, 0.42); }
   button:active { transform: scale(0.98); }
   button:disabled { opacity: 0.55; cursor: default; transform: none; }
   button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible {
@@ -128,21 +146,21 @@
   button.dark {
     color: #fff;
     background: linear-gradient(180deg, var(--olive-2) 0%, var(--olive) 100%);
-    box-shadow: 0 8px 18px rgba(75, 83, 64, 0.3);
+    box-shadow: 0 8px 18px rgba(75, 83, 64, 0.28);
   }
   button.ghost {
-    margin-top: 0;
+    margin-top: 10px;
     color: var(--olive);
     background: #fff;
     box-shadow: inset 2px 2px 6px rgba(75, 83, 64, 0.08), 0 4px 10px rgba(75, 83, 64, 0.1);
   }
-  button.small { width: auto; margin: 0; padding: 9px 16px; font-size: 12px; }
+  button.small { width: auto; margin: 0; min-height: 0; padding: 9px 16px; font-size: 12px; }
 
   .status {
     text-align: center;
-    padding: 20px 16px;
+    padding: 18px 16px;
     margin-top: 14px;
-    border-radius: 18px;
+    border-radius: 16px;
     font-size: 15px;
     font-weight: 600;
     background: var(--band);
@@ -152,26 +170,22 @@
   .msg.ok { color: #3f6212; }
   .msg.err { color: var(--red-fg); }
   .loading { text-align: center; color: var(--olive-2); padding: 24px 0; font-size: 14px; }
-  .hint { font-size: 12px; color: var(--olive-2); margin-top: 10px; line-height: 1.5; text-align: center; }
-  footer { text-align: center; font-size: 12px; color: var(--olive-2); margin-top: 20px; }
+  .hint { font-size: 12px; color: var(--olive-2); margin-top: 8px; line-height: 1.5; text-align: center; }
+  footer { text-align: center; font-size: 12px; color: var(--olive-2); margin-top: 20px; padding: 0 12px; }
   [hidden] { display: none !important; }
   .sr-only {
     position: absolute; width: 1px; height: 1px; overflow: hidden;
     clip: rect(0 0 0 0); white-space: nowrap;
   }
 
-  /* Booking flow */
+  /* Form layout: one column on phones, two columns on laptops */
+  .fields { display: grid; grid-template-columns: 1fr; column-gap: 16px; }
+  .f { min-width: 0; }
+  .f.full { grid-column: 1 / -1; }
   .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
-  .row3 select { margin-top: 6px; }
-  #summary { margin-top: 12px; width: 100%; border-collapse: collapse; font-size: 13px; }
-  #summary td { padding: 9px 6px; border-bottom: 1px dashed var(--line); }
-  #summary td:last-child { text-align: right; font-weight: 600; }
-  #summary tr.total td { font-weight: 700; color: var(--olive); border-bottom: 0; }
-  .value-big { font-size: 22px; font-weight: 700; margin-top: 4px; }
-  .qr { display: block; width: 220px; max-width: 100%; margin: 14px auto 0; border-radius: 16px; }
-  .reminder { margin-top: 14px; background: var(--yellow); color: var(--olive); font-size: 13px; }
+  .row3 select { margin-top: 6px; padding-right: 30px; }
 
-  /* Segmented toggles */
+  /* Segmented toggles (purpose, payment, check-in purpose) */
   .seg {
     display: inline-flex;
     background: var(--field);
@@ -179,13 +193,64 @@
     padding: 4px;
     gap: 4px;
     flex-wrap: wrap;
+    margin-top: 6px;
   }
+  .seg.full { display: flex; width: 100%; }
   .seg button {
-    margin: 0; width: auto; padding: 7px 14px; font-size: 12px;
+    margin: 0; width: auto; min-height: 0; padding: 10px 16px; font-size: 13px;
     background: transparent; box-shadow: none; color: var(--olive-2); border-radius: 999px;
   }
+  .seg.full button { flex: 1; }
   .seg button[aria-pressed="true"] {
-    background: var(--olive); color: #fff; box-shadow: 0 4px 10px rgba(75, 83, 64, 0.3);
+    background: var(--olive); color: #fff; box-shadow: 0 4px 10px rgba(75, 83, 64, 0.28);
+  }
+
+  /* Booking summary and payment */
+  #summary { margin-top: 12px; width: 100%; border-collapse: collapse; font-size: 14px; }
+  #summary td { padding: 11px 4px; border-bottom: 1px dashed var(--line); vertical-align: top; }
+  #summary td:last-child { text-align: right; font-weight: 600; }
+  #summary tr.total td { font-weight: 700; color: var(--olive); border-bottom: 0; font-size: 15px; }
+  .value-big { font-size: 26px; font-weight: 700; margin-top: 4px; color: var(--olive); }
+  .qr { display: block; width: 220px; max-width: 80%; margin: 14px auto 0; border-radius: 16px; }
+  .reminder { margin-top: 14px; background: var(--yellow); color: var(--olive); font-size: 13px; }
+  .stepbar { display: flex; gap: 6px; margin: 0 0 14px; }
+  .stepbar i { flex: 1; height: 5px; border-radius: 999px; background: var(--field); }
+  .stepbar i.on { background: var(--olive); }
+
+  /* Tap in / out screen */
+  #tapBody .title { font-size: 22px; }
+  #tapBody .status { font-size: 15px; }
+
+  /* Booking on laptops: two columns and a brand panel on the left */
+  @media (min-width: 760px) {
+    .app { flex-direction: row; min-height: 640px; }
+    .hero {
+      width: 40%;
+      flex-direction: column;
+      justify-content: center;
+      text-align: center;
+      gap: 26px;
+      padding: 56px 36px;
+      border-radius: 0;
+    }
+    .badge { width: 112px; height: 112px; }
+    .badge img { width: 88px; height: 88px; }
+    .wordmark { width: 230px; max-width: 100%; }
+    .body { padding: 48px 52px; display: flex; flex-direction: column; justify-content: center; }
+    .body > * { max-width: 560px; }
+    .title { font-size: 26px; }
+    .subtitle { font-size: 14px; }
+    .fields { grid-template-columns: 1fr 1fr; }
+    .qr { width: 240px; }
+  }
+  @media (min-width: 1100px) {
+    .body > * { max-width: 600px; }
+  }
+  @media (max-width: 380px) {
+    .row3 { grid-template-columns: 1fr 1fr; }
+    .row3 > :last-child { grid-column: 1 / -1; }
+    .hero { padding: 14px 16px 18px; }
+    .wordmark { width: 128px; }
   }
 
   /* Card maker */
@@ -249,11 +314,10 @@
   .side-card .badge { position: absolute; top: -32px; left: 50%; transform: translateX(-50%); width: 64px; height: 64px; }
   .side-card .badge img { width: 48px; height: 48px; }
   .side-card b { display: block; font-size: 13px; margin-bottom: 2px; }
-  .side-card button { margin-top: 12px; padding: 10px; font-size: 12px; }
+  .side-card button { margin-top: 12px; padding: 10px; font-size: 12px; min-height: 0; }
 
   .main { padding: 22px 26px 36px; min-width: 0; }
   .topbar { display: flex; justify-content: space-between; align-items: center; gap: 14px; flex-wrap: wrap; }
-  .crumb { font-size: 12px; color: var(--olive-3); }
   .topbar .title { font-size: 28px; margin: 0; }
   .updated { font-size: 11px; color: var(--olive-2); margin-top: 2px; }
   .pill {
@@ -447,48 +511,64 @@
 
     <!-- Booking flow (root link) -->
     <div id="booking" hidden>
-      <p class="subtitle" id="stepLabel">Step 1 of 3</p>
+      <div class="crumb" id="stepLabel">Step 1 of 3</div>
+      <div class="stepbar" aria-hidden="true"><i id="sb1" class="on"></i><i id="sb2"></i><i id="sb3"></i></div>
 
       <!-- Step 1: details -->
       <div id="step1">
         <div class="title">Book a visit</div>
-        <label for="bookName">Name</label>
-        <input id="bookName">
-        <label for="bookDate">Date</label>
-        <input type="date" id="bookDate">
-        <label for="bookCategory">Room</label>
-        <select id="bookCategory"></select>
-        <label for="bookPeople">People</label>
-        <input type="number" id="bookPeople" min="1" value="1">
-        <p class="hint" id="peopleHint" style="text-align:left"></p>
-
-        <label>Time in</label>
-        <div class="row3">
-          <select id="bookHour" aria-label="Hour"></select>
-          <select id="bookMin" aria-label="Minute"></select>
-          <select id="bookAmpm" aria-label="AM or PM">
-            <option>AM</option>
-            <option>PM</option>
-          </select>
-        </div>
-
-        <label for="bookHours">Duration</label>
-        <select id="bookHours"></select>
-
-        <label>Purpose</label>
-        <div class="seg">
-          <button type="button" data-purpose="Work" aria-pressed="true">Work</button>
-          <button type="button" data-purpose="School" aria-pressed="false">School</button>
-        </div>
-        <div id="schoolWrap" hidden>
-          <label for="bookSchool">School name</label>
-          <input id="bookSchool">
-        </div>
-
-        <label>Payment option</label>
-        <div class="seg">
-          <button type="button" data-plan="Full" aria-pressed="true">Full payment</button>
-          <button type="button" data-plan="Down" aria-pressed="false">50% downpayment</button>
+        <p class="subtitle">Fill in the details, then continue to the billing summary.</p>
+        <div class="fields">
+          <div class="f">
+            <label for="bookName">Name</label>
+            <input id="bookName" autocomplete="name">
+          </div>
+          <div class="f">
+            <label for="bookDate">Date</label>
+            <input type="date" id="bookDate">
+          </div>
+          <div class="f full">
+            <label for="bookCategory">Room</label>
+            <select id="bookCategory"></select>
+          </div>
+          <div class="f">
+            <label for="bookPeople">People</label>
+            <input type="number" id="bookPeople" min="1" value="1" inputmode="numeric">
+            <p class="hint" id="peopleHint" style="text-align:left"></p>
+          </div>
+          <div class="f">
+            <label for="bookHours">Duration</label>
+            <select id="bookHours"></select>
+          </div>
+          <div class="f full">
+            <label>Time in</label>
+            <div class="row3">
+              <select id="bookHour" aria-label="Hour"></select>
+              <select id="bookMin" aria-label="Minute"></select>
+              <select id="bookAmpm" aria-label="AM or PM">
+                <option>AM</option>
+                <option>PM</option>
+              </select>
+            </div>
+          </div>
+          <div class="f full">
+            <label>Purpose</label>
+            <div class="seg full">
+              <button type="button" data-purpose="Work" aria-pressed="true">Work</button>
+              <button type="button" data-purpose="School" aria-pressed="false">School</button>
+            </div>
+            <div id="schoolWrap" hidden>
+              <label for="bookSchool">School name</label>
+              <input id="bookSchool">
+            </div>
+          </div>
+          <div class="f full">
+            <label>Payment option</label>
+            <div class="seg full">
+              <button type="button" data-plan="Full" aria-pressed="true">Full payment</button>
+              <button type="button" data-plan="Down" aria-pressed="false">50% downpayment</button>
+            </div>
+          </div>
         </div>
 
         <button type="button" id="next1" class="dark">Next</button>
@@ -498,6 +578,7 @@
       <!-- Step 2: billing summary -->
       <div id="step2" hidden>
         <div class="title">Billing summary</div>
+        <p class="subtitle">Check the details before continuing.</p>
         <table id="summary"></table>
         <button type="button" id="next2" class="dark">Next</button>
         <button type="button" id="back2" class="ghost">Back</button>
@@ -506,6 +587,7 @@
       <!-- Step 3: payment -->
       <div id="step3" hidden>
         <div class="title">Payment</div>
+        <p class="subtitle">Scan the code to pay, then show the confirmation to staff.</p>
         <div class="status">
           <div id="dueLabel">Amount due</div>
           <div class="value-big" id="dueAmt"></div>
@@ -513,7 +595,6 @@
         <p class="hint" id="balNote" hidden></p>
         <div id="qrBox">
           <img class="qr" src="gcash-qr.png.jpg" alt="GCash QR code">
-          <p class="hint">Scan the code to pay with GCash, then show the payment confirmation to staff.</p>
         </div>
         <div class="status reminder">
           Reminder: please pay the amount due before you leave. Staff will mark the booking as paid.
@@ -596,7 +677,7 @@
     <!-- Headline numbers -->
     <section class="kpis" id="kpis" aria-label="Headline numbers"></section>
 
-    <!-- Past days: sales and visitors for the last few days -->
+    <!-- Past days -->
     <section class="panel" id="recent" style="margin-top: 14px;" aria-labelledby="recentTitle">
       <div class="prow">
         <div>
@@ -923,9 +1004,12 @@ function fmt12str(hhmm) {
   return h + ':' + pad(m) + ' ' + ap;
 }
 
+// Moves between the three booking steps and updates the progress bar
 function goStep(n) {
   [1, 2, 3].forEach(i => { $('step' + i).hidden = i !== n; });
   $('stepLabel').textContent = 'Step ' + n + ' of 3';
+  [1, 2, 3].forEach(i => $('sb' + i).classList.toggle('on', i <= n));
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 async function showBooking() {
@@ -1160,9 +1244,9 @@ function renderTap(r, token) {
       <div class="title">Welcome, LCKieee!</div>
       <p class="subtitle">Check in for a visit</p>
       <label for="tName">Your name</label>
-      <input id="tName" autocomplete="off">
+      <input id="tName" autocomplete="name">
       <label>Purpose</label>
-      <div class="seg">
+      <div class="seg full">
         <button type="button" id="tWork" aria-pressed="true">Work</button>
         <button type="button" id="tSchool" aria-pressed="false">School</button>
       </div>
@@ -1397,7 +1481,7 @@ function renderRecent() {
 
   $('recentSum').innerHTML =
     '<b>' + fmtNum(totV) + '</b> visitors and <b>' + peso(totS) + '</b> sales over these ' + n +
-    ' days. Average per day: <b>' + fmtNum(fmtAvg(totV / n)) + '</b> visitors, <b>' + peso(avgDay) + '</b> sales.';
+    ' days. Average per day: <b>' + fmtAvg(totV / n) + '</b> visitors, <b>' + peso(avgDay) + '</b> sales.';
 }
 
 // Combo chart: visitors as bars (left scale), sales as a line (right scale).
