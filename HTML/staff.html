@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Staff check-in · LCKDIN Study Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --olive: #4B5340;
+    --olive-2: #6B7356;
+    --olive-3: #8A9372;
+    --line: #E3E9D6;
+    --field: #F7F9F1;
+    --ok: #3f6212;
+    --ok-bg: #EEF7E3;
+    --bad: #8A2B2B;
+    --bad-bg: #FBE9E9;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: 'Poppins', system-ui, sans-serif;
+    color: var(--olive);
+    background: #F4F8EC;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 16px;
+  }
+  .card {
+    width: 100%;
+    max-width: 440px;
+    background: #fff;
+    border-radius: 24px;
+    box-shadow: 0 18px 40px rgba(75, 83, 64, 0.12);
+    overflow: hidden;
+  }
+  .head {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 22px 24px;
+    background: linear-gradient(135deg, var(--olive-3) 0%, var(--olive) 100%);
+    color: #fff;
+  }
+  .badge {
+    flex-shrink: 0;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  .badge img { width: 44px; height: 44px; object-fit: contain; border-radius: 50%; }
+  .head h1 { font-size: 18px; margin: 0; font-weight: 700; }
+  .head p { font-size: 12px; margin: 2px 0 0; opacity: 0.85; }
+
+  .section { padding: 20px 24px; border-bottom: 1px solid #ECEFE3; }
+  .section:last-child { border-bottom: 0; }
+  .label {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.8px;
+    text-transform: uppercase; color: var(--olive-3); margin-bottom: 10px;
+  }
+
+  /* On duty list */
+  .duty { list-style: none; margin: 0; padding: 0; }
+  .duty li {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 0; font-size: 14px; font-weight: 600;
+  }
+  .duty li small { font-size: 12px; font-weight: 500; color: var(--olive-2); }
+  .duty li.none { color: var(--olive-3); font-weight: 500; }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #5BAA3A; margin-right: 8px; }
+
+  /* Form */
+  label { display: block; font-size: 12px; font-weight: 600; color: var(--olive-2); margin: 14px 0 6px; }
+  label:first-of-type { margin-top: 0; }
+  select, input {
+    width: 100%;
+    padding: 14px 16px;
+    font-size: 16px;
+    font-family: inherit;
+    color: var(--olive);
+    background: var(--field);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  select {
+    background-image: linear-gradient(45deg, transparent 50%, var(--olive-2) 50%), linear-gradient(135deg, var(--olive-2) 50%, transparent 50%);
+    background-position: calc(100% - 18px) 55%, calc(100% - 13px) 55%;
+    background-size: 5px 5px, 5px 5px;
+    background-repeat: no-repeat;
+    padding-right: 36px;
+  }
+  select:focus, input:focus { border-color: var(--olive-2); background: #fff; }
+
+  .who { font-size: 12px; color: var(--olive-2); min-height: 16px; margin-top: 8px; }
+
+  .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 18px; }
+  button {
+    min-height: 52px;
+    padding: 14px 12px;
+    font-size: 15px;
+    font-weight: 600;
+    font-family: inherit;
+    border: 0;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  button:disabled { opacity: 0.4; cursor: default; }
+  #inBtn { color: #fff; background: var(--olive); }
+  #outBtn { color: var(--olive); background: #fff; border: 1px solid var(--line); }
+
+  .msg {
+    margin-top: 14px; padding: 12px 14px; border-radius: 12px;
+    font-size: 13px; font-weight: 500; text-align: center; display: none;
+  }
+  .msg.show { display: block; }
+  .msg.ok { background: var(--ok-bg); color: var(--ok); }
+  .msg.err { background: var(--bad-bg); color: var(--bad); }
+
+  .foot { text-align: center; font-size: 11px; color: var(--olive-3); padding: 14px 24px 20px; }
+
+  @media (max-width: 380px) {
+    .card { border-radius: 20px; }
+    .section { padding: 18px 18px; }
+    .head { padding: 18px; }
+  }
+</style>
+</head>
+<body>
+
+<main class="card">
+  <header class="head">
+    <div class="badge"><img src="logo-mark.png.jpg" alt="LCKDIN logo"></div>
+    <div>
+      <h1>Staff check-in</h1>
+      <p>Clock in when your shift starts, clock out when it ends</p>
+    </div>
+  </header>
+
+  <section class="section">
+    <div class="label">On duty now</div>
+    <ul class="duty" id="duty"><li class="none">Loading...</li></ul>
+  </section>
+
+  <section class="section">
+    <div class="label">Your shift</div>
+    <label for="staffSel">Your name</label>
+    <select id="staffSel"></select>
+
+    <label for="pin">PIN</label>
+    <input id="pin" type="password" inputmode="numeric" autocomplete="off" placeholder="Enter your PIN">
+
+    <div class="who" id="who"></div>
+
+    <div class="actions">
+      <button type="button" id="inBtn" disabled>Clock in</button>
+      <button type="button" id="outBtn" disabled>Clock out</button>
+    </div>
+
+    <p class="msg" id="msg" role="status"></p>
+  </section>
+
+  <p class="foot">LCKDIN Study Hub · Staff only</p>
+</main>
+
+<script>
+// Must be the URL of the CURRENT deployment (Deploy > Manage deployments > New version)
+const API_URL = 'https://script.google.com/macros/s/AKfycbzlzbiuTATPOKUXBTQubIVFvLIgiHbWeUeZXTaUEgXV8NgiZb1JxZKf0HACJ4--dHHomA/exec';
+const TZ = 'Asia/Manila';
+const $ = id => document.getElementById(id);
+
+let STAFF = [];   // [{ name, onDuty, since }]
+
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+// ISO time -> "9:02 AM" in Manila time
+function timeOf(iso) {
+  return new Date(iso).toLocaleTimeString('en-PH', { timeZone: TZ, hour: 'numeric', minute: '2-digit' });
+}
+
+function setMsg(text, isErr) {
+  const m = $('msg');
+  m.textContent = text;
+  m.className = 'msg show ' + (isErr ? 'err' : 'ok');
+}
+
+function clearMsg() {
+  $('msg').className = 'msg';
+  $('msg').textContent = '';
+}
+
+async function post(body) {
+  const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(body) });
+  const text = await res.text();
+  let r;
+  try {
+    r = JSON.parse(text);
+  } catch (e) {
+    throw new Error('Server reply was not valid. Check the Apps Script deployment.');
+  }
+  if (!r.ok) throw new Error(r.error || 'Something went wrong');
+  return r;
+}
+
+// Loads who is on duty and refreshes the name list
+async function loadStatus() {
+  try {
+    const r = await post({ action: 'staffStatus' });
+    STAFF = r.staff;
+    renderStatus();
+  } catch (e) {
+    setMsg(e.message, true);
+  }
+}
+
+function renderStatus() {
+  const on = STAFF.filter(s => s.onDuty);
+  $('duty').innerHTML = on.length
+    ? on.map(s => `<li><span><i class="dot"></i>${esc(s.name)}</span><small>since ${esc(timeOf(s.since))}</small></li>`).join('')
+    : '<li class="none">Nobody is on duty</li>';
+
+  const current = $('staffSel').value;
+  $('staffSel').innerHTML = '<option value="">Choose your name</option>' +
+    STAFF.map(s => `<option value="${esc(s.name)}">${esc(s.name)}</option>`).join('');
+
+  // Remember the name on this device so staff only choose it once
+  const saved = current || localStorage.getItem('staffName') || '';
+  if (saved && STAFF.some(s => s.name === saved)) $('staffSel').value = saved;
+
+  updateButtons();
+}
+
+// Enables Clock in or Clock out depending on who is on duty.
+// Clock in stays disabled while anyone else is still on duty.
+function updateButtons() {
+  const me = STAFF.find(s => s.name === $('staffSel').value);
+  const inNow = !!(me && me.onDuty);
+  const other = STAFF.find(s => s.onDuty && (!me || s.name !== me.name));
+
+  $('inBtn').disabled = !me || inNow || !!other;
+  $('outBtn').disabled = !me || !inNow;
+
+  if (other && !inNow) {
+    $('who').textContent = other.name + ' is still on duty. They must clock out first.';
+  } else {
+    $('who').textContent = me
+      ? (inNow ? 'You are on duty since ' + timeOf(me.since) : 'You are off duty')
+      : '';
+  }
+}
+
+function setBusy(busy) {
+  $('inBtn').disabled = busy;
+  $('outBtn').disabled = busy;
+}
+
+async function act(kind) {
+  clearMsg();
+  const name = $('staffSel').value;
+  const pin = $('pin').value.trim();
+  if (!name) return setMsg('Choose your name first', true);
+  if (!pin) return setMsg('Enter your PIN', true);
+
+  setBusy(true);
+  try {
+    const r = await post({
+      action: kind === 'in' ? 'staffClockIn' : 'staffClockOut',
+      staff: name,
+      pin: pin
+    });
+    $('pin').value = '';
+    if (kind === 'in') {
+      setMsg('Clocked in at ' + timeOf(r.at), false);
+    } else {
+      setMsg('Clocked out at ' + timeOf(r.at) + ' · ' + r.hours + ' hr', false);
+    }
+    await loadStatus();
+  } catch (e) {
+    setMsg(e.message, true);
+    updateButtons();
+  }
+}
+
+$('inBtn').onclick = () => act('in');
+$('outBtn').onclick = () => act('out');
+
+$('staffSel').onchange = () => {
+  localStorage.setItem('staffName', $('staffSel').value);
+  clearMsg();
+  updateButtons();
+};
+
+$('pin').onkeydown = e => {
+  if (e.key === 'Enter') {
+    const me = STAFF.find(s => s.name === $('staffSel').value);
+    act(me && me.onDuty ? 'out' : 'in');
+  }
+};
+
+loadStatus();
+setInterval(loadStatus, 60 * 1000);
+</script>
+</body>
+</html>
