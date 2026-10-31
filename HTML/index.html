@@ -548,6 +548,33 @@
   .cardform label { margin-top: 0; }
   .cardform input, .cardform select { margin-top: 6px; }
 
+  /* ---------- Loading states ---------- */
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+  .spin {
+    display: inline-block; width: 26px; height: 26px; flex-shrink: 0;
+    border: 3px solid #DCE4CB; border-top-color: var(--olive);
+    border-radius: 50%; animation: spin 0.8s linear infinite;
+  }
+  .loader {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 12px; padding: 28px 0; font-size: 13px; color: var(--olive-2); text-align: center;
+  }
+  .skel {
+    border-radius: 16px;
+    background: linear-gradient(90deg, #EEF3E4 25%, #F8FBF2 50%, #EEF3E4 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.3s ease-in-out infinite;
+  }
+  button.busy { position: relative; color: transparent !important; pointer-events: none; }
+  button.busy::after {
+    content: ''; position: absolute; left: 50%; top: 50%;
+    width: 18px; height: 18px; margin: -9px 0 0 -9px;
+    border: 2px solid rgba(75, 83, 64, 0.3); border-top-color: var(--olive);
+    border-radius: 50%; animation: spin 0.7s linear infinite;
+  }
+  button.dark.busy::after { border-color: rgba(255, 255, 255, 0.4); border-top-color: #fff; }
+
   @media (max-width: 1100px) {
     .kpis { grid-template-columns: repeat(2, 1fr); }
   }
@@ -588,7 +615,7 @@
   </aside>
 
   <main class="body">
-    <div id="loading" class="loading">Loading...</div>
+    <div id="loading" class="loader"><span class="spin"></span>Loading…</div>
     <div id="error" class="status err" hidden></div>
 
     <!-- Booking flow (root link) -->
@@ -948,6 +975,7 @@ const $ = id => document.getElementById(id);
 // Kept in memory only, so a page refresh locks the dashboard again
 let staffPin = '';
 let data = null;          // last dashboard response
+let lastUpdated = '';     // time of the last good load, shown if a refresh fails
 let period = 'daily';     // daily | weekly | monthly
 let recentRange = 7;      // days shown in the Past days panel
 let selectedStaff = null; // staff member whose clients are listed
@@ -1049,6 +1077,12 @@ function show(id) {
   $('loading').hidden = true;
 }
 
+// Shows a spinner on a button and blocks clicks while work is running
+function setBusy(btn, on) {
+  btn.classList.toggle('busy', on);
+  btn.disabled = on;
+}
+
 function fail(msg) {
   $('loading').hidden = true;
   $('error').hidden = false;
@@ -1123,6 +1157,9 @@ async function showBooking() {
     `<option value="${i + 1}">${i + 1} ${i === 0 ? 'hr' : 'hrs'}</option>`).join('');
   $('bookHours').value = '1';
 
+  $('bookCategory').innerHTML = '<option>Loading rooms…</option>';
+  $('bookCategory').disabled = true;
+  setBusy($('next1'), true);
   try {
     const res = await fetch(API_URL);
     const r = await parseReply(res);
@@ -1136,6 +1173,9 @@ async function showBooking() {
     updatePeopleLimit();
   } catch (e) {
     fail(e.message);
+  } finally {
+    $('bookCategory').disabled = false;
+    setBusy($('next1'), false);
   }
 }
 
@@ -1261,7 +1301,7 @@ $('back3').onclick = () => goStep(2);
 
 // Step 3: save the booking (GCash is the only payment method)
 $('saveBtn').onclick = async () => {
-  $('saveBtn').disabled = true;
+  setBusy($('saveBtn'), true);
   $('bookMsg').textContent = '';
   try {
     const r = await post({
@@ -1296,7 +1336,7 @@ $('saveBtn').onclick = async () => {
     $('bookMsg').className = 'msg err';
     $('bookMsg').textContent = e.message;
   } finally {
-    $('saveBtn').disabled = false;
+    setBusy($('saveBtn'), false);
   }
 };
 
@@ -1311,7 +1351,7 @@ function fmtMin(m) {
 }
 
 async function tapAction(body) {
-  $('tapBody').innerHTML = '<div class="loading">Loading...</div>';
+  $('tapBody').innerHTML = '<div class="loader"><span class="spin"></span>Please wait…</div>';
   try {
     const r = await post(body);
     if (!r.ok) throw new Error(r.error);
@@ -1457,7 +1497,7 @@ function askPin() {
   $('pinInput').value = '';
   $('pinMsg').textContent = '';
   $('pinBtn').onclick = async () => {
-    $('pinBtn').disabled = true;
+    setBusy($('pinBtn'), true);
     try {
       await unlock($('pinInput').value);
       await loadConfig();
@@ -1468,7 +1508,7 @@ function askPin() {
     } catch (e) {
       $('pinMsg').textContent = e.message;
     } finally {
-      $('pinBtn').disabled = false;
+      setBusy($('pinBtn'), false);
     }
   };
   // Enter key unlocks too
@@ -1476,17 +1516,31 @@ function askPin() {
 }
 
 // ---- Dashboard data ----
+
+// Placeholder shapes shown on the dashboard until the first data arrives
+function showDashSkeleton() {
+  $('kpis').innerHTML = [0, 1, 2, 3].map(() => '<div class="skel" style="height:112px"></div>').join('');
+  $('recentGrid').innerHTML = [0, 1, 2, 3, 4, 5, 6].map(() => '<div class="skel" style="height:170px"></div>').join('');
+  $('recentSum').textContent = '';
+  $('chartBox').innerHTML = '<div class="skel" style="height:260px"></div>';
+  $('staffBody').innerHTML = '<tr><td colspan="5"><div class="skel" style="height:120px"></div></td></tr>';
+  $('dutyList').innerHTML = '<li><div class="skel" style="height:36px;width:100%"></div></li>';
+  $('dutyWord').textContent = '';
+  $('updated').textContent = 'Loading…';
+}
+
 async function loadDashboard() {
-  $('refreshBtn').disabled = true;
+  setBusy($('refreshBtn'), true);
   $('dashErr').hidden = true;
+  if (!data) showDashSkeleton();
+  else $('updated').textContent = 'Updating…';
   try {
     const r = await post({ action: 'dashboard', pin: staffPin });
     if (!r.ok) throw new Error(r.error);
     data = r;
     renderAll();
-    $('updated').textContent = 'Updated ' + new Date().toLocaleTimeString('en-PH', {
-      timeZone: TZ, hour: 'numeric', minute: '2-digit'
-    });
+    lastUpdated = new Date().toLocaleTimeString('en-PH', { timeZone: TZ, hour: 'numeric', minute: '2-digit' });
+    $('updated').textContent = 'Updated ' + lastUpdated;
   } catch (e) {
     if (/PIN/.test(e.message)) {
       staffPin = '';
@@ -1495,8 +1549,9 @@ async function loadDashboard() {
     }
     $('dashErr').hidden = false;
     $('dashErr').textContent = 'Could not load the dashboard: ' + e.message;
+    if (lastUpdated) $('updated').textContent = 'Updated ' + lastUpdated;
   } finally {
-    $('refreshBtn').disabled = false;
+    setBusy($('refreshBtn'), false);
   }
 }
 
@@ -1909,6 +1964,7 @@ $('mkToken').onclick = async () => {
   if (!name) return alert('Enter the card name first');
   const category = $('cardCategory').value;
   if (!category) return alert('Choose a category');
+  setBusy($('mkToken'), true);
   try {
     const r = await post({ action: 'newToken', name, category, pin: staffPin });
     if (!r.ok) throw new Error(r.error);
@@ -1923,6 +1979,8 @@ $('mkToken').onclick = async () => {
     } else {
       alert(e.message);
     }
+  } finally {
+    setBusy($('mkToken'), false);
   }
 };
 
