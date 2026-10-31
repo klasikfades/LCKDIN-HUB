@@ -131,6 +131,21 @@
 
   .foot { text-align: center; font-size: 11px; color: var(--olive-3); padding: 14px 24px 20px; }
 
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spin {
+    display: inline-block; width: 16px; height: 16px; margin-right: 8px; vertical-align: middle;
+    border: 2px solid #DCE4CB; border-top-color: var(--olive);
+    border-radius: 50%; animation: spin 0.8s linear infinite;
+  }
+  button.busy { position: relative; color: transparent !important; pointer-events: none; }
+  button.busy::after {
+    content: ''; position: absolute; left: 50%; top: 50%;
+    width: 18px; height: 18px; margin: -9px 0 0 -9px;
+    border: 2px solid rgba(75, 83, 64, 0.3); border-top-color: var(--olive);
+    border-radius: 50%; animation: spin 0.7s linear infinite;
+  }
+  #inBtn.busy::after { border-color: rgba(255, 255, 255, 0.4); border-top-color: #fff; }
+
   @media (max-width: 380px) {
     .card { border-radius: 20px; }
     .section { padding: 18px 18px; }
@@ -151,7 +166,7 @@
 
   <section class="section">
     <div class="label">On duty now</div>
-    <ul class="duty" id="duty"><li class="none">Loading...</li></ul>
+    <ul class="duty" id="duty"><li class="none"><span class="spin"></span>Loading…</li></ul>
   </section>
 
   <section class="section">
@@ -247,6 +262,8 @@ function renderStatus() {
 // Enables Clock in or Clock out depending on who is on duty.
 // Clock in stays disabled while anyone else is still on duty.
 function updateButtons() {
+  ['inBtn', 'outBtn'].forEach(id => $(id).classList.remove('busy'));
+
   const me = STAFF.find(s => s.name === $('staffSel').value);
   const inNow = !!(me && me.onDuty);
   const other = STAFF.find(s => s.onDuty && (!me || s.name !== me.name));
@@ -264,6 +281,7 @@ function updateButtons() {
 }
 
 function setBusy(busy) {
+  ['inBtn', 'outBtn'].forEach(id => $(id).classList.toggle('busy', busy));
   $('inBtn').disabled = busy;
   $('outBtn').disabled = busy;
 }
