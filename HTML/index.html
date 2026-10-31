@@ -464,6 +464,9 @@
   .prow { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
   #cards .subtitle { margin-bottom: 10px; }
 
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #5BAA3A; margin-right: 8px; vertical-align: middle; }
+  .dutypanel { margin-top: 14px; border-left: 5px solid #5BAA3A; }
+
   .days { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 10px; margin-top: 4px; }
   .day {
     background: var(--band); border-radius: 18px; padding: 12px 10px;
@@ -515,6 +518,7 @@
   }
   .clist li small { display: block; font-size: 11px; color: var(--olive-2); margin-top: 2px; }
   .clist li b { white-space: nowrap; }
+  .clist li span { display: block; }
 
   .pm { margin-top: 14px; }
   .pm .pmrow { display: flex; justify-content: space-between; font-size: 13px; font-weight: 600; }
@@ -721,6 +725,7 @@
     <hr>
     <nav aria-label="Dashboard sections">
       <a href="#top" class="on"><span>⌂</span>Dashboard</a>
+      <a href="#onDuty"><span>●</span>On duty</a>
       <a href="#recent"><span>▦</span>Past days</a>
       <a href="#chart"><span>▥</span>Sales trends</a>
       <a href="#staffSec"><span>#</span>Staff</a>
@@ -754,6 +759,16 @@
     </header>
 
     <div id="dashErr" class="status err" hidden role="alert"></div>
+
+    <section class="panel dutypanel" id="onDuty" aria-labelledby="dutyTitle">
+      <div class="prow">
+        <div>
+          <div class="ptitle" id="dutyTitle">On duty now</div>
+          <div class="pdesc" id="dutyWord"></div>
+        </div>
+      </div>
+      <ul class="clist" id="dutyList"></ul>
+    </section>
 
     <section class="kpis" id="kpis" aria-label="Headline numbers"></section>
 
@@ -1485,9 +1500,38 @@ async function loadDashboard() {
   }
 }
 
+// Clock-in time, in Manila time: "9:48 PM"
+function clockTime(iso) {
+  return new Date(iso).toLocaleTimeString('en-PH', { timeZone: TZ, hour: 'numeric', minute: '2-digit' });
+}
+
+// Time since clock-in: "2 hr 15 min"
+function elapsedSince(iso) {
+  const m = Math.max(0, Math.floor((Date.now() - new Date(iso)) / 60000));
+  const h = Math.floor(m / 60), mm = m % 60;
+  return (h ? h + ' hr ' : '') + mm + ' min';
+}
+
+// Lists everyone currently clocked in
+function renderOnDuty() {
+  const list = data.onDuty || [];
+  $('dutyWord').textContent = list.length
+    ? list.length + ' clocked in right now'
+    : 'Nobody is clocked in right now';
+
+  $('dutyList').innerHTML = list.length
+    ? list.map(s => `
+      <li>
+        <span><i class="dot"></i>${esc(s.name)}<small>Clocked in ${esc(clockTime(s.since))}</small></span>
+        <b>${esc(elapsedSince(s.since))}</b>
+      </li>`).join('')
+    : '<li><span>No one is on duty right now.</span></li>';
+}
+
 // Redraws every dashboard section from the last response
 function renderAll() {
   if (!data) return;
+  renderOnDuty();
   renderKpis();
   renderRecent();
   renderChart();
