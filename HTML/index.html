@@ -1109,7 +1109,12 @@ async function parseReply(res) {
 }
 
 async function post(body) {
-  const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(body) });
+  let res;
+  try {
+    res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(body) });
+  } catch (e) {
+    throw new Error('Cannot reach the server. In Apps Script, set Who has access to Anyone, then deploy a new version.');
+  }
   return parseReply(res);
 }
 
