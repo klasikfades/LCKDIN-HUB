@@ -548,6 +548,15 @@
   .cardform label { margin-top: 0; }
   .cardform input, .cardform select { margin-top: 6px; }
 
+  /* ---------- Bill summary (tap screen) ---------- */
+  .bill { margin-top: 14px; background: var(--band); border-radius: 16px; padding: 14px 16px; text-align: left; }
+  .bill-title { font-size: 11px; font-weight: 600; letter-spacing: 0.8px; text-transform: uppercase; color: var(--olive-3); margin-bottom: 6px; }
+  .bill-row { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; padding: 7px 0; border-bottom: 1px dashed var(--line); }
+  .bill-row span { color: var(--olive-2); }
+  .bill-total { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 10px; font-size: 13px; font-weight: 600; }
+  .bill-total b { font-size: 22px; color: var(--olive); }
+  .bill-note { font-size: 11px; color: var(--olive-2); margin: 8px 0 0; text-align: left; line-height: 1.5; }
+
   /* ---------- Loading states ---------- */
   @keyframes spin { to { transform: rotate(360deg); } }
   @keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
@@ -1366,6 +1375,30 @@ function startTap(token) {
   tapAction({ action: 'tap', token });
 }
 
+// Bill summary card for the tap screen.
+// label: the line above the amount, for example "Estimated total" or "Total due"
+function billHtml(b, label) {
+  if (!b) return '';
+  const lines = [
+    ['Room', b.room || '-'],
+    ['Time in', fmt12str(b.timeIn)],
+    ['Time out', fmt12str(b.timeOut)],
+    ['Time used', fmtMin(b.minutes)]
+  ];
+  if (!b.isPass) lines.push(['Rate', peso(b.rate) + ' per hour']);
+  lines.push(['Billed', b.hours + (b.hours === 1 ? ' hr' : ' hrs')]);
+
+  const rows = lines.map(([k, v]) =>
+    `<div class="bill-row"><span>${esc(k)}</span><b>${esc(v)}</b></div>`).join('');
+
+  const total = b.isPass
+    ? `<div class="bill-total"><span>Covered by your pass</span><b>${peso(0)}</b></div>`
+    : `<div class="bill-total"><span>${esc(label)}</span><b>${peso(b.total)}</b></div>
+       <p class="bill-note">Each started hour is billed after the first 20 minutes.</p>`;
+
+  return `<div class="bill"><div class="bill-title">Bill summary</div>${rows}${total}</div>`;
+}
+
 function renderTap(r, token) {
   const body = $('tapBody');
   const name = esc(r.name || '');
@@ -1424,15 +1457,15 @@ function renderTap(r, token) {
     return;
   }
 
-  // After extending, reload the checked-in view with the new end time
-  if (r.action === 'extended') {
-    tapAction({ action: 'tap', token });
-    return;
-  }
-
-  // Already checked in (or just checked in): show end time, extend, check out
+  // Checked in, already checked in, or just extended: time, bill summary, extend, check out
   if (r.action === 'in' || r.action === 'ask') {
+    const isNew = r.action === 'in';
     const canExtend = r.action === 'ask' && r.canExtend && !r.noExtend;
+    const billLabel = isNew ? 'Estimated total' : (r.extended ? 'Updated total' : 'Current total');
+
+    const when = r.time ? 'Checked in at ' + esc(fmt12str(r.time)) + '. ' : '';
+    const added = r.extended
+      ? `<p class="hint">Added ${esc(r.added)} ${Number(r.added) === 1 ? 'hr' : 'hrs'}. The total below is updated.</p>` : '';
     const passLeft = r.isPass && r.remainingMin !== null
       ? `<p class="hint">Pass time left today: ${fmtMin(r.remainingMin)}</p>` : '';
     const usedUp = r.noExtend
@@ -1442,14 +1475,15 @@ function renderTap(r, token) {
       <select id="tExtHours">${[...Array(24)].map((_, i) =>
         `<option value="${i + 1}">${i + 1} ${i === 0 ? 'hr' : 'hrs'}</option>`).join('')}</select>
       <button type="button" id="tExtend" class="ghost">Extend</button>` : '';
-    const when = r.time ? 'Checked in at ' + esc(fmt12str(r.time)) + '. ' : '';
 
     body.innerHTML = `
-      <div class="title">${r.action === 'in' ? 'Checked in' : 'Currently checked in'}</div>
+      <div class="title">${isNew ? 'Checked in' : 'Currently checked in'}</div>
       <p class="subtitle">${name}</p>
       <div class="status">${when}Until ${esc(fmt12str(r.endTime))}</div>
+      ${added}
       ${passLeft}
       ${usedUp}
+      ${billHtml(r.bill, billLabel)}
       ${extendBlock}
       <button type="button" id="tLeave" class="dark">Check out</button>`;
 
@@ -1460,12 +1494,8 @@ function renderTap(r, token) {
     return;
   }
 
-  // Checked out: show time used and the amount due
+  // Checked out: time out, bill summary with the total due
   if (r.action === 'out') {
-    const billing = r.isPass
-      ? '<div class="hint">Covered by your pass</div>'
-      : `<div>Billed ${esc(r.hours)} ${Number(r.hours) === 1 ? 'hr' : 'hrs'}</div>
-         <div class="value-big">${peso(r.total)} due</div>`;
     const passLeft = r.isPass && r.leftMin !== null
       ? `<div>Pass time left today ${fmtMin(r.leftMin)}</div>` : '';
 
@@ -1474,10 +1504,9 @@ function renderTap(r, token) {
       <p class="subtitle">${name}</p>
       <div class="status">
         <div>Time out ${esc(fmt12str(r.time))}</div>
-        <div>Time used ${fmtMin(r.usedMin)}</div>
         ${passLeft}
-        ${billing}
       </div>
+      ${billHtml(r.bill, 'Total due')}
       <p class="hint">Thank you for visiting LCKDIN Study Hub.</p>`;
     return;
   }
