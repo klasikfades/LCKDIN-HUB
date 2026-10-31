@@ -57,7 +57,7 @@
     border-radius: 28px 28px 50px 50px / 28px 28px 24px 24px;
     background: linear-gradient(135deg, var(--olive-3) 0%, var(--olive) 100%);
   }
-  .badge {
+    .badge {
     flex-shrink: 0;
     width: 76px;
     height: 76px;
@@ -66,9 +66,16 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    overflow: hidden;
     box-shadow: 0 8px 18px rgba(0, 0, 0, 0.25), 0 0 0 4px rgba(255, 255, 255, 0.25);
   }
-  .badge img { width: 58px; height: 58px; object-fit: contain; mix-blend-mode: multiply; }
+  .badge img {
+    width: 58px;
+    height: 58px;
+    object-fit: contain;
+    border-radius: 50%;
+    mix-blend-mode: normal;
+  }
   .wordmark { width: 170px; max-width: 100%; filter: invert(1) brightness(1.8); mix-blend-mode: screen; }
 
   .body { padding: 22px 22px 26px; }
