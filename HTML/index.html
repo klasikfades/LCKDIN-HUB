@@ -299,7 +299,17 @@
   #summary td:last-child { text-align: right; font-weight: 600; }
   #summary tr.total td { font-weight: 700; color: var(--olive); border-bottom: 0; font-size: 15px; }
   .value-big { font-size: 28px; font-weight: 700; margin-top: 4px; color: var(--olive); }
-  .qr { display: block; width: 220px; max-width: 80%; margin: 16px auto 0; border-radius: 14px; }
+   .qr {
+    display: block;
+    width: 240px;
+    max-width: 80%;
+    box-sizing: border-box;
+    margin: 16px auto 0;
+    padding: 14px;
+    background: #fff;
+    border: 1px solid #E3E9D6;
+    border-radius: 14px;
+  }
 
   /* Tap in / out */
   #tapBody .title { font-size: 26px; }
