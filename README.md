@@ -92,7 +92,104 @@ HTML/
 - Test after every change: booking, a tap link, `?admin=1`, and `staff.html`.
 
 ---
+## How the system works
 
+### The big picture
+
+Three parts work together:
+
+1. **The web pages** (`index.html`, `staff.html`) run in the browser and are hosted on Vercel. They hold no data.
+2. **The Apps Script** (the back end) receives every request from the pages, reads and writes the Google Sheet, and sends back JSON.
+3. **The Google Sheet** is the database. Every visit, shift, pass, and setting lives there.
+
+No data is stored on the web pages. Refreshing a page only reloads what the Apps Script sends back.
+
+### Booking a visit (website)
+
+1. A guest opens the booking page and fills in name, date, room, people, time in, duration, purpose, and payment option.
+2. The page checks the room's people limit, then shows a billing summary.
+3. The guest continues to the payment step and scans the GCash QR code.
+4. **Save booking** sends the visit to the Apps Script, which adds a row to the day tab for that date with status **Booked**.
+5. The price is the room's hourly rate. Rooms that bill per person multiply the rate by the number of people. Flat-rate rooms do not.
+6. With **50% downpayment**, the sheet records half the total as paid now and the rest as the balance.
+
+### Tap in and out (NFC card)
+
+Each NFC card has a link with a token, for example `?t=ABC123`. Tapping the card opens the tap screen.
+
+**First tap (no open visit):**
+- A form asks for the guest's name, Work or School, and the duration.
+- **Check in** creates a row on today's day tab with status **In** and the exact time of the tap.
+- The Personnel column is filled automatically only if exactly one staff member is on duty.
+
+**Tap while checked in:**
+- The screen shows the end time, the bill so far, and buttons to extend or check out.
+- Extending adds time to the end time and updates the bill.
+
+**Check out:**
+- The row changes to status **Out** and the visit is copied into the Visit Log.
+- The screen shows the time used and the total due.
+
+**Pass cards** (Weekly or Monthly) are not billed per visit. They show the time left today, and they are capped at 9 hours per day.
+
+### Billing rule
+
+| Time stayed | Billed |
+|---|---|
+| 0 to 80 min (60 min + 20 min grace) | 1 hr |
+| 81 to 140 min | 2 hrs |
+| 141 to 200 min | 3 hrs |
+
+Minimum is 1 hour. The total is billed hours multiplied by the rate.
+
+### Staff clock in and out (staff.html)
+
+1. Staff open `staff.html`, choose their name, and enter their PIN.
+2. **Clock in** adds a row to the **Shifts** tab with the date and the time.
+3. Only one person can be on duty at a time. Clock in is blocked while someone else is still on duty.
+4. **Clock out** fills in the Clock Out time and shows the hours for that shift.
+5. Any walk-in still in progress when someone clocks in is given that person's name in Personnel.
+
+The "On duty now" list refreshes every minute.
+
+### Day tabs, Visit Log, and summaries
+
+- **Day tabs** (for example `Oct 31, 2026`) hold every visit for that date. This is where staff edit Time Out, Status, Paid, Payment method, Downpayment, and Balance.
+- **Visit Log** is a read-only copy of closed visits, sorted newest first. The dashboard and summaries read from it.
+- The log refreshes when a visit changes, and every 5 minutes as a backup.
+- **Visit Lookup** and **Shift Summary** show totals for a chosen date, and Shift Summary shows totals per staff member.
+- **Pass Sales** shows passes sold and active, updated from the Passes tab.
+
+### Admin dashboard (?admin=1)
+
+- Opens after the admin PIN is entered. The PIN is kept in memory only, so a page refresh locks the dashboard again.
+- Shows who is on duty, sales and visitors for the day, week, or month, the past 3, 7, or 14 days, staff performance, payment methods, pass sales, and averages.
+- **Sales** counts the downpayment when one was recorded, otherwise the full total if the visit is Paid.
+- **Unpaid balance** adds up balances still owed on downpayment bookings, plus unpaid visits with no downpayment.
+- Passes are counted separately from sales.
+- The dashboard refreshes every 5 minutes.
+
+### Where each thing is stored
+
+| Data | Stored in |
+|---|---|
+| Visits (booking, walk-in) | Day tabs |
+| Closed visits used for totals | Visit Log |
+| NFC cards (category) | Tags tab |
+| NFC cards (pass) and pass sales | Passes tab |
+| Staff shifts and clock times | Shifts tab |
+| Rooms, rates, staff names, staff PINs | Settings tab |
+| Admin PIN | Apps Script Script Properties (`ADMIN_PIN`) |
+
+### Quick flow check
+
+If something seems wrong, follow the path in order:
+
+1. Did the page load? Check the **Connection** errors in the Troubleshooting section.
+2. Did the Apps Script receive the request? Check **Executions** in Apps Script.
+3. Is the row on the right day tab with the right status?
+4. Has the Visit Log updated? Run `syncAllDays` if not.
+5. Does the total match the billing rule above?
 ## Troubleshooting
 
 ### Website and pages
