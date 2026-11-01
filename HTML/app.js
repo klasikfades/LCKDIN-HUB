@@ -444,7 +444,7 @@ function billHtml(b, label) {
   const total = b.isPass
     ? `<div class="bill-total"><span>Covered by your pass</span><b>${peso(0)}</b></div>`
     : `<div class="bill-total"><span>${esc(label)}</span><b>${peso(b.total)}</b></div>
-       <p class="bill-note">Each started hour is billed after the first 20 minutes.</p>`;
+       <p class="bill-note">1 hour covers up to 80 minutes (60 min + 20 min grace). After that, each started hour is billed.</p>`;
 
   return `<div class="bill"><div class="bill-title">Bill summary</div>${rows}${total}</div>`;
 }
