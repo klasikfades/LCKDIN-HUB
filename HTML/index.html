@@ -1120,6 +1120,7 @@ async function post(body) {
 
 // ---- Booking flow (root link) ----
 const RATES = {};     // room name -> rate per hour
+const FLAT = {};      // room name -> true if billed a flat rate (not per person)
 const LIMITS = {};    // room name -> { min, max } people
 let S = {};           // booking in progress
 let plan = 'Full';    // Full | Down (50% downpayment)
@@ -1180,6 +1181,7 @@ async function showBooking() {
     if (!r.ok) throw new Error(r.error || 'Could not load rooms');
     r.categories.forEach(c => {
       RATES[c.name] = c.rate;
+      FLAT[c.name] = !!c.flat;
       LIMITS[c.name] = { min: c.minPeople, max: c.maxPeople };
     });
     $('bookCategory').innerHTML = r.categories.map(c =>
@@ -1254,7 +1256,7 @@ $('next1').onclick = () => {
   const endMin = (startMin + hours * 60) % 1440;
   const nextDay = startMin + hours * 60 >= 1440;
 
-  const rate = (RATES[category] || 0) * people;
+  const rate = FLAT[category] ? (RATES[category] || 0) : (RATES[category] || 0) * people;
   const total = r2(rate * hours);
   const down = plan === 'Down' ? r2(total / 2) : total;   // amount paid now
   const balance = r2(total - down);                       // left to pay later (0 for full payment)
