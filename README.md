@@ -157,7 +157,7 @@ HTML/
 | "This pass expired on [date]" | The pass has passed its last day. Sell a new pass. |
 | "You have used your 9 hours for today" | The weekly or monthly pass hit its daily cap. It resets the next day. |
 | Pass card says "Unknown NFC card" | The pass row was deleted from the Passes tab, or the pass was for Day Pass, which has been removed. |
-| Check-out total looks wrong | Billing rule: the first 20 minutes are free, then each started hour counts, minimum 1 hour. Check Time In and Time Out on the day tab. |
+| Check-out total looks wrong | Billing: 1 hr covers up to 80 minutes (60 min + 20 min grace). From 81 minutes, the bill goes to 2 hrs, then each started hour adds 1 more. Check Time In and Time Out on the day tab. |
 | Booking saved but not on the dashboard | Only closed visits (status Out) count toward sales. Check the status. |
 | Dashboard sales show zero after a visit | Make sure the visit has a Time Out and status Out. Run `syncAllDays` if the Visit Log is behind. |
 
