@@ -1184,8 +1184,8 @@ async function showBooking() {
       FLAT[c.name] = !!c.flat;
       LIMITS[c.name] = { min: c.minPeople, max: c.maxPeople };
     });
-        $('bookCategory').innerHTML = r.categories.map(c =>
-      `<option value="${esc(c.name)}">${esc(c.name)}</option>`).join('');
+    $('bookCategory').innerHTML = r.categories.map(c =>
+      `<option value="${esc(c.name)}">${esc(c.name)} (₱${esc(c.rate)}/hr per person)</option>`).join('');
     updatePeopleLimit();
   } catch (e) {
     fail(e.message);
