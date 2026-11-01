@@ -18,18 +18,22 @@ Booking, NFC tap in/out, staff clock in/out, and admin dashboard for LCKDIN Stud
 
 ---
 
+
 ## Project structure
+
+```text
 HTML/
-├── index.html Booking, tap in/out, and admin dashboard
-├── style.css Styles for index.html
-├── app.js Logic for index.html
-├── staff.html Staff clock in/out page
-├── staff.css Styles for staff.html
-├── staff.js Logic for staff.html
+├── index.html            Booking, tap in/out, and admin dashboard
+├── style.css             Styles for index.html
+├── app.js                Logic for index.html
+├── staff.html            Staff clock in/out page
+├── staff.css             Styles for staff.html
+├── staff.js              Logic for staff.html
 ├── logo-mark.png.jpg
 ├── logo-wordmark.png.jpg
 ├── gcash-qr.png.jpg
 └── README.md
+```
 
 
 ---
