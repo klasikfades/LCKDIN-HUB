@@ -1057,6 +1057,7 @@ if (TAP_TOKEN) {
   startTap(TAP_TOKEN);
 } else if (new URLSearchParams(location.search).has('admin')) {
   document.body.classList.add('admin');
+  document.title = 'LCKDIN Admin';
   askPin();
 } else {
   showBooking();
