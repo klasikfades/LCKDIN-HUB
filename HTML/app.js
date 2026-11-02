@@ -259,7 +259,7 @@ async function showBooking() {
       LIMITS[c.name] = { min: c.minPeople, max: c.maxPeople };
     });
     $('bookCategory').innerHTML = r.categories.map(c =>
-      `<option value="${esc(c.name)}">${esc(c.name)} (${c.minPeople}-${c.maxPeople} persons, from ₱${esc(tiersOf(c).h1)})</option>`).join('');
+      `<option value="${esc(c.name)}">${esc(c.name)} (${c.minPeople}-${c.maxPeople} persons, ₱${esc(tiersOf(c).h1)}/hr)</option>`).join('');
     updatePeopleLimit();
   } catch (e) {
     fail(e.message);
