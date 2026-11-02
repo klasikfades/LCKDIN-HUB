@@ -204,6 +204,11 @@ async function post(body) {
   return parseReply(res);
 }
 
+// Package prices for a room. Falls back to the old 1 hr rate if the server sends no tiers.
+function tiersOf(c) {
+  return c.tiers || { h1: Number(c.rate) || 0, h3: 0, h6: 0, h10: 0 };
+}
+
 // ---- Booking flow (root link) ----
 const TIERS = {};     // room name -> { h1, h3, h6, h10 } package prices
 const FLAT = {};      // room name -> true if billed a flat rate (not per person)
@@ -249,12 +254,12 @@ async function showBooking() {
     const r = await parseReply(res);
     if (!r.ok) throw new Error(r.error || 'Could not load rooms');
     r.categories.forEach(c => {
-      TIERS[c.name] = c.tiers;
+      TIERS[c.name] = tiersOf(c);
       FLAT[c.name] = !!c.flat;
       LIMITS[c.name] = { min: c.minPeople, max: c.maxPeople };
     });
     $('bookCategory').innerHTML = r.categories.map(c =>
-      `<option value="${esc(c.name)}">${esc(c.name)} (${c.minPeople}-${c.maxPeople} persons, from ₱${esc(c.tiers.h1)})</option>`).join('');
+      `<option value="${esc(c.name)}">${esc(c.name)} (${c.minPeople}-${c.maxPeople} persons, from ₱${esc(tiersOf(c).h1)})</option>`).join('');
     updatePeopleLimit();
   } catch (e) {
     fail(e.message);
@@ -1038,7 +1043,7 @@ async function loadConfig() {
   if (!r.ok) throw new Error(r.error || 'Could not load settings');
 
   const full = r.categories.map(c =>
-    `<option value="${esc(c.name)}">${esc(c.name)} (₱${esc(c.tiers.h1)}/hr)</option>`).join('');
+    `<option value="${esc(c.name)}">${esc(c.name)} (₱${esc(tiersOf(c).h1)}/hr)</option>`).join('');
   const passes = Object.keys(r.passes || {}).map(p =>
     `<option value="${esc(p)}">${esc(p)} (₱${esc(r.passes[p])})</option>`).join('');
   $('cardCategory').innerHTML = full + passes;
