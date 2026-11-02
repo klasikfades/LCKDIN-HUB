@@ -146,6 +146,25 @@ function fmt12str(hhmm) {
   return h + ':' + pad(m) + ' ' + ap;
 }
 
+// Same package rule as the server: packages only if they fit inside the hours.
+// Examples: 7 hrs Focus = 195, 8 hrs Focus = 230, 10 hrs Focus = 200.
+function tierPriceJs(hours, t) {
+  if (!t || hours <= 0) return 0;
+  const bundles = [[1, t.h1], [3, t.h3], [6, t.h6], [10, t.h10]].filter(b => b[1] > 0);
+  if (!bundles.length) return 0;
+  const cost = [0];
+  for (let h = 1; h <= hours; h++) {
+    let best = Infinity;
+    bundles.forEach(([n, p]) => {
+      if (n > h) return;
+      const v = cost[h - n] + p;
+      if (v < best) best = v;
+    });
+    cost[h] = best;
+  }
+  return cost[hours];
+}
+
 // ---- Page helpers ----
 
 function show(id) {
@@ -186,7 +205,7 @@ async function post(body) {
 }
 
 // ---- Booking flow (root link) ----
-const RATES = {};     // room name -> rate per hour
+const TIERS = {};     // room name -> { h1, h3, h6, h10 } package prices
 const FLAT = {};      // room name -> true if billed a flat rate (not per person)
 const LIMITS = {};    // room name -> { min, max } people
 let S = {};           // booking in progress
@@ -230,12 +249,12 @@ async function showBooking() {
     const r = await parseReply(res);
     if (!r.ok) throw new Error(r.error || 'Could not load rooms');
     r.categories.forEach(c => {
-      RATES[c.name] = c.rate;
+      TIERS[c.name] = c.tiers;
       FLAT[c.name] = !!c.flat;
       LIMITS[c.name] = { min: c.minPeople, max: c.maxPeople };
     });
     $('bookCategory').innerHTML = r.categories.map(c =>
-      `<option value="${esc(c.name)}">${esc(c.name)} (₱${esc(c.rate)}/hr per person)</option>`).join('');
+      `<option value="${esc(c.name)}">${esc(c.name)} (${c.minPeople}-${c.maxPeople} persons, from ₱${esc(c.tiers.h1)})</option>`).join('');
     updatePeopleLimit();
   } catch (e) {
     fail(e.message);
@@ -306,10 +325,10 @@ $('next1').onclick = () => {
   const endMin = (startMin + hours * 60) % 1440;
   const nextDay = startMin + hours * 60 >= 1440;
 
-  const rate = FLAT[category] ? (RATES[category] || 0) : (RATES[category] || 0) * people;
-  const total = r2(rate * hours);
-  const down = plan === 'Down' ? r2(total / 2) : total;   // amount paid now
-  const balance = r2(total - down);                       // left to pay later (0 for full payment)
+  const perPerson = tierPriceJs(hours, TIERS[category]);
+  const total = r2(perPerson * (FLAT[category] ? 1 : people));   // bookings: price x people
+  const down = plan === 'Down' ? r2(total / 2) : total;           // amount paid now
+  const balance = r2(total - down);                               // left to pay later
 
   S = {
     name, date, category, people, hours,
@@ -317,7 +336,7 @@ $('next1').onclick = () => {
     startHHMM,
     endHHMM: pad(Math.floor(endMin / 60)) + ':' + pad(endMin % 60),
     nextDay,
-    rate, total, down, balance, plan
+    perPerson, total, down, balance, plan
   };
 
   $('msg1').textContent = '';
@@ -335,7 +354,7 @@ function renderSummary() {
     ['Time in', fmt12str(S.startHHMM)],
     ['Time out', fmt12str(S.endHHMM) + (S.nextDay ? ' (next day)' : '')],
     ['Duration', S.hours + (S.hours === 1 ? ' hr' : ' hrs')],
-    ['Rate', peso(S.rate) + ' per hour'],
+    ['Price per person', peso(S.perPerson)],
     ['Payment option', S.plan === 'Down' ? '50% downpayment' : 'Full payment'],
   ];
 
@@ -433,10 +452,9 @@ function billHtml(b, label) {
     ['Room', b.room || '-'],
     ['Time in', fmt12str(b.timeIn)],
     ['Time out', fmt12str(b.timeOut)],
-    ['Time used', fmtMin(b.minutes)]
+    ['Time used', fmtMin(b.minutes)],
+    ['Billed', b.hours + (b.hours === 1 ? ' hr' : ' hrs')]
   ];
-  if (!b.isPass) lines.push(['Rate', peso(b.rate) + ' per hour']);
-  lines.push(['Billed', b.hours + (b.hours === 1 ? ' hr' : ' hrs')]);
 
   const rows = lines.map(([k, v]) =>
     `<div class="bill-row"><span>${esc(k)}</span><b>${esc(v)}</b></div>`).join('');
@@ -444,7 +462,7 @@ function billHtml(b, label) {
   const total = b.isPass
     ? `<div class="bill-total"><span>Covered by your pass</span><b>${peso(0)}</b></div>`
     : `<div class="bill-total"><span>${esc(label)}</span><b>${peso(b.total)}</b></div>
-       <p class="bill-note">1 hour covers up to 80 minutes (60 min + 20 min grace). After that, each started hour is billed.</p>`;
+       <p class="bill-note">1 hour covers up to 80 minutes (60 min + 20 min grace). Longer stays use the rate card packages.</p>`;
 
   return `<div class="bill"><div class="bill-title">Bill summary</div>${rows}${total}</div>`;
 }
@@ -1020,7 +1038,7 @@ async function loadConfig() {
   if (!r.ok) throw new Error(r.error || 'Could not load settings');
 
   const full = r.categories.map(c =>
-    `<option value="${esc(c.name)}">${esc(c.name)} (₱${esc(c.rate)}/hr)</option>`).join('');
+    `<option value="${esc(c.name)}">${esc(c.name)} (₱${esc(c.tiers.h1)}/hr)</option>`).join('');
   const passes = Object.keys(r.passes || {}).map(p =>
     `<option value="${esc(p)}">${esc(p)} (₱${esc(r.passes[p])})</option>`).join('');
   $('cardCategory').innerHTML = full + passes;
