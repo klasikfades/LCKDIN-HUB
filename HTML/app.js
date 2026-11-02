@@ -204,9 +204,13 @@ async function post(body) {
   return parseReply(res);
 }
 
-// Package prices for a room. Falls back to the old 1 hr rate if the server sends no tiers.
+// Package prices for a room, as sent by the server. Throws if they are missing,
+// so an out-of-date server can never produce a wrong price.
 function tiersOf(c) {
-  return c.tiers || { h1: Number(c.rate) || 0, h3: 0, h6: 0, h10: 0 };
+  if (!c.tiers || c.tiers.h1 === undefined) {
+    throw new Error('Server is out of date for ' + c.name + '. Deploy a new version of the Apps Script, then reload.');
+  }
+  return c.tiers;
 }
 
 // ---- Booking flow (root link) ----
@@ -259,7 +263,7 @@ async function showBooking() {
       LIMITS[c.name] = { min: c.minPeople, max: c.maxPeople };
     });
     $('bookCategory').innerHTML = r.categories.map(c =>
-      `<option value="${esc(c.name)}">${esc(c.name)} (₱${esc(tiersOf(c).h1)}/hr)</option>`).join('');
+      `<option value="${esc(c.name)}">${esc(c.name)} (₱${esc(TIERS[c.name].h1)}/hr)</option>`).join('');
     updatePeopleLimit();
   } catch (e) {
     fail(e.message);
