@@ -169,6 +169,8 @@ The "On duty now" list refreshes every minute.
 - Passes are counted separately from sales.
 - The dashboard refreshes every 5 minutes.
 - Layout: business numbers on the left, **Who's in right now** (open visits) on the right. On narrow screens the right panel moves below.
+- Each menu item opens its own page: **Dashboard** (overview), **Who's in**, **Past days**, **Sales trends**, **Staff**, **Pass sales** and **NFC cards**. Every page has a short description, a row of summary tiles, then the details. The Day / Week / Month switch shows only on pages that use it.
+- Pages have their own links, e.g. `?admin=1#/staff`, so the back button and bookmarks work.
 - The 3 / 7 / 14 days switch controls both the Past days tiles and the chart in Day view. The chart skips leading days with no data.
 - Staff with no clients or payments in the period are hidden from Staff performance.
 
