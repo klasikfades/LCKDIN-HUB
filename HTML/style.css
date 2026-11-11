@@ -554,6 +554,8 @@ table.dtable { width: 100%; border-collapse: collapse; font-size: 14px; margin-t
 .cardform input, .cardform select { margin-top: 6px; }
 .shell .skel { border-radius: 12px; background: linear-gradient(90deg, #EFEFE8 25%, #F8F8F3 50%, #EFEFE8 75%); background-size: 200% 100%; }
 
+.kpi-note { display: none; }
+
 @media (max-width: 1280px) {
   .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
@@ -562,23 +564,84 @@ table.dtable { width: 100%; border-collapse: collapse; font-size: 14px; margin-t
   .rail { position: static; }
   .live { max-height: none; }
 }
+
+/* ---------- Phones and small tablets ---------- */
 @media (max-width: 900px) {
-  .shell { grid-template-columns: 1fr; }
-  .side { position: static; height: auto; padding: 16px 12px 10px; border-right: 0; border-bottom: 1px solid var(--border); }
-  .side-logo { margin-bottom: 10px; }
-  .side nav { flex-direction: row; flex-wrap: wrap; }
-  .side nav a { padding: 8px 10px; }
+  .shell { grid-template-columns: minmax(0, 1fr); }
+
+  /* Compact header: the logo scrolls away, the section menu stays pinned */
+  .side {
+    position: sticky; top: -58px; z-index: 20; height: auto; min-width: 0;
+    padding: 12px 0 0; border-right: 0; border-bottom: 1px solid var(--border);
+  }
+  .side-logo { width: 112px; height: 36px; object-fit: cover; margin: 0 16px 10px; }
+  .side hr { display: none; }
+  .side nav {
+    flex-direction: row; flex-wrap: nowrap; gap: 6px;
+    overflow-x: auto; padding: 0 16px 10px;
+    scrollbar-width: none; -webkit-overflow-scrolling: touch;
+  }
+  .side nav::-webkit-scrollbar { display: none; }
+  .side nav a {
+    flex: 0 0 auto; gap: 8px; min-height: 36px; padding: 8px 12px;
+    border: 1px solid var(--border); border-radius: 999px; font-size: 13px;
+  }
+  .side nav a .ic { width: 16px; height: 16px; }
+  .side nav a.on { border-color: var(--olive); background: var(--olive); color: #fff; }
   .side nav a#signOut { margin-top: 0; }
-  .main { padding: 18px 14px 32px; }
-  .grid2 { grid-template-columns: 1fr; }
+
+  .main { padding: 16px 16px calc(40px + env(safe-area-inset-bottom)); }
+  .shell .crumb { display: none; }
+  .topbar { flex-direction: column; align-items: stretch; gap: 12px; margin-bottom: 16px; }
+  .shell .topbar .title { font-size: 22px; }
+  .updated { display: block; margin-top: 2px; }
+  .top-tools { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; width: 100%; }
+  .duty-chip { min-width: 0; overflow: hidden; text-overflow: ellipsis; min-height: 40px; }
+  .top-tools .seg { grid-column: 1 / -1; grid-row: 2; display: flex; width: 100%; }
+  .top-tools .seg button { flex: 1; min-height: 40px; }
+  .refresh button.ghost.small { min-height: 40px; }
+
+  /* Order on phones: headline numbers, who's in, then the rest */
+  .dash-grid { display: flex; flex-direction: column; align-items: stretch; gap: 16px; }
+  .dash-main { display: contents; }
+  .dash-main > * { order: 3; }
+  .kpis, .kpi-note { order: 1; }
+  .rail { order: 2; }
+
+  .panel { padding: 16px; }
+  .grid2 { grid-template-columns: 1fr; gap: 16px; }
+  .prow .seg button { min-height: 36px; }
+
+  /* Past days: one swipeable row, today at the end */
+  .days {
+    display: flex; gap: 8px; overflow-x: auto; scroll-snap-type: x proximity;
+    margin: 4px -16px 0; padding: 0 16px 4px; scrollbar-width: none;
+  }
+  .days::-webkit-scrollbar { display: none; }
+  .day { flex: 0 0 88px; scroll-snap-align: end; }
+
+  .dtable { font-size: 13px; }
+  .dtable th, .dtable td { padding: 9px 6px; }
+  #staffSec, #passes { overflow-x: auto; }
 }
+
 @media (max-width: 560px) {
-  .kpis { grid-template-columns: 1fr; }
-  .avg3 { grid-template-columns: 1fr; }
+  /* 2 x 2 headline cards; the comparison is said once underneath */
+  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .kcard { padding: 14px; }
+  .klabel { font-size: 12px; gap: 6px; }
+  .kvalue { font-size: 22px; margin: 6px 0 6px; }
+  .chg-sub { display: none; }
+  .ksub { font-size: 11px; }
+  .kpi-note { display: block; order: 1; margin: -8px 2px 0; font-size: 12px; color: var(--muted); }
+
+  .legend { gap: 12px; }
+  .avg3 { gap: 8px; }
+  .avgtile { padding: 12px 6px; }
+  .avgtile .value { font-size: 15px; }
   .cardform { grid-template-columns: 1fr; }
-  .cardform button { width: 100%; }
-  .days { grid-template-columns: repeat(3, 1fr); }
-  .top-tools { width: 100%; }
+  .cardform button { width: 100%; min-height: 44px; }
+  .recent-sum { font-size: 12px; }
 }
 
 /* ---------- Bill summary (tap screen) ---------- */

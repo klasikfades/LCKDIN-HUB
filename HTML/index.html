@@ -167,6 +167,7 @@
       <div>
         <div class="crumb">Pages / Dashboard</div>
         <h1 class="title">Main dashboard</h1>
+        <div class="updated" id="updated" aria-live="polite"></div>
       </div>
       <div class="top-tools">
         <span class="duty-chip" id="dutyChip" aria-live="polite"><i class="dot"></i>Loading…</span>
@@ -176,7 +177,6 @@
           <button type="button" data-period="monthly" aria-pressed="false">Month</button>
         </div>
         <div class="refresh">
-          <span class="updated" id="updated" aria-live="polite"></span>
           <button type="button" class="ghost small" id="refreshBtn">Refresh</button>
         </div>
       </div>
@@ -187,6 +187,7 @@
     <div class="dash-grid">
       <div class="dash-main">
         <section class="kpis" id="kpis" aria-label="Headline numbers"></section>
+        <p class="kpi-note" id="kpiNote"></p>
 
         <section class="panel" id="recent" aria-labelledby="recentTitle">
           <div class="prow">

@@ -615,6 +615,7 @@ function askPin() {
       await loadConfig();
       await loadDashboard();
       show('dash');
+      fitToScreen();
       clearInterval(refreshTimer);
       refreshTimer = setInterval(loadDashboard, REFRESH_MS);
     } catch (e) {
@@ -760,6 +761,8 @@ function renderKpis() {
     vsName = 'vs same time yesterday';
   }
 
+  $('kpiNote').textContent = 'Changes shown ' + vsName;
+
   const avgCur = cur.visitors ? cur.sales / cur.visitors : 0;
   const avgPrev = prev.visitors ? prev.sales / prev.visitors : 0;
   const unpaid = data.totals.unpaid;
@@ -815,6 +818,9 @@ function renderRecent() {
       </div>`;
   }).join('');
 
+  // On phones the tiles are one swipeable row: start at the newest day
+  $('recentGrid').scrollLeft = $('recentGrid').scrollWidth;
+
   $('recentSum').innerHTML =
     '<b>' + fmtNum(totV) + '</b> visitors and <b>' + peso(totS) + '</b> sales over these ' + n +
     ' days. Average per day: <b>' + fmtAvg(totV / n) + '</b> visitors, <b>' + peso(avgDay) + '</b> sales.';
@@ -845,7 +851,11 @@ function renderChart() {
   const n = ser.length;
   const curLabel = data[period][data[period].length - 1].label;
 
-  const W = 700, H = 280, pl = 40, pr = 56, pt = 22, pb = 32;
+  // Drawn at the box's real width so labels stay readable on phones
+  const boxW = $('chartBox').clientWidth || (window.innerWidth < 900 ? window.innerWidth - 64 : 700);
+  const W = Math.max(300, Math.min(760, Math.round(boxW)));
+  const narrow = W < 520;
+  const H = narrow ? 220 : 280, pl = narrow ? 30 : 40, pr = narrow ? 50 : 56, pt = 22, pb = 30;
   const iw = W - pl - pr, ih = H - pt - pb;
 
   const vRaw = Math.max(0, ...ser.map(s => s.visitors));
@@ -896,7 +906,7 @@ function renderChart() {
   });
 
   // X-axis labels: about 8 labels so they don't crowd together
-  const step = Math.max(1, Math.ceil(n / 8));
+  const step = Math.max(1, Math.ceil(n / (narrow ? 5 : 8)));
   let xLabels = '';
   ser.forEach((s, i) => {
     if (i % step === 0 || i === n - 1) {
@@ -1113,6 +1123,24 @@ document.querySelectorAll('[data-range]').forEach(btn => {
       b.setAttribute('aria-pressed', String(b === btn)));
     if (data) { renderRecent(); renderChart(); }
   };
+});
+
+// Parts that depend on the visible width: run once the dashboard is on screen
+function fitToScreen() {
+  if (!data) return;
+  chartW = $('chartBox').clientWidth;
+  renderChart();
+  $('recentGrid').scrollLeft = $('recentGrid').scrollWidth;
+}
+
+// Redraw the chart when the screen width changes (phone rotation, window resize)
+let chartW = 0, resizeTimer = null;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    const w = $('chartBox').clientWidth;
+    if (data && !$('dash').hidden && Math.abs(w - chartW) > 20) { chartW = w; renderChart(); }
+  }, 150);
 });
 
 // Keep the "time inside" and on-duty durations current between server refreshes
