@@ -151,13 +151,13 @@
     <img class="side-logo" src="logo-wordmark.png.jpg" alt="LCKDIN Study Hub">
     <hr>
     <nav aria-label="Dashboard sections">
-      <a href="#top" class="on"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>Dashboard</a>
-      <a href="#liveRail"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l3-9 4 18 3-9h4"/></svg>Who's in</a>
-      <a href="#recent"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Past days</a>
-      <a href="#chart"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 7 13.5 15.5 8.5 10.5 2 17"/><path d="M16 7h6v6"/></svg>Sales trends</a>
-      <a href="#staffSec"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="m16 11 2 2 4-4"/></svg>Staff</a>
-      <a href="#passes"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2M13 17v2M13 11v2"/></svg>Pass sales</a>
-      <a href="#cards"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect width="20" height="14" x="2" y="5" rx="2"/><path d="M2 10h20"/></svg>NFC cards</a>
+      <a href="#/overview" data-view="overview" class="on"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>Dashboard</a>
+      <a href="#/who" data-view="who"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l3-9 4 18 3-9h4"/></svg>Who's in</a>
+      <a href="#/days" data-view="days"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Past days</a>
+      <a href="#/sales" data-view="sales"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 7 13.5 15.5 8.5 10.5 2 17"/><path d="M16 7h6v6"/></svg>Sales trends</a>
+      <a href="#/staff" data-view="staff"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="m16 11 2 2 4-4"/></svg>Staff</a>
+      <a href="#/passes" data-view="passes"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2M13 17v2M13 11v2"/></svg>Pass sales</a>
+      <a href="#/cards" data-view="cards"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect width="20" height="14" x="2" y="5" rx="2"/><path d="M2 10h20"/></svg>NFC cards</a>
       <a href="#" id="signOut"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>Sign out</a>
     </nav>
   </aside>
@@ -165,13 +165,14 @@
   <main class="main">
     <header class="topbar" id="top">
       <div>
-        <div class="crumb">Pages / Dashboard</div>
-        <h1 class="title">Main dashboard</h1>
+        <div class="crumb" id="viewCrumb">Dashboard</div>
+        <h1 class="title" id="viewTitle">Main dashboard</h1>
+        <p class="vdesc" id="viewDesc"></p>
         <div class="updated" id="updated" aria-live="polite"></div>
       </div>
       <div class="top-tools">
         <span class="duty-chip" id="dutyChip" aria-live="polite"><i class="dot"></i>Loading…</span>
-        <div class="seg" role="group" aria-label="Period">
+        <div class="seg" id="periodSeg" role="group" aria-label="Period">
           <button type="button" data-period="daily" aria-pressed="true">Day</button>
           <button type="button" data-period="weekly" aria-pressed="false">Week</button>
           <button type="button" data-period="monthly" aria-pressed="false">Month</button>
@@ -186,10 +187,36 @@
 
     <div class="dash-grid">
       <div class="dash-main">
-        <section class="kpis" id="kpis" aria-label="Headline numbers"></section>
-        <p class="kpi-note" id="kpiNote"></p>
+        <section class="stats" id="viewStats" data-views="who days staff passes" aria-label="Summary"></section>
 
-        <section class="panel" id="recent" aria-labelledby="recentTitle">
+        <section class="kpis" id="kpis" data-views="overview sales" aria-label="Headline numbers"></section>
+        <p class="kpi-note" id="kpiNote" data-views="overview sales"></p>
+
+        <section class="panel" id="whoSec" data-views="who" aria-labelledby="whoTitle">
+          <h2 class="ptitle" id="whoTitle">Checked in now</h2>
+          <p class="pdesc">Guests who tapped in and have not checked out yet. Bill so far uses the same pricing as check-out.</p>
+          <table class="dtable">
+            <caption class="sr-only">Open visits with time in, time inside and bill so far</caption>
+            <thead>
+              <tr>
+                <th scope="col">Room</th>
+                <th scope="col">Guest</th>
+                <th scope="col">Time in</th>
+                <th scope="col" class="num">Inside for</th>
+                <th scope="col" class="num">Bill so far</th>
+              </tr>
+            </thead>
+            <tbody id="whoBody"></tbody>
+          </table>
+        </section>
+
+        <section class="panel" id="dutySec" data-views="who" aria-labelledby="dutyTitle">
+          <h2 class="ptitle" id="dutyTitle">On duty now</h2>
+          <p class="pdesc">Staff clocked in on the staff page. Walk-ins are assigned to whoever is on duty.</p>
+          <ul class="clist" id="dutyList"></ul>
+        </section>
+
+        <section class="panel" id="recent" data-views="overview days" aria-labelledby="recentTitle">
           <div class="prow">
             <div>
               <h2 class="ptitle" id="recentTitle">Past days</h2>
@@ -199,13 +226,32 @@
               <button type="button" data-range="3" aria-pressed="false">3 days</button>
               <button type="button" data-range="7" aria-pressed="true">7 days</button>
               <button type="button" data-range="14" aria-pressed="false">14 days</button>
+              <button type="button" data-range="30" aria-pressed="false" class="days-only">30 days</button>
             </div>
           </div>
           <div class="days" id="recentGrid"></div>
           <p class="recent-sum" id="recentSum"></p>
         </section>
 
-        <section class="panel" id="chart" aria-labelledby="trendTitle">
+        <section class="panel" id="daysTableSec" data-views="days" aria-labelledby="daysTableTitle">
+          <h2 class="ptitle" id="daysTableTitle">Day by day</h2>
+          <p class="pdesc" id="daysTableWord">Newest first. Change is visitors compared with the day before.</p>
+          <table class="dtable">
+            <caption class="sr-only">Visitors, sales and average sale per visit for each day</caption>
+            <thead>
+              <tr>
+                <th scope="col">Day</th>
+                <th scope="col" class="num">Visitors</th>
+                <th scope="col" class="num">Change</th>
+                <th scope="col" class="num">Sales</th>
+                <th scope="col" class="num">Avg per visit</th>
+              </tr>
+            </thead>
+            <tbody id="daysBody"></tbody>
+          </table>
+        </section>
+
+        <section class="panel" id="chart" data-views="overview sales" aria-labelledby="trendTitle">
           <div class="prow">
             <div>
               <h2 class="ptitle" id="trendTitle">Visitors vs sales</h2>
@@ -219,7 +265,7 @@
           </div>
           <div class="chart-wrap" id="chartBox"></div>
           <p class="peak-note" id="peakNote"></p>
-          <details class="hideable">
+          <details class="hideable" id="periodDetails">
             <summary>Period table</summary>
             <table class="dtable">
               <caption class="sr-only">Visitors, sales and average sale per visit for each period</caption>
@@ -236,7 +282,7 @@
           </details>
         </section>
 
-        <section class="panel" id="staffSec" aria-labelledby="staffTitle">
+        <section class="panel" id="staffSec" data-views="staff" aria-labelledby="staffTitle">
           <h2 class="ptitle" id="staffTitle">Staff performance</h2>
           <p class="pdesc" id="staffWord"></p>
           <table class="dtable">
@@ -256,12 +302,12 @@
         </section>
 
         <div class="grid2">
-          <section class="panel" aria-labelledby="clientTitle">
+          <section class="panel" data-views="staff" aria-labelledby="clientTitle">
             <h2 class="ptitle" id="clientTitle">Clients</h2>
             <p class="pdesc" id="clientWord"></p>
             <ul class="clist" id="clientList"></ul>
           </section>
-          <section class="panel" aria-labelledby="payTitle">
+          <section class="panel" data-views="sales staff" aria-labelledby="payTitle">
             <h2 class="ptitle" id="payTitle">Payment methods</h2>
             <p class="pdesc" id="payWord"></p>
             <div class="pm-total" id="payTotal"></div>
@@ -269,7 +315,7 @@
           </section>
         </div>
 
-        <section id="passes" class="panel" aria-labelledby="passTitle">
+        <section id="passes" class="panel" data-views="passes" aria-labelledby="passTitle">
           <h2 class="ptitle" id="passTitle">Pass sales</h2>
           <div class="pdesc" id="passPeriod"></div>
           <table class="dtable">
@@ -284,7 +330,7 @@
             </thead>
             <tbody id="passBody"></tbody>
           </table>
-          <details class="hideable">
+          <details class="hideable" id="passRecentDetails">
             <summary>Recent passes</summary>
             <table class="dtable">
               <caption class="sr-only">Most recent passes sold</caption>
@@ -303,7 +349,7 @@
           <p class="hint-left">Pass purchases are kept separate from the sales totals above.</p>
         </section>
 
-        <section class="grid2" aria-labelledby="avgTitle">
+        <section class="grid2" data-views="sales" aria-labelledby="avgTitle">
           <h2 class="sr-only" id="avgTitle">Averages</h2>
           <div class="panel">
             <h3 class="ptitle">Average sales</h3>
@@ -316,7 +362,7 @@
           <p class="hint-left" style="grid-column: 1 / -1;">Averages count only the days, weeks or months that had at least one closed visit.</p>
         </section>
 
-        <section id="cards" class="panel" aria-labelledby="cardTitle">
+        <section id="cards" class="panel" data-views="cards" aria-labelledby="cardTitle">
           <h2 class="ptitle" id="cardTitle">Make NFC card</h2>
           <p class="pdesc">New table? Make a card so guests can tap in and out. Name it after its table, for example Focus table 1.</p>
           <div class="cardform">
@@ -336,9 +382,20 @@
           </div>
           <p class="hint-left">Write the link above onto the NFC tag with NFC Tools (Write &gt; Add a record &gt; URL).</p>
         </section>
+
+        <section class="panel" data-views="cards" aria-labelledby="cardHowTitle">
+          <h2 class="ptitle" id="cardHowTitle">Setting up a new table</h2>
+          <ol class="steps">
+            <li><b>Name the card</b><span>Use the room and table, like Focus table 1. Walk-ins show as "Focus table 1 : guest name".</span></li>
+            <li><b>Pick the category</b><span>The room's rate card is used for billing. A pass category makes a pass card.</span></li>
+            <li><b>Create and copy the link</b><span>Each card gets its own token and tap link.</span></li>
+            <li><b>Write it to the tag</b><span>In NFC Tools: Write, Add a record, URL, paste the link, then tap the tag.</span></li>
+            <li><b>Test it</b><span>Tap the tag with a phone. It should open the check-in screen for that table.</span></li>
+          </ol>
+        </section>
       </div>
 
-      <aside class="rail" id="liveRail" aria-labelledby="liveTitle">
+      <aside class="rail" id="liveRail" data-views="overview" aria-labelledby="liveTitle">
         <section class="panel">
           <div class="prow">
             <h2 class="ptitle" id="liveTitle">Who's in right now</h2>

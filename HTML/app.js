@@ -616,7 +616,7 @@ function askPin() {
       await loadConfig();
       await loadDashboard();
       show('dash');
-      fitToScreen();
+      setView(viewFromHash());
       clearInterval(refreshTimer);
       refreshTimer = setInterval(loadDashboard, REFRESH_MS);
     } catch (e) {
@@ -722,11 +722,215 @@ function renderLive() {
         return `
         <li>
           <span class="room">${esc(v.room || 'Walk-in')} <span class="guest">· ${esc(v.guest || 'Guest')}</span></span>
-          <b class="amt">${v.bill == null ? '' : peso(v.bill)}</b>
+          <b class="amt">${billText(v)}</b>
           <span class="when">${esc(when)}</span>
         </li>`;
       }).join('')
     : '<li class="empty">No one is checked in right now.</li>';
+}
+
+// Bill so far for an open visit: "Pass" for pass holders, blank if unknown
+function billText(v) {
+  if (v.pass) return 'Pass';
+  return v.bill == null ? '' : peso(v.bill);
+}
+
+// ---- Pages ----
+// Each menu item opens its own page: a short description, a row of summary
+// tiles, then the details. The address keeps the page (?admin=1#/staff), so
+// the back button and bookmarks work.
+const VIEWS = {
+  overview: { title: 'Main dashboard', desc: 'How the business is doing, and who is in right now.', period: true },
+  who: { title: "Who's in", desc: 'Everyone checked in right now and the staff on duty. Times update every minute.', period: false },
+  days: { title: 'Past days', desc: 'Visitors and sales for each recent day.', period: false },
+  sales: { title: 'Sales trends', desc: 'Sales and visitors over time, how guests paid, and averages.', period: true },
+  staff: { title: 'Staff', desc: 'Who is on duty, and the clients and payments each staff member handled.', period: true },
+  passes: { title: 'Pass sales', desc: 'Weekly and Monthly passes sold, revenue, and passes still active.', period: true },
+  cards: { title: 'NFC cards', desc: 'Make a tap card for a new table or a pass.', period: false }
+};
+let view = 'overview';
+
+function viewFromHash() {
+  const m = location.hash.match(/^#\/(\w+)/);
+  return m && VIEWS[m[1]] ? m[1] : 'overview';
+}
+
+function setView(v) {
+  view = VIEWS[v] ? v : 'overview';
+  const cfg = VIEWS[view];
+
+  document.querySelectorAll('#dash [data-views]').forEach(el => {
+    el.hidden = !el.dataset.views.split(' ').includes(view);
+  });
+  // Hide wrappers whose panels are all hidden on this page
+  document.querySelectorAll('.dash-main > .grid2:not([data-views])').forEach(g => {
+    g.hidden = ![...g.children].some(c => !c.hidden);
+  });
+  document.querySelector('.dash-grid').classList.toggle('solo', view !== 'overview');
+
+  $('viewCrumb').textContent = view === 'overview' ? 'Dashboard' : 'Dashboard / ' + cfg.title;
+  $('viewTitle').textContent = cfg.title;
+  $('viewDesc').textContent = cfg.desc;
+  $('periodSeg').hidden = !cfg.period;
+  document.title = cfg.title + ' · LCKDIN Admin';
+  document.querySelectorAll('.side nav a[data-view]').forEach(a => {
+    const on = a.dataset.view === view;
+    a.classList.toggle('on', on);
+    if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
+  });
+
+  // 30 days only fits the Past days page; elsewhere fall back to 7
+  document.querySelectorAll('.days-only').forEach(b => { b.hidden = view !== 'days'; });
+  if (view !== 'days' && recentRange > 14) setRange(7);
+
+  // Open the detail tables on the pages they belong to
+  $('periodDetails').open = view === 'sales';
+  $('recentSum').hidden = view === 'days';   // the summary tiles already say this
+  $('passRecentDetails').open = view === 'passes';
+
+  window.scrollTo(0, 0);
+  if (data) { renderViewParts(); fitToScreen(); }
+}
+
+window.addEventListener('hashchange', () => { if (!$('dash').hidden) setView(viewFromHash()); });
+
+// One summary tile: label, big value, small line underneath
+function statTile(label, value, sub, tone) {
+  return `
+    <div class="stat ${tone || ''}">
+      <div class="slabel">${esc(label)}</div>
+      <div class="svalue">${value}</div>
+      <div class="ssub">${sub || ''}</div>
+    </div>`;
+}
+
+// Parts that only some pages show
+function renderViewParts() {
+  if (!data) return;
+  renderWho();
+  renderDutyList();
+  renderDaysTable();
+  renderStats();
+}
+
+// Summary tiles for the current page
+function renderStats() {
+  let html = '';
+  if (view === 'who') {
+    const list = Array.isArray(data.openVisits) ? data.openVisits : [];
+    const billed = list.filter(v => !v.pass && v.bill != null).reduce((a, v) => a + Number(v.bill), 0);
+    const oldest = list.slice().sort((a, b) => (timeInDate(a.timeIn) || 0) - (timeInDate(b.timeIn) || 0))[0];
+    const od = oldest && timeInDate(oldest.timeIn);
+    const duty = data.onDuty || [];
+    html =
+      statTile('Checked in now', fmtNum(list.length), list.length === 1 ? 'guest inside' : 'guests inside') +
+      statTile('Bill so far', peso(billed), 'Running total, not yet paid') +
+      statTile('Longest stay', od ? esc(elapsedSince(od)) : '–', oldest ? esc((oldest.room || 'Walk-in') + ' · ' + (oldest.guest || 'Guest')) : 'No one inside') +
+      statTile('On duty', duty.length === 1 ? esc(duty[0].name) : fmtNum(duty.length), duty.length === 1 ? 'Since ' + esc(clockTime(duty[0].since)) : duty.length ? 'staff clocked in' : 'No one clocked in', duty.length ? '' : 'warn');
+  } else if (view === 'days') {
+    const days = data.daily.slice(-recentRange);
+    const totV = days.reduce((a, d) => a + d.visitors, 0);
+    const totS = days.reduce((a, d) => a + d.sales, 0);
+    let best = days[0];
+    days.forEach(d => { if (d.visitors > best.visitors) best = d; });
+    html =
+      statTile('Visitors', fmtNum(totV), 'Last ' + recentRange + ' days') +
+      statTile('Sales', peso(totS), 'Last ' + recentRange + ' days') +
+      statTile('Average per day', fmtAvg(totV / recentRange) + ' <small>visitors</small>', peso(totS / recentRange) + ' in sales') +
+      statTile('Busiest day', best && best.visitors ? esc(dayLabel(best.label).replace(/,\s\d{4}$/, '')) : '–', best && best.visitors ? fmtNum(best.visitors) + ' visitors · ' + peso(best.sales) : 'No visits yet');
+  } else if (view === 'staff') {
+    const all = (data.staff || {})[periodKey()] || [];
+    const active = all.filter(s => s.clients > 0 || s.collected > 0);
+    const clients = all.reduce((a, s) => a + s.clients, 0);
+    const col = all.reduce((a, s) => a + s.collected, 0);
+    const g = all.reduce((a, s) => a + s.gcash, 0), c = all.reduce((a, s) => a + s.cash, 0);
+    const duty = data.onDuty || [];
+    html =
+      statTile('On duty now', duty.length === 1 ? esc(duty[0].name) : fmtNum(duty.length), duty.length === 1 ? esc(elapsedSince(duty[0].since)) + ' on shift' : duty.length ? 'staff clocked in' : 'No one clocked in', duty.length ? '' : 'warn') +
+      statTile('Active staff', fmtNum(active.length) + ' <small>of ' + fmtNum(all.filter(s => s.name !== 'Unassigned').length) + '</small>', 'With clients ' + periodWord()) +
+      statTile('Clients', fmtNum(clients), 'Handled ' + periodWord()) +
+      statTile('Collected', peso(col), 'GCash ' + peso(g) + ' · Cash ' + peso(c));
+  } else if (view === 'passes') {
+    const list = data.passes || [];
+    const today = data.daily[data.daily.length - 1].label;
+    const soon = isoAddDays(today, 3);
+    const sold = list.filter(p => inCurrentPeriod(p.sold));
+    const active = list.filter(p => p.expires >= today);
+    const expiring = active.filter(p => p.expires <= soon);
+    html =
+      statTile('Sold', fmtNum(sold.length), 'Passes sold ' + periodWord()) +
+      statTile('Revenue', peso(sold.reduce((a, p) => a + p.price, 0)), 'From passes ' + periodWord()) +
+      statTile('Active now', fmtNum(active.length), 'Not yet expired') +
+      statTile('Expiring soon', fmtNum(expiring.length), 'In the next 3 days', expiring.length ? 'warn' : '');
+  }
+  $('viewStats').innerHTML = html;
+}
+
+// 'yyyy-MM-dd' plus n days
+function isoAddDays(iso, n) {
+  const [y, m, d] = iso.split('-').map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d + n));
+  return dt.toISOString().slice(0, 10);
+}
+
+// Who's in page: full table of open visits, longest stay first
+function renderWho() {
+  const list = data.openVisits;
+  if (!Array.isArray(list)) {
+    $('whoBody').innerHTML = '<tr><td colspan="5" class="empty">Live visits will show here once the Apps Script sends open visits.</td></tr>';
+    return;
+  }
+  const rows = list.slice().sort((a, b) => (timeInDate(a.timeIn) || 0) - (timeInDate(b.timeIn) || 0));
+  $('whoBody').innerHTML = rows.length
+    ? rows.map(v => {
+        const d = timeInDate(v.timeIn);
+        return `
+        <tr>
+          <td><b>${esc(v.room || 'Walk-in')}</b></td>
+          <td>${esc(v.guest || 'Guest')}</td>
+          <td>${d ? esc(clockTime(d)) : '–'}</td>
+          <td class="num">${d ? esc(elapsedSince(d)) : '–'}</td>
+          <td class="num"><b>${billText(v) || '–'}</b></td>
+        </tr>`;
+      }).join('')
+    : '<tr><td colspan="5" class="empty">No one is checked in right now. New check-ins show here within a minute of a refresh.</td></tr>';
+}
+
+// Staff clocked in right now, with how long they have been on shift
+function renderDutyList() {
+  const list = data.onDuty || [];
+  $('dutyList').innerHTML = list.length
+    ? list.map(s => `
+      <li>
+        <span><i class="dot on"></i>${esc(s.name)}<small>Clocked in ${esc(clockTime(s.since))}</small></span>
+        <b>${esc(elapsedSince(s.since))}</b>
+      </li>`).join('')
+    : '<li><span>No one is clocked in. Staff clock in on the staff page.</span></li>';
+}
+
+// Past days page: one row per day, newest first, with change vs the day before
+function renderDaysTable() {
+  const all = data.daily;
+  const start = Math.max(0, all.length - recentRange);
+  const rows = [];
+  for (let i = all.length - 1; i >= start; i--) {
+    const d = all[i], prev = all[i - 1];
+    const avg = d.visitors ? d.sales / d.visitors : 0;
+    const pct = prev ? pctChange(d.visitors, prev.visitors) : 0;
+    const chg = pct === null ? '<span class="chg up">New</span>'
+      : pct === 0 ? '<span class="chg">–</span>'
+      : `<span class="chg ${pct > 0 ? 'up' : 'down'}">${pct > 0 ? '▲' : '▼'} ${Math.abs(pct)}%</span>`;
+    rows.push(`
+      <tr${i === all.length - 1 ? ' class="today-row"' : ''}>
+        <td>${esc(weekdayOf(d.label))}, ${esc(dayLabel(d.label).replace(/,\s\d{4}$/, ''))}${i === all.length - 1 ? ' <span class="today-tag">Today</span>' : ''}</td>
+        <td class="num"><b>${fmtNum(d.visitors)}</b></td>
+        <td class="num">${chg}</td>
+        <td class="num">${peso(d.sales)}</td>
+        <td class="num">${peso(avg)}</td>
+      </tr>`);
+  }
+  $('daysBody').innerHTML = rows.join('');
+  $('daysTableWord').textContent = 'Last ' + recentRange + ' days, newest first. Change is visitors compared with the day before.';
 }
 
 // Redraws every dashboard section from the last response
@@ -743,6 +947,7 @@ function renderAll() {
   renderPayMethods();
   renderPasses();
   renderAverages();
+  renderViewParts();
 }
 
 // Headline cards: sales, visitors, average sale, unpaid
@@ -917,7 +1122,7 @@ function renderChart() {
 
   const periodWord2 = { daily: 'day', weekly: 'week', monthly: 'month' }[period];
   $('chartWord').textContent = period === 'daily'
-    ? 'Last ' + n + ' day' + (n === 1 ? '' : 's') + ' · follows the Past days switch'
+    ? 'Last ' + n + ' day' + (n === 1 ? '' : 's') + (view === 'overview' ? ' · follows the Past days switch' : '')
     : 'By ' + periodWord2;
   $('chartBox').innerHTML = `
     <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Visitors as bars and sales as a line, by ${periodWord2}">
@@ -1116,13 +1321,16 @@ document.querySelectorAll('[data-period]').forEach(btn => {
   };
 });
 
-// Past days switch: 3, 7 or 14 days
+// Past days switch: 3, 7 or 14 days (30 on the Past days page)
+function setRange(n) {
+  recentRange = n;
+  document.querySelectorAll('[data-range]').forEach(b =>
+    b.setAttribute('aria-pressed', String(Number(b.dataset.range) === n)));
+}
 document.querySelectorAll('[data-range]').forEach(btn => {
   btn.onclick = () => {
-    recentRange = Number(btn.dataset.range);
-    document.querySelectorAll('[data-range]').forEach(b =>
-      b.setAttribute('aria-pressed', String(b === btn)));
-    if (data) { renderRecent(); renderChart(); }
+    setRange(Number(btn.dataset.range));
+    if (data) { renderRecent(); renderChart(); renderViewParts(); fitToScreen(); }
   };
 });
 
@@ -1145,21 +1353,20 @@ window.addEventListener('resize', () => {
 });
 
 // Keep the "time inside" and on-duty durations current between server refreshes
-setInterval(() => { if (data && !$('dash').hidden) { renderOnDuty(); renderLive(); } }, 60 * 1000);
+setInterval(() => { if (data && !$('dash').hidden) { renderOnDuty(); renderLive(); renderViewParts(); } }, 60 * 1000);
 
 $('refreshBtn').onclick = loadDashboard;
 
-// Sidebar: highlight the clicked link, sign out, and the shortcut to the card maker
-document.querySelectorAll('.side nav a[href^="#"]').forEach(a => {
-  a.onclick = e => {
-    if (a.id === 'signOut') {
-      e.preventDefault();
-      staffPin = '';
-      location.reload();
-      return;
-    }
-    document.querySelectorAll('.side nav a').forEach(x => x.classList.toggle('on', x === a));
-  };
+// Sidebar: menu links change the page through the address (#/staff);
+// sign out clears the PIN
+$('signOut').onclick = e => {
+  e.preventDefault();
+  staffPin = '';
+  location.href = location.pathname + location.search;
+};
+// On phones, keep the chosen menu button in view in the swipeable row
+document.querySelectorAll('.side nav a[data-view]').forEach(a => {
+  a.addEventListener('click', () => a.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' }));
 });
 
 // ---- NFC card maker ----
