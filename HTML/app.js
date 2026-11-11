@@ -23,9 +23,22 @@ function esc(s) {
   return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
-// 1234.5 -> "₱1,234.50"
+// 1234.5 -> "₱1,234.50", 120 -> "₱120" (no .00 on whole pesos)
 function peso(n) {
-  return '₱' + Number(n || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const v = Math.round(Number(n || 0) * 100) / 100;
+  const whole = v % 1 === 0;
+  return '₱' + v.toLocaleString('en-PH', { minimumFractionDigits: whole ? 0 : 2, maximumFractionDigits: 2 });
+}
+
+// Small line icons (Lucide shapes) for the dashboard cards
+const ICONS = {
+  wallet: '<path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/>',
+  users: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+  receipt: '<path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 17.5v-11"/>',
+  alert: '<circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/>'
+};
+function icon(name) {
+  return `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">${ICONS[name]}</svg>`;
 }
 
 // Rounds to 2 decimals (centavos)
@@ -69,13 +82,6 @@ function shortLabel(p, label) {
 // Short weekday name for a 'yyyy-MM-dd' date, in Manila time
 function weekdayOf(iso) {
   return new Date(iso + 'T00:00:00+08:00').toLocaleDateString('en-PH', { weekday: 'short', timeZone: TZ });
-}
-
-// Rounds a maximum up to a clean number for the axis (e.g. 37 -> 40, 1260 -> 1300)
-function niceMax(v) {
-  if (v <= 0) return 10;
-  const p = Math.pow(10, Math.floor(Math.log10(v)));
-  return Math.ceil(v / p) * p;
 }
 
 // Monday of a 'yyyy-MM-dd' date (same rule as the server)
@@ -630,8 +636,9 @@ function showDashSkeleton() {
   $('recentSum').textContent = '';
   $('chartBox').innerHTML = '<div class="skel" style="height:260px"></div>';
   $('staffBody').innerHTML = '<tr><td colspan="5"><div class="skel" style="height:120px"></div></td></tr>';
-  $('dutyList').innerHTML = '<li><div class="skel" style="height:36px;width:100%"></div></li>';
-  $('dutyWord').textContent = '';
+  $('liveList').innerHTML = [0, 1, 2].map(() => '<li><div class="skel" style="height:40px;grid-column:1/-1"></div></li>').join('');
+  $('liveWord').textContent = '';
+  $('liveCount').textContent = '';
   $('updated').textContent = 'Loading…';
 }
 
@@ -661,26 +668,70 @@ async function loadDashboard() {
   }
 }
 
-// Lists everyone currently clocked in
+// Header chip: who is clocked in right now
 function renderOnDuty() {
   const list = data.onDuty || [];
-  $('dutyWord').textContent = list.length
-    ? list.length + ' clocked in right now'
-    : 'Nobody is clocked in right now';
+  const chip = $('dutyChip');
+  chip.classList.toggle('off', !list.length);
+  if (!list.length) {
+    chip.innerHTML = '<i class="dot"></i>No one on duty';
+    chip.title = '';
+  } else if (list.length === 1) {
+    const s = list[0];
+    chip.innerHTML = `<i class="dot"></i>${esc(s.name)} on duty <small>· ${esc(elapsedSince(s.since))}</small>`;
+    chip.title = 'Clocked in ' + clockTime(s.since);
+  } else {
+    chip.innerHTML = `<i class="dot"></i>${list.length} on duty`;
+    chip.title = list.map(s => s.name + ' since ' + clockTime(s.since)).join('\n');
+  }
+}
 
-  $('dutyList').innerHTML = list.length
-    ? list.map(s => `
-      <li>
-        <span><i class="dot"></i>${esc(s.name)}<small>Clocked in ${esc(clockTime(s.since))}</small></span>
-        <b>${esc(elapsedSince(s.since))}</b>
-      </li>`).join('')
-    : '<li><span>No one is on duty right now.</span></li>';
+// Time in from the server: ISO date-time or 'HH:MM' (today, Manila time)
+function timeInDate(t) {
+  if (!t) return null;
+  if (/^\d{1,2}:\d{2}$/.test(t)) {
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: TZ });
+    return new Date(today + 'T' + t.padStart(5, '0') + ':00+08:00');
+  }
+  const d = new Date(t);
+  return isNaN(d) ? null : d;
+}
+
+// Live rail: open visits (checked in, not yet checked out).
+// Needs `openVisits` in the dashboard response from Apps Script:
+// [{ room, guest, timeIn, bill }]
+function renderLive() {
+  const list = data.openVisits;
+  if (!Array.isArray(list)) {
+    $('liveCount').textContent = '';
+    $('liveWord').textContent = '';
+    $('liveList').innerHTML = '<li class="empty">Live visits will show here once the Apps Script sends open visits.</li>';
+    return;
+  }
+  const rows = list.slice().sort((a, b) => (timeInDate(a.timeIn) || 0) - (timeInDate(b.timeIn) || 0));
+  $('liveCount').textContent = rows.length;
+  $('liveWord').textContent = rows.length
+    ? 'Checked in and not yet checked out · running bill so far'
+    : '';
+  $('liveList').innerHTML = rows.length
+    ? rows.map(v => {
+        const d = timeInDate(v.timeIn);
+        const when = d ? 'In ' + clockTime(d) + ' · ' + elapsedSince(d) : '';
+        return `
+        <li>
+          <span class="room">${esc(v.room || 'Walk-in')} <span class="guest">· ${esc(v.guest || 'Guest')}</span></span>
+          <b class="amt">${v.bill == null ? '' : peso(v.bill)}</b>
+          <span class="when">${esc(when)}</span>
+        </li>`;
+      }).join('')
+    : '<li class="empty">No one is checked in right now.</li>';
 }
 
 // Redraws every dashboard section from the last response
 function renderAll() {
   if (!data) return;
   renderOnDuty();
+  renderLive();
   renderKpis();
   renderRecent();
   renderChart();
@@ -692,49 +743,57 @@ function renderAll() {
   renderAverages();
 }
 
-// Headline cards: sales (orange), visitors, average sale, unpaid
+// Headline cards: sales, visitors, average sale, unpaid
 function renderKpis() {
   const ser = data[period];
   const cur = ser[ser.length - 1];
-  const prev = ser[ser.length - 2];
+  let prev = ser[ser.length - 2] || { sales: 0, visitors: 0 };
 
-  const curName = { daily: 'Today', weekly: 'This week', monthly: 'This month' }[period];
-  const vsName = { daily: 'vs yesterday', weekly: 'vs last week', monthly: 'vs last month' }[period];
+  const curName = { daily: 'today', weekly: 'this week', monthly: 'this month' }[period];
+  let vsName = { daily: 'vs all of yesterday', weekly: 'vs last week', monthly: 'vs last month' }[period];
+
+  // Day view: compare with yesterday up to the same time, when the server sends it,
+  // so a morning isn't measured against a full day.
+  const ySoFar = data.yesterdaySoFar;
+  if (period === 'daily' && ySoFar && typeof ySoFar.sales === 'number') {
+    prev = { sales: ySoFar.sales, visitors: ySoFar.visitors || 0 };
+    vsName = 'vs same time yesterday';
+  }
 
   const avgCur = cur.visitors ? cur.sales / cur.visitors : 0;
   const avgPrev = prev.visitors ? prev.sales / prev.visitors : 0;
   const unpaid = data.totals.unpaid;
 
   $('kpis').innerHTML = `
-    <div class="kcard hl">
-      <div class="klabel">Sales · ${curName}</div>
+    <div class="kcard">
+      <div class="klabel">${icon('wallet')}Sales ${curName}</div>
       <div class="kvalue">${peso(cur.sales)}</div>
       <div>${chgTag(pctChange(cur.sales, prev.sales), vsName)}</div>
     </div>
     <div class="kcard">
-      <div class="klabel">Visitors · ${curName}</div>
+      <div class="klabel">${icon('users')}Visitors ${curName}</div>
       <div class="kvalue">${fmtNum(cur.visitors)}</div>
       <div>${chgTag(pctChange(cur.visitors, prev.visitors), vsName)}</div>
     </div>
     <div class="kcard">
-      <div class="klabel">Avg sale per visit · ${curName}</div>
+      <div class="klabel">${icon('receipt')}Avg sale per visit</div>
       <div class="kvalue">${peso(avgCur)}</div>
-      <div>${chgTag(pctChange(avgCur, avgPrev), vsName)}</div>
-      <div class="ksub">${fmtNum(cur.visitors)} visits</div>
+      <div>${chgTag(pctChange(Math.round(avgCur), Math.round(avgPrev)), vsName)}</div>
     </div>
     <div class="kcard ${unpaid > 0 ? 'alert' : ''}">
-      <div class="klabel">Unpaid balance (all time)</div>
+      <div class="klabel">${icon('alert')}Unpaid balance</div>
       <div class="kvalue">${peso(unpaid)}</div>
-      <div class="ksub">${unpaid > 0 ? 'Balances and visits not yet paid' : 'Nothing outstanding'}</div>
+      <div class="ksub">${unpaid > 0 ? 'All time · visits not yet fully paid' : 'Nothing outstanding'}</div>
     </div>`;
 }
 
-// Past days: one tile per day with visitors, sales and a bar sized to that day's sales
+// Past days: one tile per day, visitors first, sales underneath.
+// The bar is sized to that day's visitors.
 function renderRecent() {
   const n = recentRange;
   const days = data.daily.slice(-n);
   const todayIso = data.daily[data.daily.length - 1].label;
-  const max = Math.max(1, ...days.map(d => d.sales));
+  const max = Math.max(1, ...days.map(d => d.visitors));
 
   const totV = days.reduce((a, d) => a + d.visitors, 0);
   const totS = days.reduce((a, d) => a + d.sales, 0);
@@ -743,14 +802,15 @@ function renderRecent() {
   $('recentWord').textContent = 'Last ' + n + ' days, including today';
 
   $('recentGrid').innerHTML = days.map(d => {
-    const h = Math.max(4, Math.round(d.sales / max * 100));
+    const h = Math.max(4, Math.round(d.visitors / max * 100));
     const short = dayLabel(d.label).replace(/,\s\d{4}$/, '');
+    const isToday = d.label === todayIso;
     return `
-      <div class="day ${d.label === todayIso ? 'today' : ''}" title="${esc(dayLabel(d.label))}">
-        <div class="dw">${esc(weekdayOf(d.label))}</div>
+      <div class="day ${isToday ? 'today' : ''}" title="${esc(dayLabel(d.label))}">
+        <div class="dw">${isToday ? '<span class="tag">Today</span>' : esc(weekdayOf(d.label))}</div>
         <div class="dd">${esc(short)}</div>
         <div class="dbar"><i style="height:${h}%"></i></div>
-        <div class="dv">${fmtNum(d.visitors)} <small>visitors</small></div>
+        <div class="dv">${fmtNum(d.visitors)}<small>visitor${d.visitors === 1 ? '' : 's'}</small></div>
         <div class="ds">${peso(d.sales)}</div>
       </div>`;
   }).join('');
@@ -760,36 +820,56 @@ function renderRecent() {
     ' days. Average per day: <b>' + fmtAvg(totV / n) + '</b> visitors, <b>' + peso(avgDay) + '</b> sales.';
 }
 
-// Combo chart: visitors as bars (left scale), sales as a line (right scale).
-// The highest-visitor period is drawn darker so it stands out.
-function renderChart() {
-  const ser = data[period];
-  const n = ser.length;
+// Round step for an axis: 1, 2, 2.5 or 5 times a power of ten
+function niceStep(raw) {
+  if (raw <= 0) return 1;
+  const p = Math.pow(10, Math.floor(Math.log10(raw)));
+  const f = raw / p;
+  return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * p;
+}
 
-  const W = 700, H = 300, pl = 46, pr = 54, pt = 18, pb = 36;
+// Periods shown in the chart. Day view follows the Past days switch (3/7/14).
+// Leading periods with no visits and no sales are dropped, so the chart starts
+// where the data starts.
+function chartSeries() {
+  let ser = data[period];
+  if (period === 'daily') ser = ser.slice(-recentRange);
+  const first = ser.findIndex(s => s.visitors > 0 || s.sales > 0);
+  return first > 0 ? ser.slice(first) : ser;
+}
+
+// Combo chart: visitors as bars (left scale), sales as a line (right scale).
+// The current period's point is orange; the busiest period gets a small label.
+function renderChart() {
+  const ser = chartSeries();
+  const n = ser.length;
+  const curLabel = data[period][data[period].length - 1].label;
+
+  const W = 700, H = 280, pl = 40, pr = 56, pt = 22, pb = 32;
   const iw = W - pl - pr, ih = H - pt - pb;
 
-  const vMax = niceMax(Math.max(0, ...ser.map(s => s.visitors)));
-  const sMax = niceMax(Math.max(0, ...ser.map(s => s.sales)));
+  const vRaw = Math.max(0, ...ser.map(s => s.visitors));
+  const sRaw = Math.max(0, ...ser.map(s => s.sales));
+  const vStep = niceStep(vRaw / 4 || 2.5), sStep = niceStep(sRaw / 4 || 250);
+  const ticks = Math.max(1, Math.ceil(vRaw / vStep), Math.ceil(sRaw / sStep));
+  const vMax = vStep * ticks, sMax = sStep * ticks;
 
   let peak = 0;
   ser.forEach((s, i) => { if (s.visitors > ser[peak].visitors) peak = i; });
 
   const slot = iw / n;
-  const bw = Math.max(6, Math.min(34, slot * 0.6));
+  const bw = Math.max(6, Math.min(32, slot * 0.55));
   const cx = i => pl + slot * i + slot / 2;
   const yV = v => pt + ih - (v / vMax) * ih;
   const yS = v => pt + ih - (v / sMax) * ih;
 
-  // Grid lines and both axis scales (4 steps)
+  // Grid lines and both axis scales
   let grid = '';
-  for (let k = 0; k <= 4; k++) {
-    const y = pt + ih * k / 4;
-    const lv = Math.round(vMax * (1 - k / 4));
-    const ls = Math.round(sMax * (1 - k / 4));
-    grid += `<line class="grid" x1="${pl}" x2="${W - pr}" y1="${y}" y2="${y}"></line>`;
-    grid += `<text class="axis" x="${pl - 8}" y="${y + 3}" text-anchor="end">${fmtNum(lv)}</text>`;
-    grid += `<text class="axis-r" x="${W - pr + 8}" y="${y + 3}" text-anchor="start">₱${fmtNum(ls)}</text>`;
+  for (let k = 0; k <= ticks; k++) {
+    const y = pt + ih - ih * k / ticks;
+    grid += `<line class="grid${k === 0 ? ' base' : ''}" x1="${pl}" x2="${W - pr}" y1="${y}" y2="${y}"></line>`;
+    grid += `<text class="axis" x="${pl - 8}" y="${y + 4}" text-anchor="end">${fmtNum(vStep * k)}</text>`;
+    grid += `<text class="axis" x="${W - pr + 8}" y="${y + 4}" text-anchor="start">₱${fmtNum(sStep * k)}</text>`;
   }
 
   // Bars: visitors, with a tooltip on each
@@ -797,16 +877,21 @@ function renderChart() {
   ser.forEach((s, i) => {
     const y = yV(s.visitors);
     const h = Math.max(0, pt + ih - y);
-    const cls = (i === peak && s.visitors > 0) ? 'bar peak' : 'bar';
-    bars += `<rect class="${cls}" x="${(cx(i) - bw / 2).toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="5">
+    const cls = s.label === curLabel ? 'bar today' : 'bar';
+    bars += `<rect class="${cls}" x="${(cx(i) - bw / 2).toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="4">
       <title>${esc(fullLabel(period, s.label))}: ${fmtNum(s.visitors)} visitors</title></rect>`;
   });
+  const pk = ser[peak];
+  const peakLbl = pk && pk.visitors
+    ? `<text class="peak-lbl" x="${cx(peak).toFixed(1)}" y="${(yV(pk.visitors) - 6).toFixed(1)}" text-anchor="middle">${fmtNum(pk.visitors)}</text>`
+    : '';
 
   // Sales line with dots
   const pathS = ser.map((s, i) => `${i ? 'L' : 'M'}${cx(i).toFixed(1)},${yS(s.sales).toFixed(1)}`).join(' ');
   let dots = '';
   ser.forEach((s, i) => {
-    dots += `<circle class="dot-s" cx="${cx(i).toFixed(1)}" cy="${yS(s.sales).toFixed(1)}" r="3.5">
+    const cls = s.label === curLabel ? 'dot-s today' : 'dot-s';
+    dots += `<circle class="${cls}" cx="${cx(i).toFixed(1)}" cy="${yS(s.sales).toFixed(1)}" r="${s.label === curLabel ? 5 : 3.5}">
       <title>${esc(fullLabel(period, s.label))}: ${peso(s.sales)} sales</title></circle>`;
   });
 
@@ -815,22 +900,25 @@ function renderChart() {
   let xLabels = '';
   ser.forEach((s, i) => {
     if (i % step === 0 || i === n - 1) {
-      xLabels += `<text class="axis" x="${cx(i).toFixed(1)}" y="${H - 10}" text-anchor="middle">${esc(shortLabel(period, s.label))}</text>`;
+      xLabels += `<text class="axis" x="${cx(i).toFixed(1)}" y="${H - 8}" text-anchor="middle">${esc(shortLabel(period, s.label))}</text>`;
     }
   });
 
   const periodWord2 = { daily: 'day', weekly: 'week', monthly: 'month' }[period];
+  $('chartWord').textContent = period === 'daily'
+    ? 'Last ' + n + ' day' + (n === 1 ? '' : 's') + ' · follows the Past days switch'
+    : 'By ' + periodWord2;
   $('chartBox').innerHTML = `
     <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Visitors as bars and sales as a line, by ${periodWord2}">
       ${grid}
       ${bars}
+      ${peakLbl}
       <path class="line-s" d="${pathS}"></path>
       ${dots}
       ${xLabels}
     </svg>`;
 
-  const pk = ser[peak];
-  $('peakNote').textContent = pk.visitors
+  $('peakNote').textContent = pk && pk.visitors
     ? 'Busiest ' + periodWord2 + ': ' + fullLabel(period, pk.label) + ' with ' + fmtNum(pk.visitors) + ' visitors.'
     : 'No visits in this period yet.';
 }
@@ -851,11 +939,14 @@ function renderTable() {
 
 // Staff performance: clients, collected, GCash and cash for the selected period
 function renderStaff() {
-  const rows = ((data.staff || {})[periodKey()] || [])
-    .slice()
+  const all = (data.staff || {})[periodKey()] || [];
+  // Only staff with clients or payments in the period; no rows of zeros
+  const rows = all
+    .filter(s => s.clients > 0 || s.collected > 0)
     .sort((a, b) => b.collected - a.collected || b.clients - a.clients);
 
-  $('staffWord').textContent = 'Showing ' + periodWord() + ' · collected = amount paid so far';
+  $('staffWord').textContent = 'Showing ' + periodWord() + ' · collected = amount paid so far' +
+    (all.length > rows.length && rows.length ? ' · ' + (all.length - rows.length) + ' with no activity hidden' : '');
 
   $('staffBody').innerHTML = rows.length ? rows.map(s => `
     <tr class="staff-row ${s.name === selectedStaff ? 'sel' : ''}" data-staff="${esc(s.name)}">
@@ -865,7 +956,7 @@ function renderStaff() {
       <td class="num">${peso(s.gcash)}</td>
       <td class="num">${peso(s.cash)}</td>
     </tr>`).join('')
-    : '<tr><td colspan="5">No staff set up in Settings.</td></tr>';
+    : `<tr><td colspan="5" class="empty">${all.length ? 'No staff activity ' + periodWord() + ' yet.' : 'No staff set up in Settings.'}</td></tr>`;
 
   // Keep a valid selection: the top earner if the current one is gone
   if (!rows.some(s => s.name === selectedStaff)) {
@@ -1020,9 +1111,12 @@ document.querySelectorAll('[data-range]').forEach(btn => {
     recentRange = Number(btn.dataset.range);
     document.querySelectorAll('[data-range]').forEach(b =>
       b.setAttribute('aria-pressed', String(b === btn)));
-    if (data) renderRecent();
+    if (data) { renderRecent(); renderChart(); }
   };
 });
+
+// Keep the "time inside" and on-duty durations current between server refreshes
+setInterval(() => { if (data && !$('dash').hidden) { renderOnDuty(); renderLive(); } }, 60 * 1000);
 
 $('refreshBtn').onclick = loadDashboard;
 
@@ -1038,7 +1132,6 @@ document.querySelectorAll('.side nav a[href^="#"]').forEach(a => {
     document.querySelectorAll('.side nav a').forEach(x => x.classList.toggle('on', x === a));
   };
 });
-$('goCards').onclick = () => $('cards').scrollIntoView({ behavior: 'smooth' });
 
 // ---- NFC card maker ----
 async function loadConfig() {
