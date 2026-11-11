@@ -168,6 +168,18 @@ The "On duty now" list refreshes every minute.
 - **Unpaid balance** adds up balances still owed on downpayment bookings, plus unpaid visits with no downpayment.
 - Passes are counted separately from sales.
 - The dashboard refreshes every 5 minutes.
+- Layout: business numbers on the left, **Who's in right now** (open visits) on the right. On narrow screens the right panel moves below.
+- The 3 / 7 / 14 days switch controls both the Past days tiles and the chart in Day view. The chart skips leading days with no data.
+- Staff with no clients or payments in the period are hidden from Staff performance.
+
+#### Optional fields the dashboard reads from `getDashboard`
+
+The page works without these. Add them in Apps Script to turn the features on:
+
+| Field | Shape | What it turns on |
+|---|---|---|
+| `openVisits` | `[{ room, guest, timeIn, bill }]` (`timeIn` is ISO or `HH:MM`, `bill` is the running total in pesos) | The **Who's in right now** list. Without it the panel shows a short note. |
+| `yesterdaySoFar` | `{ sales, visitors }` for yesterday up to the current clock time | Day view compares **vs same time yesterday**. Without it the label says **vs all of yesterday**. |
 
 ### Where each thing is stored
 
