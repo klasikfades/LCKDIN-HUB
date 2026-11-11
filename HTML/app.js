@@ -51,8 +51,9 @@ function fmtNum(n) {
 }
 
 // Averages can be fractions, so show up to one decimal
+// Average number of visitors, rounded to a whole person: 13.2 -> 13, 59.5 -> 60
 function fmtAvg(n) {
-  return Number(n || 0).toLocaleString('en-PH', { maximumFractionDigits: 1 });
+  return Math.round(Number(n || 0)).toLocaleString('en-PH');
 }
 
 // '2026-10-22' -> 'Oct 22, 2026'  (month, day, year)
