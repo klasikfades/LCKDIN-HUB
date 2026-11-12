@@ -770,6 +770,60 @@ table.dtable { width: 100%; border-collapse: collapse; font-size: 14px; margin-t
   .recent-sum { font-size: 12px; }
 }
 
+/* ---------- Motion ---------- */
+/* Hover and press feedback */
+.side nav a, .shell button, .shell .seg button, .sortb, .alist a, .si-back,
+.dtable tr.staff-row td, .shell input, .shell select {
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
+}
+.kcard, .stat, .day, .avgtile {
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+.kcard:hover, .stat:hover, .day:hover {
+  transform: translateY(-2px); border-color: var(--border-2);
+  box-shadow: 0 6px 16px rgba(35, 38, 31, 0.06);
+}
+.day.today:hover { box-shadow: inset 0 3px 0 var(--orange), 0 6px 16px rgba(35, 38, 31, 0.06); }
+.shell button.dark:active, .shell button.ghost.small:active, .si-form button:active { transform: scale(0.98); }
+.side nav a .ic { transition: transform 0.15s ease; }
+.side nav a:hover .ic { transform: translateX(2px); }
+.dbar i { transition: height 0.4s ease; }
+.hideable summary::before { display: inline-block; }
+.duty-chip:not(.off) .dot { animation: pulse 2.4s ease-out infinite; }
+
+/* Entrance: plays when a page opens or the period changes (.anim is set by app.js) */
+@keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes growY { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+@keyframes draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes sweep { from { stroke-dasharray: 0 264; } }
+@keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(47, 125, 79, 0.45); } 70%, 100% { box-shadow: 0 0 0 7px rgba(47, 125, 79, 0); } }
+
+.anim .topbar .title, .anim .vdesc { animation: fade 0.3s ease both; }
+.anim .dash-main > :not(.kpis):not(.stats), .anim .rail > * { animation: rise 0.36s ease both; }
+.anim .dash-main > :nth-child(n+4), .anim .rail > :nth-child(2) { animation-delay: 0.05s; }
+.anim .dash-main > :nth-child(n+7) { animation-delay: 0.1s; }
+.anim .dash-main > :nth-child(n+10) { animation-delay: 0.15s; }
+.anim .kcard, .anim .stat { animation: rise 0.36s ease both; }
+.anim .kcard:nth-child(2), .anim .stat:nth-child(2) { animation-delay: 0.05s; }
+.anim .kcard:nth-child(3), .anim .stat:nth-child(3) { animation-delay: 0.1s; }
+.anim .kcard:nth-child(4), .anim .stat:nth-child(4) { animation-delay: 0.15s; }
+.anim .alist li, .anim .act li, .anim .live li { animation: fade 0.4s ease 0.15s both; }
+
+.anim .chart-wrap .bar { transform-box: fill-box; transform-origin: bottom; animation: growY 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both; animation-delay: calc(var(--i, 0) * 25ms + 0.1s); }
+.anim .chart-wrap .line-s { stroke-dasharray: 1; animation: draw 0.8s ease 0.25s both; }
+.anim .chart-wrap .dot-s, .anim .chart-wrap .peak-lbl { animation: fade 0.3s ease 0.9s both; }
+.anim .dbar i { transform-origin: bottom; animation: growY 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) 0.15s both; }
+.anim .dn-g { animation: sweep 0.7s ease 0.2s both; }
+
+.signin:not([hidden]) .si-form { animation: rise 0.4s ease both; }
+
+/* People who ask for less motion get none */
+@media (prefers-reduced-motion: reduce) {
+  .shell *, .signin * { animation: none !important; transition: none !important; }
+  .kcard:hover, .stat:hover, .day:hover { transform: none; }
+}
+
 /* ---------- Bill summary (tap screen) ---------- */
 .bill { margin-top: 14px; background: var(--band); border-radius: 16px; padding: 14px 16px; text-align: left; }
 .bill-title { font-size: 11px; font-weight: 600; letter-spacing: 0.8px; text-transform: uppercase; color: var(--olive-3); margin-bottom: 6px; }
