@@ -129,11 +129,11 @@
   <div class="si-left">
     <a class="si-back" href="./">&lsaquo; Back to booking</a>
     <div class="si-form">
-      <div class="title">Staff Sign In</div>
-      <p class="subtitle">Enter the staff PIN to open the dashboard</p>
-      <label for="pinInput">PIN*</label>
-      <input type="password" id="pinInput" inputmode="numeric" autocomplete="off" placeholder="Staff PIN">
-      <button type="button" id="pinBtn" class="dark">Unlock</button>
+      <h1 class="title">Admin sign in</h1>
+      <p class="subtitle">Enter the admin PIN to open the dashboard.</p>
+      <label for="pinInput">Admin PIN</label>
+      <input type="password" id="pinInput" inputmode="numeric" autocomplete="off">
+      <button type="button" id="pinBtn" class="dark">Open dashboard</button>
       <p id="pinMsg" class="msg err" role="alert"></p>
     </div>
     <div class="si-foot">&copy; LCKDIN Study Hub. Staff access only.</div>
@@ -141,7 +141,7 @@
   <div class="si-right">
     <div class="badge"><img src="logo-mark.png.jpg" alt="LCKDIN logo"></div>
     <img class="wordmark" src="logo-wordmark.png.jpg" alt="LCKDIN Study Hub">
-    <div class="si-pill">Tables, visits, payments and passes<br>all in one staff dashboard</div>
+    <p class="si-pill">Visits, sales, staff and passes in one place.</p>
   </div>
 </div>
 
@@ -192,9 +192,21 @@
         <section class="kpis" id="kpis" data-views="overview sales" aria-label="Headline numbers"></section>
         <p class="kpi-note" id="kpiNote" data-views="overview sales"></p>
 
+        <section class="panel attn" id="attnSec" data-views="overview" aria-labelledby="attnTitle">
+          <div class="prow">
+            <h2 class="ptitle" id="attnTitle">Needs attention</h2>
+            <span class="count" id="attnCount"></span>
+          </div>
+          <ul class="alist" id="attnList"></ul>
+        </section>
+
         <section class="panel" id="whoSec" data-views="who" aria-labelledby="whoTitle">
           <h2 class="ptitle" id="whoTitle">Checked in now</h2>
           <p class="pdesc">Guests who tapped in and have not checked out yet. Bill so far uses the same pricing as check-out.</p>
+          <div class="tsearch">
+            <label class="sr-only" for="whoSearch">Search room or guest</label>
+            <input type="search" id="whoSearch" placeholder="Search room or guest">
+          </div>
           <table class="dtable">
             <caption class="sr-only">Open visits with time in, time inside and bill so far</caption>
             <thead>
@@ -240,11 +252,11 @@
             <caption class="sr-only">Visitors, sales and average sale per visit for each day</caption>
             <thead>
               <tr>
-                <th scope="col">Day</th>
-                <th scope="col" class="num">Visitors</th>
+                <th scope="col"><button type="button" class="sortb" data-table="days" data-sort="label">Day</button></th>
+                <th scope="col" class="num"><button type="button" class="sortb" data-table="days" data-sort="visitors">Visitors</button></th>
                 <th scope="col" class="num">Change</th>
-                <th scope="col" class="num">Sales</th>
-                <th scope="col" class="num">Avg per visit</th>
+                <th scope="col" class="num"><button type="button" class="sortb" data-table="days" data-sort="sales">Sales</button></th>
+                <th scope="col" class="num"><button type="button" class="sortb" data-table="days" data-sort="avg">Avg per visit</button></th>
               </tr>
             </thead>
             <tbody id="daysBody"></tbody>
@@ -289,16 +301,16 @@
             <caption class="sr-only">Clients and payments accepted by each staff member</caption>
             <thead>
               <tr>
-                <th scope="col">Staff</th>
-                <th scope="col" class="num">Clients</th>
-                <th scope="col" class="num">Collected</th>
-                <th scope="col" class="num">GCash</th>
-                <th scope="col" class="num">Cash</th>
+                <th scope="col"><button type="button" class="sortb" data-table="staff" data-sort="name">Staff</button></th>
+                <th scope="col" class="num"><button type="button" class="sortb" data-table="staff" data-sort="clients">Clients</button></th>
+                <th scope="col" class="num"><button type="button" class="sortb" data-table="staff" data-sort="collected">Collected</button></th>
+                <th scope="col" class="num"><button type="button" class="sortb" data-table="staff" data-sort="gcash">GCash</button></th>
+                <th scope="col" class="num"><button type="button" class="sortb" data-table="staff" data-sort="cash">Cash</button></th>
               </tr>
             </thead>
             <tbody id="staffBody"></tbody>
           </table>
-          <p class="pdesc foot">Select a staff member to see their clients. Staff are assigned in the Personnel column of each day tab.</p>
+          <p class="pdesc foot">Select a staff member to see their clients. Select a column heading to sort. Staff are assigned in the Personnel column of each day tab.</p>
         </section>
 
         <div class="grid2">
@@ -310,8 +322,13 @@
           <section class="panel" data-views="sales staff" aria-labelledby="payTitle">
             <h2 class="ptitle" id="payTitle">Payment methods</h2>
             <p class="pdesc" id="payWord"></p>
-            <div class="pm-total" id="payTotal"></div>
-            <div id="payMethods"></div>
+            <div class="pm-wrap">
+              <div class="donut" id="payDonut"></div>
+              <div class="pm-side">
+                <div class="pm-total" id="payTotal"></div>
+                <div id="payMethods"></div>
+              </div>
+            </div>
           </section>
         </div>
 
@@ -332,6 +349,10 @@
           </table>
           <details class="hideable" id="passRecentDetails">
             <summary>Recent passes</summary>
+            <div class="tsearch">
+              <label class="sr-only" for="passSearch">Search pass holder</label>
+              <input type="search" id="passSearch" placeholder="Search name or pass">
+            </div>
             <table class="dtable">
               <caption class="sr-only">Most recent passes sold</caption>
               <thead>
@@ -376,11 +397,38 @@
             </div>
             <button type="button" id="mkToken" class="dark">Create card</button>
           </div>
-          <div class="status" id="cardResult" hidden>
-            <div>Token: <b id="cardToken"></b></div>
-            <div class="hint" id="cardUrl"></div>
+          <p class="fmsg err" id="cardMsg" role="alert" hidden></p>
+          <div class="cardres" id="cardResult" role="status" hidden>
+            <div>
+              <div class="cr-title">Card created</div>
+              <div class="cr-url" id="cardUrl"></div>
+              <div class="cr-tok">Token: <b id="cardToken"></b></div>
+            </div>
+            <button type="button" class="ghost small" id="copyCard">Copy link</button>
           </div>
-          <p class="hint-left">Write the link above onto the NFC tag with NFC Tools (Write &gt; Add a record &gt; URL).</p>
+          <p class="hint-left">Write the link onto the NFC tag with NFC Tools (Write &gt; Add a record &gt; URL).</p>
+        </section>
+
+        <section class="panel" id="cardListSec" data-views="cards" aria-labelledby="cardListTitle">
+          <div class="prow">
+            <h2 class="ptitle" id="cardListTitle">Your cards</h2>
+            <span class="count" id="cardCount"></span>
+          </div>
+          <div class="tsearch">
+            <label class="sr-only" for="cardSearch">Search cards</label>
+            <input type="search" id="cardSearch" placeholder="Search card or category">
+          </div>
+          <table class="dtable">
+            <caption class="sr-only">NFC cards already made</caption>
+            <thead>
+              <tr>
+                <th scope="col">Card</th>
+                <th scope="col">Category</th>
+                <th scope="col" class="num">Tap link</th>
+              </tr>
+            </thead>
+            <tbody id="cardListBody"></tbody>
+          </table>
         </section>
 
         <section class="panel" data-views="cards" aria-labelledby="cardHowTitle">
@@ -403,6 +451,11 @@
           </div>
           <p class="pdesc" id="liveWord"></p>
           <ul class="live" id="liveList"></ul>
+        </section>
+        <section class="panel" id="activitySec" aria-labelledby="actTitle">
+          <h2 class="ptitle" id="actTitle">Recent activity</h2>
+          <p class="pdesc">Latest check-ins and check-outs.</p>
+          <ul class="act" id="actList"></ul>
         </section>
       </aside>
     </div>
