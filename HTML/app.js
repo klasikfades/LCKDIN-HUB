@@ -631,6 +631,11 @@ function askPin() {
 
 // ---- Dashboard data ----
 
+// "Thu, Nov 12, 2026" in Manila time
+function todayLong() {
+  return new Date().toLocaleDateString('en-PH', { timeZone: TZ, weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+}
+
 // Placeholder shapes shown on the dashboard until the first data arrives
 function showDashSkeleton() {
   $('kpis').innerHTML = [0, 1, 2, 3].map(() => '<div class="skel" style="height:112px"></div>').join('');
@@ -655,7 +660,7 @@ async function loadDashboard() {
     data = r;
     renderAll();
     lastUpdated = new Date().toLocaleTimeString('en-PH', { timeZone: TZ, hour: 'numeric', minute: '2-digit' });
-    $('updated').textContent = 'Updated ' + lastUpdated;
+    $('updated').textContent = todayLong() + ' · Updated ' + lastUpdated;
   } catch (e) {
     if (/PIN/.test(e.message)) {
       staffPin = '';
@@ -664,7 +669,7 @@ async function loadDashboard() {
     }
     $('dashErr').hidden = false;
     $('dashErr').textContent = 'Could not load the dashboard: ' + e.message;
-    if (lastUpdated) $('updated').textContent = 'Updated ' + lastUpdated;
+    if (lastUpdated) $('updated').textContent = todayLong() + ' · Updated ' + lastUpdated;
   } finally {
     setBusy($('refreshBtn'), false);
   }
@@ -729,6 +734,165 @@ function renderLive() {
     : '<li class="empty">No one is checked in right now.</li>';
 }
 
+// ---- Sorting and search ----
+const sortState = { staff: { key: 'collected', dir: -1 }, days: { key: 'label', dir: -1 } };
+const searchText = { who: '', pass: '', card: '' };
+
+function sortRows(rows, table) {
+  const { key, dir } = sortState[table];
+  return rows.slice().sort((a, b) => {
+    const x = a[key], y = b[key];
+    return (typeof x === 'string' ? x.localeCompare(y) : x - y) * dir;
+  });
+}
+
+// Show the arrow on the sorted column, and tell screen readers
+function markSort(table) {
+  document.querySelectorAll('.sortb[data-table="' + table + '"]').forEach(b => {
+    const on = b.dataset.sort === sortState[table].key;
+    b.classList.toggle('on', on);
+    b.dataset.dir = on ? (sortState[table].dir > 0 ? 'up' : 'down') : '';
+    b.closest('th').setAttribute('aria-sort', on ? (sortState[table].dir > 0 ? 'ascending' : 'descending') : 'none');
+  });
+}
+
+document.querySelectorAll('.sortb').forEach(b => {
+  b.onclick = () => {
+    const st = sortState[b.dataset.table];
+    if (st.key === b.dataset.sort) st.dir = -st.dir;
+    else { st.key = b.dataset.sort; st.dir = b.dataset.sort === 'name' ? 1 : -1; }
+    if (!data) return;
+    if (b.dataset.table === 'staff') renderStaff(); else renderDaysTable();
+  };
+});
+
+[['whoSearch', 'who', () => renderWho()], ['passSearch', 'pass', () => renderPasses()], ['cardSearch', 'card', () => renderCardList()]]
+  .forEach(([id, key, fn]) => {
+    $(id).oninput = () => { searchText[key] = $(id).value.trim().toLowerCase(); if (data) fn(); };
+  });
+
+const matches = (q, ...fields) => !q || fields.some(f => String(f || '').toLowerCase().includes(q));
+
+// ---- Needs attention ----
+// One list of things worth acting on, built from data already on the page.
+const LONG_STAY_MIN = 10 * 60;   // inside this long usually means a missed check-out
+
+function attentionItems() {
+  const items = [];
+  const open = Array.isArray(data.openVisits) ? data.openVisits : [];
+  const duty = data.onDuty || [];
+  const today = data.daily[data.daily.length - 1].label;
+
+  if (open.length && !duty.length) {
+    items.push({ tone: 'warn', title: 'No one is on duty',
+      sub: open.length + (open.length === 1 ? ' guest is' : ' guests are') + ' checked in but no staff member is clocked in.', href: '#/who' });
+  }
+
+  open.forEach(v => {
+    const d = timeInDate(v.timeIn);
+    const mins = d ? (Date.now() - d) / 60000 : 0;
+    if (mins >= LONG_STAY_MIN) {
+      items.push({ tone: 'warn', title: (v.room || 'Walk-in') + ' · ' + (v.guest || 'Guest') + ' has been inside ' + elapsedSince(d),
+        sub: 'Checked in ' + clockTime(d) + '. They may have left without checking out.', href: '#/who' });
+    }
+  });
+
+  const unpaid = Array.isArray(data.unpaidList) ? data.unpaidList : null;
+  if (unpaid && unpaid.length) {
+    unpaid.slice(0, 4).forEach(u => items.push({ tone: 'due', title: (u.name || 'Guest') + ' owes ' + peso(u.amount),
+      sub: u.date ? 'Visit on ' + dayLabel(u.date) : 'Unpaid visit' }));
+    if (unpaid.length > 4) {
+      const rest = unpaid.slice(4).reduce((a, u) => a + Number(u.amount || 0), 0);
+      items.push({ tone: 'due', title: (unpaid.length - 4) + ' more unpaid, ' + peso(rest) + ' in total', sub: 'Open the day tabs in the sheet to see every unpaid visit.' });
+    }
+  } else if (!unpaid && data.totals.unpaid > 0) {
+    items.push({ tone: 'due', title: peso(data.totals.unpaid) + ' is unpaid', sub: 'Balances and visits not yet fully paid, all time.' });
+  }
+
+  const soon = isoAddDays(today, 3);
+  (data.passes || []).filter(p => p.expires >= today && p.expires <= soon).forEach(p => {
+    items.push({ tone: 'info', title: (p.name || 'A pass holder') + "'s " + p.pass + (p.expires === today ? ' expires today' : ' expires ' + dayLabel(p.expires).replace(/,\s\d{4}$/, '')),
+      sub: 'A good time to offer a renewal.', href: '#/passes' });
+  });
+  return items;
+}
+
+function renderAttention() {
+  const items = attentionItems();
+  $('attnCount').textContent = items.length || '';
+  $('attnSec').classList.toggle('clear', !items.length);
+  $('attnList').innerHTML = items.length
+    ? items.map(it => `
+      <li class="${it.tone}">
+        <i class="adot" aria-hidden="true"></i>
+        <span><b>${esc(it.title)}</b><small>${esc(it.sub)}</small></span>
+        ${it.href ? `<a href="${it.href}">View</a>` : ''}
+      </li>`).join('')
+    : '<li class="none"><span><b>Nothing needs attention right now.</b><small>Unpaid visits, expiring passes and long stays will show here.</small></span></li>';
+}
+
+// ---- Recent activity ----
+// Needs `recent` in the dashboard response: [{ type: 'in' | 'out', name, room, time, amount, pass }]
+function renderActivity() {
+  const list = data.recent;
+  if (!Array.isArray(list)) {
+    $('actList').innerHTML = '<li class="empty">Activity will show here once the Apps Script sends it.</li>';
+    return;
+  }
+  $('actList').innerHTML = list.length
+    ? list.map(a => {
+        const t = a.time ? new Date(a.time) : null;
+        const isToday = t && t.toLocaleDateString('en-CA', { timeZone: TZ }) === new Date().toLocaleDateString('en-CA', { timeZone: TZ });
+        const when = t ? (isToday ? '' : 'Yesterday ') + clockTime(t) : '';
+        const who = [a.room, a.name].filter(Boolean).join(' · ') || 'Guest';
+        const right = a.type === 'out' ? (a.pass ? 'Pass' : a.amount == null ? '' : peso(a.amount)) : '';
+        return `
+        <li>
+          <i class="abadge ${a.type === 'out' ? 'out' : 'in'}">${a.type === 'out' ? 'Out' : 'In'}</i>
+          <span>${esc(who)}<small>${esc(when)}</small></span>
+          <b>${right}</b>
+        </li>`;
+      }).join('')
+    : '<li class="empty">No check-ins or check-outs yet today.</li>';
+}
+
+// ---- Your cards ----
+// Needs `cards` in the dashboard response: [{ name, category, url }]
+function renderCardList() {
+  const list = data.cards;
+  if (!Array.isArray(list)) {
+    $('cardCount').textContent = '';
+    $('cardListBody').innerHTML = '<tr><td colspan="3" class="empty">Your cards will show here once the Apps Script sends them.</td></tr>';
+    return;
+  }
+  const rows = list.filter(c => matches(searchText.card, c.name, c.category));
+  $('cardCount').textContent = list.length;
+  $('cardListBody').innerHTML = rows.length
+    ? rows.map(c => `
+      <tr>
+        <td><b>${esc(c.name)}</b></td>
+        <td>${esc(c.category)}</td>
+        <td class="num"><button type="button" class="ghost small copyb" data-copy="${esc(c.url)}">Copy link</button></td>
+      </tr>`).join('')
+    : `<tr><td colspan="3" class="empty">${list.length ? 'No cards match your search.' : 'No cards yet. Make your first one above.'}</td></tr>`;
+}
+
+// Copy buttons: confirm on the button itself
+async function copyText(btn, text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    const old = btn.textContent;
+    btn.textContent = 'Copied';
+    setTimeout(() => { btn.textContent = old; }, 1500);
+  } catch (e) {
+    btn.textContent = 'Copy failed';
+  }
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('.copyb');
+  if (b) copyText(b, b.dataset.copy);
+});
+
 // Bill so far for an open visit: "Pass" for pass holders, blank if unknown
 function billText(v) {
   if (v.pass) return 'Pass';
@@ -776,7 +940,11 @@ function setView(v) {
   document.querySelectorAll('.side nav a[data-view]').forEach(a => {
     const on = a.dataset.view === view;
     a.classList.toggle('on', on);
-    if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
+    if (on) {
+      a.setAttribute('aria-current', 'page');
+      const nav = a.parentElement;   // phones: keep the active button in view
+      if (nav.scrollWidth > nav.clientWidth) nav.scrollLeft = a.offsetLeft - (nav.clientWidth - a.offsetWidth) / 2;
+    } else a.removeAttribute('aria-current');
   });
 
   // 30 days only fits the Past days page; elsewhere fall back to 7
@@ -880,7 +1048,8 @@ function renderWho() {
     $('whoBody').innerHTML = '<tr><td colspan="5" class="empty">Live visits will show here once the Apps Script sends open visits.</td></tr>';
     return;
   }
-  const rows = list.slice().sort((a, b) => (timeInDate(a.timeIn) || 0) - (timeInDate(b.timeIn) || 0));
+  const rows = list.slice().sort((a, b) => (timeInDate(a.timeIn) || 0) - (timeInDate(b.timeIn) || 0))
+    .filter(v => matches(searchText.who, v.room, v.guest));
   $('whoBody').innerHTML = rows.length
     ? rows.map(v => {
         const d = timeInDate(v.timeIn);
@@ -893,7 +1062,7 @@ function renderWho() {
           <td class="num"><b>${billText(v) || '–'}</b></td>
         </tr>`;
       }).join('')
-    : '<tr><td colspan="5" class="empty">No one is checked in right now. New check-ins show here within a minute of a refresh.</td></tr>';
+    : `<tr><td colspan="5" class="empty">${list.length ? 'No one matches your search.' : 'No one is checked in right now. New check-ins show here after the next refresh.'}</td></tr>`;
 }
 
 // Staff clocked in right now, with how long they have been on shift
@@ -908,29 +1077,34 @@ function renderDutyList() {
     : '<li><span>No one is clocked in. Staff clock in on the staff page.</span></li>';
 }
 
-// Past days page: one row per day, newest first, with change vs the day before
+// Past days page: one row per day with change vs the day before. Sortable.
 function renderDaysTable() {
   const all = data.daily;
   const start = Math.max(0, all.length - recentRange);
+  const todayIso = all[all.length - 1].label;
   const rows = [];
-  for (let i = all.length - 1; i >= start; i--) {
+  for (let i = start; i < all.length; i++) {
     const d = all[i], prev = all[i - 1];
-    const avg = d.visitors ? d.sales / d.visitors : 0;
-    const pct = prev ? pctChange(d.visitors, prev.visitors) : 0;
-    const chg = pct === null ? '<span class="chg up">New</span>'
-      : pct === 0 ? '<span class="chg">–</span>'
-      : `<span class="chg ${pct > 0 ? 'up' : 'down'}">${pct > 0 ? '▲' : '▼'} ${Math.abs(pct)}%</span>`;
-    rows.push(`
-      <tr${i === all.length - 1 ? ' class="today-row"' : ''}>
-        <td>${esc(weekdayOf(d.label))}, ${esc(dayLabel(d.label).replace(/,\s\d{4}$/, ''))}${i === all.length - 1 ? ' <span class="today-tag">Today</span>' : ''}</td>
-        <td class="num"><b>${fmtNum(d.visitors)}</b></td>
-        <td class="num">${chg}</td>
-        <td class="num">${peso(d.sales)}</td>
-        <td class="num">${peso(avg)}</td>
-      </tr>`);
+    rows.push({ label: d.label, visitors: d.visitors, sales: d.sales,
+      avg: d.visitors ? d.sales / d.visitors : 0,
+      pct: prev ? pctChange(d.visitors, prev.visitors) : 0 });
   }
-  $('daysBody').innerHTML = rows.join('');
-  $('daysTableWord').textContent = 'Last ' + recentRange + ' days, newest first. Change is visitors compared with the day before.';
+  markSort('days');
+  $('daysBody').innerHTML = sortRows(rows, 'days').map(r => {
+    const chg = r.pct === null ? '<span class="chg up">New</span>'
+      : r.pct === 0 ? '<span class="chg">–</span>'
+      : `<span class="chg ${r.pct > 0 ? 'up' : 'down'}">${r.pct > 0 ? '▲' : '▼'} ${Math.abs(r.pct)}%</span>`;
+    const isToday = r.label === todayIso;
+    return `
+      <tr${isToday ? ' class="today-row"' : ''}>
+        <td>${esc(weekdayOf(r.label))}, ${esc(dayLabel(r.label).replace(/,\s\d{4}$/, ''))}${isToday ? ' <span class="today-tag">Today</span>' : ''}</td>
+        <td class="num"><b>${fmtNum(r.visitors)}</b></td>
+        <td class="num">${chg}</td>
+        <td class="num">${peso(r.sales)}</td>
+        <td class="num">${peso(r.avg)}</td>
+      </tr>`;
+  }).join('');
+  $('daysTableWord').textContent = 'Last ' + recentRange + ' days. Change is visitors compared with the day before. Select a column heading to sort.';
 }
 
 // Redraws every dashboard section from the last response
@@ -947,6 +1121,9 @@ function renderAll() {
   renderPayMethods();
   renderPasses();
   renderAverages();
+  renderAttention();
+  renderActivity();
+  renderCardList();
   renderViewParts();
 }
 
@@ -965,6 +1142,13 @@ function renderKpis() {
   if (period === 'daily' && ySoFar && typeof ySoFar.sales === 'number') {
     prev = { sales: ySoFar.sales, visitors: ySoFar.visitors || 0 };
     vsName = 'vs same time yesterday';
+  }
+  // Week and month: compare with the same point in the previous one
+  // (e.g. Monday to Thursday 10 AM), not with the whole of it.
+  const pSoFar = (data.prevSoFar || {})[period === 'weekly' ? 'week' : 'month'];
+  if (period !== 'daily' && pSoFar && typeof pSoFar.sales === 'number') {
+    prev = { sales: pSoFar.sales, visitors: pSoFar.visitors || 0 };
+    vsName = period === 'weekly' ? 'vs same point last week' : 'vs same point last month';
   }
 
   $('kpiNote').textContent = 'Changes shown ' + vsName;
@@ -1141,7 +1325,10 @@ function renderChart() {
 
 // Period table, newest first, with the average sale per visit
 function renderTable() {
-  $('seriesBody').innerHTML = data[period].slice().reverse().map(s => {
+  // Skip the empty periods before the first one with data
+  const ser = data[period];
+  const first = ser.findIndex(x => x.visitors > 0 || x.sales > 0);
+  $('seriesBody').innerHTML = ser.slice(Math.max(0, first)).reverse().map(s => {
     const avg = s.visitors ? s.sales / s.visitors : 0;
     return `
     <tr>
@@ -1157,9 +1344,8 @@ function renderTable() {
 function renderStaff() {
   const all = (data.staff || {})[periodKey()] || [];
   // Only staff with clients or payments in the period; no rows of zeros
-  const rows = all
-    .filter(s => s.clients > 0 || s.collected > 0)
-    .sort((a, b) => b.collected - a.collected || b.clients - a.clients);
+  const rows = sortRows(all.filter(s => s.clients > 0 || s.collected > 0), 'staff');
+  markSort('staff');
 
   $('staffWord').textContent = 'Showing ' + periodWord() + ' · collected = amount paid so far' +
     (all.length > rows.length && rows.length ? ' · ' + (all.length - rows.length) + ' with no activity hidden' : '');
@@ -1223,17 +1409,20 @@ function renderPayMethods() {
 
   $('payWord').textContent = 'Collected ' + periodWord();
   $('payTotal').textContent = peso(tot);
+
+  // Doughnut: GCash share drawn over a full Cash ring
+  const R = 42, C = 2 * Math.PI * R;
+  const gLen = tot ? g / tot * C : 0;
+  $('payDonut').innerHTML = `
+    <svg viewBox="0 0 120 120" role="img" aria-label="${tot ? 'GCash ' + pct(g) + ' percent, cash ' + pct(c) + ' percent of collected' : 'Nothing collected yet'}">
+      <circle class="dn-base ${tot ? '' : 'none'}" cx="60" cy="60" r="${R}"></circle>
+      ${gLen ? `<circle class="dn-g" cx="60" cy="60" r="${R}" stroke-dasharray="${gLen.toFixed(1)} ${(C - gLen).toFixed(1)}" transform="rotate(-90 60 60)"></circle>` : ''}
+      <text class="dn-num" x="60" y="58" text-anchor="middle">${tot ? pct(g) + '%' : '–'}</text>
+      <text class="dn-lbl" x="60" y="74" text-anchor="middle">${tot ? 'GCash' : 'No payments'}</text>
+    </svg>`;
   $('payMethods').innerHTML = `
-    <div class="pm">
-      <div class="pmrow"><span>GCash</span><span>${peso(g)}</span></div>
-      <div class="mbar"><i style="width:${pct(g)}%"></i></div>
-      <small>${pct(g)}% of collected</small>
-    </div>
-    <div class="pm">
-      <div class="pmrow"><span>Cash</span><span>${peso(c)}</span></div>
-      <div class="mbar"><i style="width:${pct(c)}%"></i></div>
-      <small>${pct(c)}% of collected</small>
-    </div>`;
+    <div class="pmrow"><span><i class="key g"></i>GCash</span><span>${peso(g)} <small>${pct(g)}%</small></span></div>
+    <div class="pmrow"><span><i class="key c"></i>Cash</span><span>${peso(c)} <small>${pct(c)}%</small></span></div>`;
 }
 
 // Is a pass sold on this date inside the period being viewed?
@@ -1278,7 +1467,8 @@ function renderPasses() {
     </tr>`;
 
   // Ten most recent passes sold, newest first
-  const recent = list.slice().reverse().slice(0, 10);
+  const q = searchText.pass;
+  const recent = list.slice().reverse().filter(p => matches(q, p.name, p.pass)).slice(0, q ? 50 : 10);
   $('passRecent').innerHTML = recent.length
     ? recent.map(p => `
       <tr>
@@ -1288,7 +1478,7 @@ function renderPasses() {
         <td class="num">${peso(p.price)}</td>
         <td>${p.expires ? esc(dayLabel(p.expires)) : '-'}</td>
       </tr>`).join('')
-    : '<tr><td colspan="5">No passes sold yet.</td></tr>';
+    : `<tr><td colspan="5" class="empty">${list.length ? 'No passes match your search.' : 'No passes sold yet.'}</td></tr>`;
 }
 
 // Average sales and average visitors per day, week and month
@@ -1353,7 +1543,7 @@ window.addEventListener('resize', () => {
 });
 
 // Keep the "time inside" and on-duty durations current between server refreshes
-setInterval(() => { if (data && !$('dash').hidden) { renderOnDuty(); renderLive(); renderViewParts(); } }, 60 * 1000);
+setInterval(() => { if (data && !$('dash').hidden) { renderOnDuty(); renderLive(); renderAttention(); renderViewParts(); } }, 60 * 1000);
 
 $('refreshBtn').onclick = loadDashboard;
 
@@ -1370,6 +1560,8 @@ document.querySelectorAll('.side nav a[data-view]').forEach(a => {
 });
 
 // ---- NFC card maker ----
+$('copyCard').classList.add('copyb');
+$('cardName').oninput = () => { $('cardMsg').hidden = true; };
 async function loadConfig() {
   const res = await fetch(API_URL);
   const r = await parseReply(res);
@@ -1384,23 +1576,34 @@ async function loadConfig() {
 
 $('mkToken').onclick = async () => {
   const name = $('cardName').value.trim();
-  if (!name) return alert('Enter the card name first');
   const category = $('cardCategory').value;
-  if (!category) return alert('Choose a category');
+  const fail = (msg, field) => {
+    $('cardMsg').textContent = msg;
+    $('cardMsg').hidden = false;
+    if (field) field.focus();
+  };
+  $('cardMsg').hidden = true;
+  if (!name) return fail('Enter a card name, for example Focus table 1.', $('cardName'));
+  if (!category) return fail('Choose a category.', $('cardCategory'));
   setBusy($('mkToken'), true);
   try {
     const r = await post({ action: 'newToken', name, category, pin: staffPin });
     if (!r.ok) throw new Error(r.error);
     $('cardToken').textContent = r.token;
     $('cardUrl').textContent = r.url;
+    $('copyCard').dataset.copy = r.url;
     $('cardResult').hidden = false;
     $('cardName').value = '';
+    if (Array.isArray(data && data.cards)) {
+      data.cards.unshift({ name, category, url: r.url });
+      renderCardList();
+    }
   } catch (e) {
     if (/PIN/.test(e.message)) {
       staffPin = '';
       location.reload();
     } else {
-      alert(e.message);
+      fail('Could not create the card: ' + e.message + ' Try again.');
     }
   } finally {
     setBusy($('mkToken'), false);

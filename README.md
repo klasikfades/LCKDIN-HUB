@@ -182,6 +182,10 @@ The page works without these. Add them in Apps Script to turn the features on:
 |---|---|---|
 | `openVisits` | `[{ room, guest, timeIn, bill }]` (`timeIn` is ISO or `HH:MM`, `bill` is the running total in pesos) | The **Who's in right now** list. Without it the panel shows a short note. |
 | `yesterdaySoFar` | `{ sales, visitors }` for yesterday up to the current clock time | Day view compares **vs same time yesterday**. Without it the label says **vs all of yesterday**. |
+| `prevSoFar` | `{ week: { sales, visitors }, month: { sales, visitors } }` for last week / last month up to the same point as now | Week and Month views compare **vs same point last week / month**. |
+| `unpaidList` | `[{ name, date, amount }]`, newest first | Names in **Needs attention**. Without it only the unpaid total shows. |
+| `recent` | `[{ type: 'in' or 'out', room, name, time, amount, pass }]`, newest first | The **Recent activity** list. |
+| `cards` | `[{ name, category, url }]` | The **Your cards** list on the NFC cards page. |
 
 ### Where each thing is stored
 
