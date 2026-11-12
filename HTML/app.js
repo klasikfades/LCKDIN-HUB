@@ -919,6 +919,53 @@ function viewFromHash() {
   return m && VIEWS[m[1]] ? m[1] : 'overview';
 }
 
+// ---- Motion ----
+// Entrance effects play when a page opens or the period changes, never on the
+// automatic refreshes. Skipped when the device asks for reduced motion.
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+let animTimer = null;
+
+function playIn() {
+  if (reduceMotion.matches) return;
+  const main = document.querySelector('#dash .main');
+  main.classList.remove('anim');
+  void main.offsetWidth;            // restart the CSS animations
+  main.classList.add('anim');
+  clearTimeout(animTimer);
+  animTimer = setTimeout(() => main.classList.remove('anim'), 1400);
+  countUp();
+}
+
+// Headline numbers count up from zero to their value
+function countUp() {
+  const els = document.querySelectorAll('#dash .kvalue, #dash .svalue, #dash .pm-total');
+  const jobs = [];
+  els.forEach(el => {
+    if (el.closest('[hidden]')) return;
+    const node = el.firstChild;
+    if (!node || node.nodeType !== 3) return;
+    const m = node.nodeValue.match(/^(\s*₱?)([\d,]+(?:\.\d+)?)(\s*)$/);
+    if (!m) return;
+    const end = Number(m[2].replace(/,/g, ''));
+    if (!end) return;
+    const dec = (m[2].split('.')[1] || '').length;
+    jobs.push({ node, pre: m[1], post: m[3], end, dec, final: node.nodeValue });
+  });
+  if (!jobs.length) return;
+  const t0 = performance.now(), dur = 700;
+  const step = now => {
+    const k = Math.min(1, (now - t0) / dur);
+    const e = 1 - Math.pow(1 - k, 3);   // ease out
+    jobs.forEach(j => {
+      if (!j.node.isConnected) return;  // the section was redrawn meanwhile
+      j.node.nodeValue = k === 1 ? j.final
+        : j.pre + (j.end * e).toLocaleString('en-PH', { minimumFractionDigits: j.dec, maximumFractionDigits: j.dec }) + j.post;
+    });
+    if (k < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+
 function setView(v) {
   view = VIEWS[v] ? v : 'overview';
   const cfg = VIEWS[view];
@@ -957,7 +1004,7 @@ function setView(v) {
   $('passRecentDetails').open = view === 'passes';
 
   window.scrollTo(0, 0);
-  if (data) { renderViewParts(); fitToScreen(); }
+  if (data) { renderViewParts(); fitToScreen(); playIn(); }
 }
 
 window.addEventListener('hashchange', () => { if (!$('dash').hidden) setView(viewFromHash()); });
@@ -1278,7 +1325,7 @@ function renderChart() {
     const y = yV(s.visitors);
     const h = Math.max(0, pt + ih - y);
     const cls = s.label === curLabel ? 'bar today' : 'bar';
-    bars += `<rect class="${cls}" x="${(cx(i) - bw / 2).toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="4">
+    bars += `<rect class="${cls}" style="--i:${i}" x="${(cx(i) - bw / 2).toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="4">
       <title>${esc(fullLabel(period, s.label))}: ${fmtNum(s.visitors)} visitors</title></rect>`;
   });
   const pk = ser[peak];
@@ -1313,7 +1360,7 @@ function renderChart() {
       ${grid}
       ${bars}
       ${peakLbl}
-      <path class="line-s" d="${pathS}"></path>
+      <path class="line-s" pathLength="1" d="${pathS}"></path>
       ${dots}
       ${xLabels}
     </svg>`;
@@ -1508,6 +1555,7 @@ document.querySelectorAll('[data-period]').forEach(btn => {
     document.querySelectorAll('[data-period]').forEach(b =>
       b.setAttribute('aria-pressed', String(b === btn)));
     renderAll();
+    playIn();
   };
 });
 
