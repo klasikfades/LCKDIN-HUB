@@ -226,6 +226,52 @@ const FLAT = {};      // room name -> true if billed a flat rate (not per person
 const LIMITS = {};    // room name -> { min, max } people
 let S = {};           // booking in progress
 let plan = 'Full';    // Full | Down (50% downpayment)
+let bookMode = 'Hour'; // Hour | Open (billed at check-out)
+
+// "The Huddle" -> "Huddle", so guest lines read "Huddle : king"
+function shortRoom(name) {
+  return String(name || '').replace(/^The\s+/i, '').trim();
+}
+
+// Guest names -> one cell, one guest per line: "Huddle : king"
+function guestCell(names, room) {
+  const tag = shortRoom(room);
+  return names.map(n => tag + ' : ' + n).join('\n');
+}
+
+function guestNamesTyped() {
+  return $('bookGuests').value.split('\n').map(s => s.trim()).filter(Boolean);
+}
+
+// Guests box appears for group bookings; single guests use the Name field
+function syncGuestField() {
+  const people = Math.max(1, Number($('bookPeople').value) || 1);
+  const group = people > 1;
+  $('guestsField').hidden = !group;
+  if (group) {
+    const typed = guestNamesTyped().length;
+    $('guestsHint').textContent = typed
+      ? typed + ' name' + (typed === 1 ? '' : 's') + ' for ' + people + ' people. Each line is saved as "Room : name".'
+      : 'One name per line. Each line is saved as "Room : name" in one cell.';
+  }
+  $('peopleHint').textContent = '';
+  const lim = LIMITS[$('bookCategory').value];
+  if (lim) $('peopleHint').textContent = 'Holds ' + lim.min + ' to ' + lim.max + ' persons';
+}
+
+function setMode(mode) {
+  bookMode = mode === 'Open' ? 'Open' : 'Hour';
+  document.querySelectorAll('[data-mode]').forEach(b =>
+    b.setAttribute('aria-pressed', String(b.dataset.mode === bookMode)));
+  $('hoursField').hidden = bookMode === 'Open';
+  $('planField').hidden = bookMode === 'Open';
+  $('modeHint').textContent = bookMode === 'Open'
+    ? 'Open time: no fixed hours. Billing is computed at check out from the actual time used.'
+    : "Per Hour uses the room's 1, 3, 6 and 10-hour packages.";
+}
+document.querySelectorAll('[data-mode]').forEach(btn => {
+  btn.onclick = () => setMode(btn.dataset.mode);
+});
 
 // Shows the chosen date as "Oct 31, 2026"
 function syncDate() {
@@ -256,6 +302,9 @@ async function showBooking() {
   $('bookHours').innerHTML = [...Array(24)].map((_, i) =>
     `<option value="${i + 1}">${i + 1} ${i === 0 ? 'hr' : 'hrs'}</option>`).join('');
   $('bookHours').value = '1';
+  $('bookGuests').value = '';
+  setMode('Hour');
+  syncGuestField();
 
   $('bookCategory').innerHTML = '<option>Loading rooms…</option>';
   $('bookCategory').disabled = true;
@@ -289,8 +338,10 @@ function updatePeopleLimit() {
   p.max = lim.max;
   if (Number(p.value) < lim.min || Number(p.value) > lim.max) p.value = lim.min;
   $('peopleHint').textContent = 'Holds ' + lim.min + ' to ' + lim.max + ' persons';
+  syncGuestField();
 }
 $('bookCategory').onchange = updatePeopleLimit;
+$('bookPeople').oninput = syncGuestField;
 
 // Work or School
 document.querySelectorAll('[data-purpose]').forEach(btn => {
@@ -334,25 +385,36 @@ $('next1').onclick = () => {
     return;
   }
 
-  const hours = Number($('bookHours').value);
+  const isOpen = bookMode === 'Open';
+  const hours = isOpen ? 0 : Number($('bookHours').value);
   const startHHMM = to24($('bookHour').value, $('bookMin').value, $('bookAmpm').value);
   const [sh, sm] = startHHMM.split(':').map(Number);
   const startMin = sh * 60 + sm;
-  const endMin = (startMin + hours * 60) % 1440;
-  const nextDay = startMin + hours * 60 >= 1440;
+  const endMin = isOpen ? startMin : (startMin + hours * 60) % 1440;
+  const nextDay = !isOpen && startMin + hours * 60 >= 1440;
 
-  const perPerson = tierPriceJs(hours, TIERS[category]);
-  const total = r2(perPerson * (FLAT[category] ? 1 : people));   // bookings: price x people
-  const down = plan === 'Down' ? r2(total / 2) : total;           // amount paid now
-  const balance = r2(total - down);                               // left to pay later
+  const perPerson = isOpen ? 0 : tierPriceJs(hours, TIERS[category]);
+  const total = isOpen ? 0 : r2(perPerson * (FLAT[category] ? 1 : people));   // bookings: price x people
+  const down = isOpen ? 0 : (plan === 'Down' ? r2(total / 2) : total);         // amount paid now
+  const balance = isOpen ? 0 : r2(total - down);                              // left to pay later
+
+  // Guest names: one cell, one line per guest, tagged with the room
+  const typed = guestNamesTyped();
+  const names = typed.length ? typed : [name];
+  const guestLines = guestCell(names, category);
 
   S = {
     name, date, category, people, hours,
     purpose: isSchool ? 'School: ' + school : 'Work',
     startHHMM,
-    endHHMM: pad(Math.floor(endMin / 60)) + ':' + pad(endMin % 60),
+    endHHMM: isOpen ? '' : pad(Math.floor(endMin / 60)) + ':' + pad(endMin % 60),
     nextDay,
-    perPerson, total, down, balance, plan
+    perPerson, total, down, balance,
+    plan: isOpen ? 'Open' : plan,
+    mode: isOpen ? 'Open' : 'Hour',
+    table: 'Table: ' + category,
+    guests: guestLines,
+    guestCount: names.length
   };
 
   $('msg1').textContent = '';
@@ -361,21 +423,26 @@ $('next1').onclick = () => {
 };
 
 function renderSummary() {
+  const isOpen = S.mode === 'Open';
   const rows = [
     ['Name', S.name],
     ['Date', dayLabel(S.date)],
-    ['Room', S.category],
+    ['Table', S.category],
     ['People', S.people],
     ['Purpose', S.purpose],
     ['Time in', fmt12str(S.startHHMM)],
-    ['Time out', fmt12str(S.endHHMM) + (S.nextDay ? ' (next day)' : '')],
-    ['Duration', S.hours + (S.hours === 1 ? ' hr' : ' hrs')],
-    ['Price per person', peso(S.perPerson)],
-    ['Payment option', S.plan === 'Down' ? '50% downpayment' : 'Full payment'],
+    ['Time out', isOpen ? 'Billed at check out' : fmt12str(S.endHHMM) + (S.nextDay ? ' (next day)' : '')],
+    ['Duration', isOpen ? 'Open time (billed at check out)' : S.hours + (S.hours === 1 ? ' hr' : ' hrs')],
+    ['Price per person', isOpen ? 'At check out' : peso(S.perPerson)],
+    ['Payment option', isOpen ? 'Billed at check out' : (S.plan === 'Down' ? '50% downpayment' : 'Full payment')],
   ];
 
+  if (S.guestCount > 1) rows.push(['Guest names', S.guestCount + ' names in one cell']);
+
   let bottom;
-  if (S.plan === 'Down') {
+  if (isOpen) {
+    bottom = `<tr class="total"><td>Total due now</td><td>None</td></tr>`;
+  } else if (S.plan === 'Down') {
     bottom =
       `<tr><td>Total</td><td>${peso(S.total)}</td></tr>` +
       `<tr><td>Downpayment (50%) due now</td><td>${peso(S.down)}</td></tr>` +
@@ -390,10 +457,18 @@ function renderSummary() {
 
 // Step 2 -> Step 3
 $('next2').onclick = () => {
-  $('dueAmt').textContent = peso(S.down);
-  $('dueLabel').textContent = S.plan === 'Down' ? 'Downpayment due now' : 'Amount due';
-  $('balNote').hidden = S.plan !== 'Down';
+  const isOpen = S.mode === 'Open';
+  $('dueLabel').textContent = isOpen ? 'Payment due now' : (S.plan === 'Down' ? 'Downpayment due now' : 'Amount due');
+  $('dueAmt').textContent = isOpen ? 'None' : peso(S.down);
+  $('balNote').hidden = isOpen || S.plan !== 'Down';
   $('balNote').textContent = 'Remaining balance of ' + peso(S.balance) + ' to be paid later.';
+  $('qrBox').hidden = isOpen;
+  $('paySub').textContent = isOpen
+    ? 'No payment is due now. Billing is computed at check out from the time used.'
+    : 'Scan the code to pay, then show the confirmation to staff.';
+  $('payNote').textContent = isOpen
+    ? 'Open-time visits are billed at check out. Staff will record the payment then.'
+    : 'Reminder: please pay the amount due before you leave. Staff will mark the booking as paid.';
   goStep(3);
 };
 
@@ -414,10 +489,14 @@ $('saveBtn').onclick = async () => {
       timeIn: S.startHHMM,
       timeOut: S.endHHMM,
       purpose: S.purpose,
-      payment: 'GCash',
+      payment: S.mode === 'Open' ? '' : 'GCash',
       plan: S.plan,
       downpayment: S.down,
-      balance: S.balance
+      balance: S.balance,
+      mode: S.mode,
+      table: S.table,
+      guests: S.guests,
+      guestCount: S.guestCount
     });
     if (!r.ok) throw new Error(r.error);
 
@@ -425,8 +504,11 @@ $('saveBtn').onclick = async () => {
     $('bookName').value = '';
     $('bookSchool').value = '';
     $('bookPeople').value = '1';
+    $('bookGuests').value = '';
     S = {};
     plan = 'Full';
+    setMode('Hour');
+    syncGuestField();
     document.querySelectorAll('[data-plan]').forEach(b =>
       b.setAttribute('aria-pressed', String(b.dataset.plan === 'Full')));
     updatePeopleLimit();
