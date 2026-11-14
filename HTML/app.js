@@ -3,6 +3,7 @@
 const API_URL = 'https://script.google.com/macros/s/AKfycbzlzbiuTATPOKUXBTQubIVFvLIgiHbWeUeZXTaUEgXV8NgiZb1JxZKf0HACJ4--dHHomA/exec';
 const TZ = 'Asia/Manila';
 const REFRESH_MS = 5 * 60 * 1000;   // reload the numbers every 5 minutes
+const FETCH_MS = 30 * 1000;         // give up on a stalled request instead of waiting forever
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const PASS_NAMES = ['Weekly Pass', 'Monthly Pass'];
@@ -16,6 +17,9 @@ let period = 'daily';     // daily | weekly | monthly
 let recentRange = 7;      // days shown in the Past days panel
 let selectedStaff = null; // staff member whose clients are listed
 let refreshTimer = null;
+let dashLoading = false;  // true while a dashboard request is in flight
+let lastDashLoad = 0;     // time of the last good dashboard load
+let autoDate = '';        // date we filled into the booking form ourselves
 
 // ---- Formatting helpers ----
 
@@ -201,11 +205,22 @@ async function parseReply(res) {
   }
 }
 
+// Aborts a request that never answers, so a slow Apps Script cannot freeze the page
+function fetchWithTimeout(url, options) {
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), FETCH_MS);
+  return fetch(url, Object.assign({}, options, { signal: ctl.signal }))
+    .finally(() => clearTimeout(timer));
+}
+
 async function post(body) {
   let res;
   try {
-    res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(body) });
+    res = await fetchWithTimeout(API_URL, { method: 'POST', body: JSON.stringify(body) });
   } catch (e) {
+    if (e && e.name === 'AbortError') {
+      throw new Error('The server took too long to answer. Please try again.');
+    }
     throw new Error('Cannot reach the server. In Apps Script, set Who has access to Anyone, then deploy a new version.');
   }
   return parseReply(res);
@@ -292,7 +307,8 @@ function goStep(n) {
 async function showBooking() {
   show('booking');
   goStep(1);
-  $('bookDate').value = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date());
+  autoDate = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date());
+  $('bookDate').value = autoDate;
   syncDate();
 
   $('bookHour').innerHTML = [...Array(12)].map((_, i) => `<option>${i + 1}</option>`).join('');
@@ -310,7 +326,7 @@ async function showBooking() {
   $('bookCategory').disabled = true;
   setBusy($('next1'), true);
   try {
-    const res = await fetch(API_URL);
+    const res = await fetchWithTimeout(API_URL);
     const r = await parseReply(res);
     if (!r.ok) throw new Error(r.error || 'Could not load rooms');
     r.categories.forEach(c => {
@@ -710,7 +726,10 @@ function askPin() {
       show('dash');
       setView(viewFromHash());
       clearInterval(refreshTimer);
-      refreshTimer = setInterval(loadDashboard, REFRESH_MS);
+      // Skip refreshes while the tab is in the background; catch up on return
+      refreshTimer = setInterval(() => {
+        if (!document.hidden && !$('dash').hidden) loadDashboard();
+      }, REFRESH_MS);
     } catch (e) {
       $('pinMsg').textContent = e.message;
     } finally {
@@ -742,6 +761,8 @@ function showDashSkeleton() {
 }
 
 async function loadDashboard() {
+  if (dashLoading) return;   // a refresh is already running
+  dashLoading = true;
   setBusy($('refreshBtn'), true);
   $('dashErr').hidden = true;
   if (!data) showDashSkeleton();
@@ -750,6 +771,7 @@ async function loadDashboard() {
     const r = await post({ action: 'dashboard', pin: staffPin });
     if (!r.ok) throw new Error(r.error);
     data = r;
+    lastDashLoad = Date.now();
     renderAll();
     lastUpdated = new Date().toLocaleTimeString('en-PH', { timeZone: TZ, hour: 'numeric', minute: '2-digit' });
     $('updated').textContent = todayLong() + ' · Updated ' + lastUpdated;
@@ -763,6 +785,7 @@ async function loadDashboard() {
     $('dashErr').textContent = 'Could not load the dashboard: ' + e.message;
     if (lastUpdated) $('updated').textContent = todayLong() + ' · Updated ' + lastUpdated;
   } finally {
+    dashLoading = false;
     setBusy($('refreshBtn'), false);
   }
 }
@@ -1683,7 +1706,30 @@ window.addEventListener('resize', () => {
 });
 
 // Keep the "time inside" and on-duty durations current between server refreshes
-setInterval(() => { if (data && !$('dash').hidden) { renderOnDuty(); renderLive(); renderAttention(); renderViewParts(); } }, 60 * 1000);
+setInterval(() => {
+  if (document.hidden || !data || $('dash').hidden) return;
+  renderOnDuty(); renderLive(); renderAttention(); renderViewParts();
+}, 60 * 1000);
+
+// A tab left open in the background stops polling. When it comes back,
+// refresh the numbers if they are stale and redraw the clocks right away.
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) return;
+  if (data && !$('dash').hidden) {
+    if (Date.now() - lastDashLoad > REFRESH_MS) loadDashboard();
+    else { renderOnDuty(); renderLive(); renderAttention(); renderViewParts(); }
+  }
+  // A booking form left open overnight should move to the new day,
+  // unless the user already picked another date themselves.
+  if (!$('booking').hidden) {
+    const today = new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date());
+    if (today !== autoDate && $('bookDate').value === autoDate) {
+      autoDate = today;
+      $('bookDate').value = today;
+      syncDate();
+    }
+  }
+});
 
 $('refreshBtn').onclick = loadDashboard;
 
@@ -1703,7 +1749,7 @@ document.querySelectorAll('.side nav a[data-view]').forEach(a => {
 $('copyCard').classList.add('copyb');
 $('cardName').oninput = () => { $('cardMsg').hidden = true; };
 async function loadConfig() {
-  const res = await fetch(API_URL);
+  const res = await fetchWithTimeout(API_URL);
   const r = await parseReply(res);
   if (!r.ok) throw new Error(r.error || 'Could not load settings');
 

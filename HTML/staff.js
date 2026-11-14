@@ -1,9 +1,11 @@
 // Must be the URL of the CURRENT deployment (Deploy > Manage deployments > New version)
 const API_URL = 'https://script.google.com/macros/s/AKfycbzlzbiuTATPOKUXBTQubIVFvLIgiHbWeUeZXTaUEgXV8NgiZb1JxZKf0HACJ4--dHHomA/exec';
 const TZ = 'Asia/Manila';
+const FETCH_MS = 30 * 1000;   // give up on a stalled request instead of waiting forever
 const $ = id => document.getElementById(id);
 
 let STAFF = [];   // [{ name, onDuty, since }]
+let loading = false;
 
 function esc(s) {
   return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -26,7 +28,19 @@ function clearMsg() {
 }
 
 async function post(body) {
-  const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(body) });
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), FETCH_MS);
+  let res;
+  try {
+    res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(body), signal: ctl.signal });
+  } catch (e) {
+    if (e && e.name === 'AbortError') {
+      throw new Error('The server took too long to answer. Please try again.');
+    }
+    throw e;
+  } finally {
+    clearTimeout(timer);
+  }
   const text = await res.text();
   let r;
   try {
@@ -40,12 +54,16 @@ async function post(body) {
 
 // Loads who is on duty and refreshes the name list
 async function loadStatus() {
+  if (loading || document.hidden) return;   // no overlapping or background polls
+  loading = true;
   try {
     const r = await post({ action: 'staffStatus' });
     STAFF = r.staff;
     renderStatus();
   } catch (e) {
     setMsg(e.message, true);
+  } finally {
+    loading = false;
   }
 }
 
@@ -138,3 +156,4 @@ $('pin').onkeydown = e => {
 
 loadStatus();
 setInterval(loadStatus, 60 * 1000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) loadStatus(); });
