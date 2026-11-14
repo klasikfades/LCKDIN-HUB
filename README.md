@@ -37,7 +37,8 @@ LCKDIN-HUB/
 ├── backend/                  Apps Script source (the live backend)
 ├── docs/
 │   ├── ARCHITECTURE.md       How the parts fit, trust boundaries, versioning
-│   └── RUNBOOK.md            Deploy, verify, roll back, fix
+│   ├── RUNBOOK.md            Deploy, verify, roll back, fix
+│   └── HANDOVER.md           Move the system to a client's accounts
 ├── assets-src/               original large images, not deployed
 └── README.md
 ```
@@ -45,7 +46,8 @@ LCKDIN-HUB/
 Short version: **HTML** is what visitors download, **backend** is what runs in Apps
 Script, **docs** is what saves time later. When something is confusing, read
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md); when something is broken,
-[docs/RUNBOOK.md](docs/RUNBOOK.md) is the checklist.
+[docs/RUNBOOK.md](docs/RUNBOOK.md) is the checklist; when the business changes hands,
+[docs/HANDOVER.md](docs/HANDOVER.md) is the transfer plan.
 
 
 ---
