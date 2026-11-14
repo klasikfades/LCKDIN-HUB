@@ -462,7 +462,8 @@ section[id], header[id], aside[id] { scroll-margin-top: 16px; }
 .pdesc { font-size: 12px; color: var(--muted); margin: 0 0 12px; line-height: 1.5; }
 .pdesc.foot { margin: 12px 0 0; }
 .prow { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
-.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 20px; }
+.avg-note { grid-column: 1 / -1; }
 
 /* ---------- Pages ---------- */
 .vdesc { font-size: 13px; color: var(--muted); margin: 4px 0 0; max-width: 60ch; line-height: 1.5; }
@@ -646,10 +647,17 @@ table.dtable { width: 100%; border-collapse: collapse; font-size: 14px; margin-t
 .key.c { background: var(--bar); }
 .pm-total { font-size: 26px; font-weight: 600; margin: 0 0 8px; }
 
-.avg3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 10px; }
-.avgtile { background: var(--bg); border-radius: 10px; padding: 14px 12px; text-align: center; }
-.avgtile .label { font-size: 12px; color: var(--muted); font-weight: 500; }
-.avgtile .value { font-size: 17px; font-weight: 600; margin-top: 4px; white-space: nowrap; }
+.avg-list { margin-top: 6px; }
+.avg-row {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 16px;
+  padding: 10px 0; border-top: 1px solid var(--border);
+}
+.avg-row:first-child { border-top: 0; padding-top: 2px; }
+.avg-row .label { font-size: 13px; color: var(--muted); font-weight: 500; }
+.avg-row .value {
+  font-size: 16px; font-weight: 600; color: var(--text); text-align: right;
+  font-variant-numeric: tabular-nums; overflow-wrap: anywhere;
+}
 
 .hideable { margin-top: 12px; }
 .hideable summary {
@@ -765,9 +773,8 @@ table.dtable { width: 100%; border-collapse: collapse; font-size: 14px; margin-t
   .kpi-note { display: block; order: 1; margin: -8px 2px 0; font-size: 12px; color: var(--muted); }
 
   .legend { gap: 12px; }
-  .avg3 { gap: 8px; }
-  .avgtile { padding: 12px 6px; }
-  .avgtile .value { font-size: 15px; }
+  .avg-row { padding: 9px 0; }
+  .avg-row .value { font-size: 15px; }
   .cardform { grid-template-columns: 1fr; }
   .cardform button { width: 100%; min-height: 44px; }
   .recent-sum { font-size: 12px; }
@@ -779,7 +786,7 @@ table.dtable { width: 100%; border-collapse: collapse; font-size: 14px; margin-t
 .dtable tr.staff-row td, .shell input, .shell select {
   transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
 }
-.kcard, .stat, .day, .avgtile {
+.kcard, .stat, .day {
   transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
 }
 .kcard:hover, .stat:hover, .day:hover {

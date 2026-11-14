@@ -1617,21 +1617,21 @@ function renderPasses() {
 // Average sales and average visitors per day, week and month
 function renderAverages() {
   const a = data.averages;
-  const tile = (label, v) => `
-    <div class="avgtile">
-      <div class="label">${label}</div>
-      <div class="value">${v}</div>
+  const row = (label, v) => `
+    <div class="avg-row">
+      <span class="label">${label}</span>
+      <span class="value">${v}</span>
     </div>`;
 
   $('avgSales').innerHTML =
-    tile('Per day', peso(a.perDay.sales)) +
-    tile('Per week', peso(a.perWeek.sales)) +
-    tile('Per month', peso(a.perMonth.sales));
+    row('Per day', peso(a.perDay.sales)) +
+    row('Per week', peso(a.perWeek.sales)) +
+    row('Per month', peso(a.perMonth.sales));
 
   $('avgVisitors').innerHTML =
-    tile('Per day', fmtAvg(a.perDay.visitors)) +
-    tile('Per week', fmtAvg(a.perWeek.visitors)) +
-    tile('Per month', fmtAvg(a.perMonth.visitors));
+    row('Per day', fmtAvg(a.perDay.visitors)) +
+    row('Per week', fmtAvg(a.perWeek.visitors)) +
+    row('Per month', fmtAvg(a.perMonth.visitors));
 }
 
 // Period switches: one set of buttons drives the headline cards, chart and staff
