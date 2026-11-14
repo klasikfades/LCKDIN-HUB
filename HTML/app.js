@@ -226,7 +226,7 @@ const FLAT = {};      // room name -> true if billed a flat rate (not per person
 const LIMITS = {};    // room name -> { min, max } people
 let S = {};           // booking in progress
 let plan = 'Full';    // Full | Down (50% downpayment)
-let bookMode = 'Hour'; // Hour | Open (billed at check-out)
+let bookMode = 'Open'; // Hour | Open (billed at check-out) — Open is the default
 
 // "The Huddle" -> "Huddle", so guest lines read "Huddle : king"
 function shortRoom(name) {
@@ -303,7 +303,7 @@ async function showBooking() {
     `<option value="${i + 1}">${i + 1} ${i === 0 ? 'hr' : 'hrs'}</option>`).join('');
   $('bookHours').value = '1';
   $('bookGuests').value = '';
-  setMode('Hour');
+  setMode('Open');
   syncGuestField();
 
   $('bookCategory').innerHTML = '<option>Loading rooms…</option>';
@@ -513,7 +513,7 @@ $('saveBtn').onclick = async () => {
     $('bookGuests').value = '';
     S = {};
     plan = 'Full';
-    setMode('Hour');
+    setMode('Open');
     syncGuestField();
     document.querySelectorAll('[data-plan]').forEach(b =>
       b.setAttribute('aria-pressed', String(b.dataset.plan === 'Full')));

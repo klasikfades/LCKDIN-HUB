@@ -100,16 +100,16 @@
             <div class="f full">
               <label>Billing</label>
               <div class="seg full" id="modeSeg">
-                <button type="button" data-mode="Hour" aria-pressed="true">Per Hour</button>
-                <button type="button" data-mode="Open" aria-pressed="false">Open time</button>
+                <button type="button" data-mode="Hour" aria-pressed="false">Per Hour</button>
+                <button type="button" data-mode="Open" aria-pressed="true">Open time</button>
               </div>
-              <p class="hint-left" id="modeHint">Per Hour uses the room's 1, 3, 6 and 10-hour packages.</p>
+              <p class="hint-left" id="modeHint">No fixed hours. The bill is based on actual time at check-out.</p>
             </div>
-            <div class="f full" id="hoursField">
+            <div class="f full" id="hoursField" hidden>
               <label for="bookHours">Hours</label>
               <select id="bookHours"></select>
             </div>
-            <div class="f full" id="planField">
+            <div class="f full" id="planField" hidden>
               <label>Payment option</label>
               <div class="seg full">
                 <button type="button" data-plan="Full" aria-pressed="true">Full payment</button>
