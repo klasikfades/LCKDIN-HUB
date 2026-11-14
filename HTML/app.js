@@ -541,7 +541,8 @@ function renderTap(r, token) {
     return;
   }
 
-  // Checked in, already checked in, or just extended: time, bill summary, extend, check out
+  // Just checked in: time and bill summary only.
+  // Already checked in (tapped again) or just extended: also extend and check out
   if (r.action === 'in' || r.action === 'ask') {
     const isNew = r.action === 'in';
     const canExtend = r.action === 'ask' && r.canExtend && !r.noExtend;
@@ -569,12 +570,15 @@ function renderTap(r, token) {
       ${usedUp}
       ${billHtml(r.bill, billLabel)}
       ${extendBlock}
-      <button type="button" id="tLeave" class="dark">Check out</button>`;
+      ${isNew
+        ? '<p class="hint">Tap your card again when you leave to check out.</p>'
+        : '<button type="button" id="tLeave" class="dark">Check out</button>'}`;
 
     if (canExtend) {
       $('tExtend').onclick = () => tapAction({ action: 'extend', token, hours: $('tExtHours').value });
     }
-    $('tLeave').onclick = () => tapAction({ action: 'leave', token });
+    // No Check out button right after tapping in, so nobody checks out by mistake
+    if (!isNew) $('tLeave').onclick = () => tapAction({ action: 'leave', token });
     return;
   }
 
