@@ -251,8 +251,8 @@ function syncGuestField() {
   if (group) {
     const typed = guestNamesTyped().length;
     $('guestsHint').textContent = typed
-      ? typed + ' name' + (typed === 1 ? '' : 's') + ' for ' + people + ' people. Each line is saved as "Room : name".'
-      : 'One name per line. Each line is saved as "Room : name" in one cell.';
+      ? typed + ' of ' + people + ' names added. One per line, saved as "Room : name".'
+      : 'One name per line. Saved as "Room : name".';
   }
   $('peopleHint').textContent = '';
   const lim = LIMITS[$('bookCategory').value];
@@ -266,8 +266,8 @@ function setMode(mode) {
   $('hoursField').hidden = bookMode === 'Open';
   $('planField').hidden = bookMode === 'Open';
   $('modeHint').textContent = bookMode === 'Open'
-    ? 'Open time: no fixed hours. Billing is computed at check out from the actual time used.'
-    : "Per Hour uses the room's 1, 3, 6 and 10-hour packages.";
+    ? 'No fixed hours. The bill is based on actual time at check-out.'
+    : "Uses the room's 1, 3, 6 and 10-hour package prices.";
 }
 document.querySelectorAll('[data-mode]').forEach(btn => {
   btn.onclick = () => setMode(btn.dataset.mode);
@@ -424,7 +424,7 @@ $('next1').onclick = () => {
 
 function renderSummary() {
   const isOpen = S.mode === 'Open';
-  const rows = [
+  const visit = [
     ['Name', S.name],
     ['Date', dayLabel(S.date)],
     ['Table', S.category],
@@ -433,11 +433,13 @@ function renderSummary() {
     ['Time in', fmt12str(S.startHHMM)],
     ['Time out', isOpen ? 'Billed at check out' : fmt12str(S.endHHMM) + (S.nextDay ? ' (next day)' : '')],
     ['Duration', isOpen ? 'Open time (billed at check out)' : S.hours + (S.hours === 1 ? ' hr' : ' hrs')],
+  ];
+  if (S.guestCount > 1) visit.push(['Guest names', S.guestCount + ' names in one cell']);
+
+  const payment = [
     ['Price per person', isOpen ? 'At check out' : peso(S.perPerson)],
     ['Payment option', isOpen ? 'Billed at check out' : (S.plan === 'Down' ? '50% downpayment' : 'Full payment')],
   ];
-
-  if (S.guestCount > 1) rows.push(['Guest names', S.guestCount + ' names in one cell']);
 
   let bottom;
   if (isOpen) {
@@ -451,8 +453,12 @@ function renderSummary() {
     bottom = `<tr class="total"><td>Total due</td><td>${peso(S.total)}</td></tr>`;
   }
 
+  const group = name => `<tr class="group"><td colspan="2">${name}</td></tr>`;
+  const row = ([k, v]) => `<tr><td>${esc(k)}</td><td>${esc(v)}</td></tr>`;
   $('summary').innerHTML =
-    rows.map(([k, v]) => `<tr><td>${esc(k)}</td><td>${esc(v)}</td></tr>`).join('') + bottom;
+    group('Visit') + visit.map(row).join('') +
+    group('Payment') + payment.map(row).join('') +
+    bottom;
 }
 
 // Step 2 -> Step 3

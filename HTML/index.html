@@ -29,82 +29,103 @@
 
       <div id="step1">
         <div class="title">Book a visit</div>
-        <p class="subtitle">Fill in the details, then continue to the billing summary.</p>
-        <div class="fields">
-          <div class="f full">
-            <label for="bookName">Name</label>
-            <input id="bookName" autocomplete="name">
+        <p class="subtitle">Choose your room and time. You’ll review the full bill before saving.</p>
+
+        <section class="form-section">
+          <div class="sect-head">
+            <h2>Visit details</h2>
+            <p>Who is visiting, and when.</p>
           </div>
-          <div class="f">
-            <label for="bookDate">Date</label>
-            <div class="datebox">
-              <div class="datetxt" id="dateTxt">Pick a date</div>
-              <input type="date" id="bookDate" aria-label="Date">
+          <div class="fields">
+            <div class="f full">
+              <label for="bookName">Name</label>
+              <input id="bookName" autocomplete="name">
+            </div>
+            <div class="frow frow-21">
+              <div class="f">
+                <label for="bookCategory">Room</label>
+                <select id="bookCategory"></select>
+              </div>
+              <div class="f">
+                <label for="bookPeople">People</label>
+                <input type="number" id="bookPeople" min="1" value="1" inputmode="numeric">
+                <p class="hint-left" id="peopleHint"></p>
+              </div>
+            </div>
+            <div class="frow frow-11">
+              <div class="f">
+                <label for="bookDate">Date</label>
+                <div class="datebox">
+                  <div class="datetxt" id="dateTxt">Pick a date</div>
+                  <input type="date" id="bookDate" aria-label="Date">
+                </div>
+              </div>
+              <div class="f">
+                <label>Time in</label>
+                <div class="row3">
+                  <select id="bookHour" aria-label="Hour"></select>
+                  <select id="bookMin" aria-label="Minute"></select>
+                  <select id="bookAmpm" aria-label="AM or PM">
+                    <option>AM</option>
+                    <option>PM</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="f full" id="guestsField" hidden>
+              <label for="bookGuests">Guest names</label>
+              <textarea id="bookGuests" rows="2" placeholder="One name per line"></textarea>
+              <p class="hint-left" id="guestsHint">One name per line. Saved as "Room : name".</p>
             </div>
           </div>
-          <div class="f" id="hoursField">
-            <label for="bookHours">Hours</label>
-            <select id="bookHours"></select>
+        </section>
+
+        <section class="form-section">
+          <div class="sect-head">
+            <h2>Booking options</h2>
+            <p>Purpose, duration and payment.</p>
           </div>
-          <div class="f full">
-            <label for="bookCategory">Room</label>
-            <select id="bookCategory"></select>
-          </div>
-          <div class="f">
-            <label for="bookPeople">People</label>
-            <input type="number" id="bookPeople" min="1" value="1" inputmode="numeric">
-            <p class="hint-left" id="peopleHint"></p>
-          </div>
-          <div class="f full" id="guestsField" hidden>
-            <label for="bookGuests">Guest names</label>
-            <textarea id="bookGuests" rows="3" placeholder="One name per line"></textarea>
-            <p class="hint-left" id="guestsHint">Each name is saved as "Room : name" in one cell.</p>
-          </div>
-          <div class="f full">
-            <label>Time in</label>
-            <div class="row3">
-              <select id="bookHour" aria-label="Hour"></select>
-              <select id="bookMin" aria-label="Minute"></select>
-              <select id="bookAmpm" aria-label="AM or PM">
-                <option>AM</option>
-                <option>PM</option>
-              </select>
+          <div class="fields">
+            <div class="f full">
+              <label>Purpose</label>
+              <div class="seg full">
+                <button type="button" data-purpose="Work" aria-pressed="true">Work</button>
+                <button type="button" data-purpose="School" aria-pressed="false">School</button>
+              </div>
+              <div id="schoolWrap" hidden>
+                <label for="bookSchool">School name</label>
+                <input id="bookSchool">
+              </div>
+            </div>
+            <div class="f full">
+              <label>Billing</label>
+              <div class="seg full" id="modeSeg">
+                <button type="button" data-mode="Hour" aria-pressed="true">Per Hour</button>
+                <button type="button" data-mode="Open" aria-pressed="false">Open time</button>
+              </div>
+              <p class="hint-left" id="modeHint">Per Hour uses the room's 1, 3, 6 and 10-hour packages.</p>
+            </div>
+            <div class="f full" id="hoursField">
+              <label for="bookHours">Hours</label>
+              <select id="bookHours"></select>
+            </div>
+            <div class="f full" id="planField">
+              <label>Payment option</label>
+              <div class="seg full">
+                <button type="button" data-plan="Full" aria-pressed="true">Full payment</button>
+                <button type="button" data-plan="Down" aria-pressed="false">50% downpayment</button>
+              </div>
             </div>
           </div>
-          <div class="f full">
-            <label>Purpose</label>
-            <div class="seg full">
-              <button type="button" data-purpose="Work" aria-pressed="true">Work</button>
-              <button type="button" data-purpose="School" aria-pressed="false">School</button>
-            </div>
-            <div id="schoolWrap" hidden>
-              <label for="bookSchool">School name</label>
-              <input id="bookSchool">
-            </div>
-          </div>
-          <div class="f full">
-            <label>Billing</label>
-            <div class="seg full" id="modeSeg">
-              <button type="button" data-mode="Hour" aria-pressed="true">Per Hour</button>
-              <button type="button" data-mode="Open" aria-pressed="false">Open time</button>
-            </div>
-            <p class="hint-left" id="modeHint">Per Hour uses the room's 1, 3, 6 and 10-hour packages.</p>
-          </div>
-          <div class="f full" id="planField">
-            <label>Payment option</label>
-            <div class="seg full">
-              <button type="button" data-plan="Full" aria-pressed="true">Full payment</button>
-              <button type="button" data-plan="Down" aria-pressed="false">50% downpayment</button>
-            </div>
-          </div>
-        </div>
+        </section>
+
         <button type="button" id="next1" class="dark">Continue</button>
         <p id="msg1" class="msg err" role="alert"></p>
       </div>
 
       <div id="step2" hidden>
         <div class="title">Billing summary</div>
-        <p class="subtitle">Check the details before continuing.</p>
+        <p class="subtitle">Review the visit and the amount before continuing.</p>
         <table id="summary"></table>
         <button type="button" id="next2" class="dark">Continue</button>
         <button type="button" id="back2" class="ghost">Back</button>
