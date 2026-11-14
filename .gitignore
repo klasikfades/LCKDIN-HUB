@@ -1,0 +1,12 @@
+# Vercel local state
+.vercel
+
+# Local test servers and scratch files
+node_modules/
+*.log
+tmp/
+.DS_Store
+Thumbs.db
+
+# Apps Script local credential file (never commit)
+.clasprc.json

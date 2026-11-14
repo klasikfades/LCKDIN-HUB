@@ -1,11 +1,13 @@
 // Must be the URL of the CURRENT deployment (Deploy > Manage deployments > New version)
 const API_URL = 'https://script.google.com/macros/s/AKfycbzlzbiuTATPOKUXBTQubIVFvLIgiHbWeUeZXTaUEgXV8NgiZb1JxZKf0HACJ4--dHHomA/exec';
 const TZ = 'Asia/Manila';
+const WEB_VERSION = '2026-11-14.2';   // shown in the browser console for support
 const FETCH_MS = 30 * 1000;   // give up on a stalled request instead of waiting forever
 const $ = id => document.getElementById(id);
 
 let STAFF = [];   // [{ name, onDuty, since }]
 let loading = false;
+let loggedVersion = false;
 
 function esc(s) {
   return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -58,6 +60,10 @@ async function loadStatus() {
   loading = true;
   try {
     const r = await post({ action: 'staffStatus' });
+    if (!loggedVersion) {
+      loggedVersion = true;
+      console.info('LCKDIN web ' + WEB_VERSION + ' · server ' + (r.version || 'unknown'));
+    }
     STAFF = r.staff;
     renderStatus();
   } catch (e) {

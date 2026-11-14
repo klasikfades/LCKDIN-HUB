@@ -22,18 +22,30 @@ Booking, NFC tap in/out, staff clock in/out, and admin dashboard for LCKDIN Stud
 ## Project structure
 
 ```text
-HTML/
-├── index.html            Booking, tap in/out, and admin dashboard
-├── style.css             Styles for index.html
-├── app.js                Logic for index.html
-├── staff.html            Staff clock in/out page
-├── staff.css             Styles for staff.html
-├── staff.js              Logic for staff.html
-├── logo-mark.png.jpg
-├── logo-wordmark.png.jpg
-├── gcash-qr.png.jpg
+LCKDIN-HUB/
+├── HTML/                     deployed to Vercel (Root Directory)
+│   ├── index.html            Booking, tap in/out, and admin dashboard
+│   ├── style.css             Styles for index.html
+│   ├── app.js                Logic for index.html
+│   ├── staff.html            Staff clock in/out page
+│   ├── staff.css             Styles for staff.html
+│   ├── staff.js              Logic for staff.html
+│   ├── vercel.json           Security headers and caching
+│   ├── logo-mark-256.webp
+│   ├── logo-wordmark-512.jpg
+│   └── gcash-qr-480.png
+├── backend/                  Apps Script source (the live backend)
+├── docs/
+│   ├── ARCHITECTURE.md       How the parts fit, trust boundaries, versioning
+│   └── RUNBOOK.md            Deploy, verify, roll back, fix
+├── assets-src/               original large images, not deployed
 └── README.md
 ```
+
+Short version: **HTML** is what visitors download, **backend** is what runs in Apps
+Script, **docs** is what saves time later. When something is confusing, read
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md); when something is broken,
+[docs/RUNBOOK.md](docs/RUNBOOK.md) is the checklist.
 
 
 ---
@@ -48,9 +60,11 @@ HTML/
 | `staff.html` | Layout for the staff clock in/out page. | You want to change the staff page text or layout. |
 | `staff.css` | Styles for `staff.html`. | You want to change the staff page look. |
 | `staff.js` | Logic for `staff.html`: staff list, clock in/out, one-person-on-duty rule. | You want to change how clocking in or out works. |
-| `logo-mark.png.jpg` | Round logo badge. | You have a new logo. Use a transparent background. |
-| `logo-wordmark.png.jpg` | "LCKDIN STUDY HUB" wordmark. | You have a new wordmark. |
-| `gcash-qr.png.jpg` | GCash QR code on the payment step. | Your QR changes. Keep it square, at least 400 px. |
+| `logo-mark-256.webp` | Round logo badge and browser tab icon. | You have a new logo. Keep it square. |
+| `logo-wordmark-512.jpg` | "LCKDIN STUDY HUB" wordmark. | You have a new wordmark. |
+| `gcash-qr-480.png` | GCash QR code on the payment step. | Your QR changes. Keep it square, at least 400 px. |
+| `vercel.json` | Security headers and caching rules. | Rarely. Change only if the RUNBOOK says so. |
+| `backend/` | Apps Script source. | You are changing backend behaviour. See `backend/README.md`. |
 | `README.md` | This file. | Keep it current after every change. |
 
 ---
@@ -298,8 +312,33 @@ If something seems wrong, follow the path in order:
 ## Back end (Apps Script)
 
 Split into six files: **Config**, **Api**, **Visits**, **Sheets**, **Staff**, and **Dashboard**.
+The exact same files are stored in `backend/` so they are versioned and recoverable. See
+`backend/README.md` for the push and deploy commands, and `docs/RUNBOOK.md` for the
+post-deploy check.
 
 Run manually from the editor when needed: `setAdminPin`, `setDefaultStaffPins`, `hideStaffPins`, `buildShiftSummary`, `buildPassSales`, `backfillPersonnel`, `protectAllDayTabs`.
+
+### Version check
+
+Both the page and the server report a version. Open the site, press F12, and read the
+first console line:
+
+```text
+LCKDIN web 2026-11-14.2 · server v108
+```
+
+`server unknown` means the live Apps Script is older than the code in `backend/` — deploy
+a new version. When editing CSS, JS, or images, bump the `?v=` number in the HTML that
+loads them so browsers fetch the new file.
+
+### Security notes
+
+- The `HTML` folder is public. Never put a PIN, token, or key there.
+- The browser's form checks are cosmetic; the Apps Script re-validates every booking.
+- PIN guessing is throttled (10 admin / 6 staff tries per 10 minutes).
+- The Google Sheet is the database: sharing it means sharing every PIN and row.
+- Security headers and the Content Security Policy live in `HTML/vercel.json`.
+
 
 ---
 

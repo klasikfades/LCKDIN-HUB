@@ -1,6 +1,7 @@
 // ---- Connection ----
 // Must be the URL of the CURRENT deployment (Deploy > Manage deployments > New version)
 const API_URL = 'https://script.google.com/macros/s/AKfycbzlzbiuTATPOKUXBTQubIVFvLIgiHbWeUeZXTaUEgXV8NgiZb1JxZKf0HACJ4--dHHomA/exec';
+const WEB_VERSION = '2026-11-14.2';   // shown in the browser console for support
 const TZ = 'Asia/Manila';
 const REFRESH_MS = 5 * 60 * 1000;   // reload the numbers every 5 minutes
 const FETCH_MS = 30 * 1000;         // give up on a stalled request instead of waiting forever
@@ -329,6 +330,7 @@ async function showBooking() {
     const res = await fetchWithTimeout(API_URL);
     const r = await parseReply(res);
     if (!r.ok) throw new Error(r.error || 'Could not load rooms');
+    console.info('LCKDIN web ' + WEB_VERSION + ' · server ' + (r.version || 'unknown'));
     r.categories.forEach(c => {
       TIERS[c.name] = tiersOf(c);
       FLAT[c.name] = !!c.flat;
