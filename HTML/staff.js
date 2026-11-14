@@ -54,7 +54,7 @@ async function post(body) {
 
 // Loads who is on duty and refreshes the name list
 async function loadStatus() {
-  if (loading || document.hidden) return;   // no overlapping or background polls
+  if (loading) return;   // no overlapping requests
   loading = true;
   try {
     const r = await post({ action: 'staffStatus' });
@@ -155,5 +155,5 @@ $('pin').onkeydown = e => {
 };
 
 loadStatus();
-setInterval(loadStatus, 60 * 1000);
+setInterval(() => { if (!document.hidden) loadStatus(); }, 60 * 1000);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) loadStatus(); });
