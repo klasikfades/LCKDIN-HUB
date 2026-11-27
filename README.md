@@ -173,7 +173,12 @@ The "On duty now" list refreshes every minute.
 
 - **Day tabs** (for example `Oct 31, 2026`) hold every visit for that date. This is where staff edit Time Out, Status, Paid, Payment method, Downpayment, and Balance.
 - **Visit Log** is a read-only copy of closed visits, sorted newest first. The dashboard and summaries read from it.
-- The log refreshes when a visit changes, and every 5 minutes as a backup.
+- The log refreshes when a visit changes, and on a 5-minute timer as a backup:
+  - every 5 minutes: yesterday, today and tomorrow, plus any day an edit could not sync while the sheet was busy
+  - once an hour: the last 31 days
+  - once a day after 3 AM: every day tab
+- Running `syncAllDays` by hand from the editor always refreshes every day tab.
+- Edits, taps and the timer take turns writing the log, so two updates never overwrite each other.
 - **Visit Lookup** and **Shift Summary** show totals for a chosen date, and Shift Summary shows totals per staff member.
 - **Pass Sales** shows passes sold and active, updated from the Passes tab.
 

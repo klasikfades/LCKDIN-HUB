@@ -177,8 +177,9 @@ function backfillPersonnel(onlySheet) {
   if (!shifts.length) return;
 
   const now = new Date();
-  const sheets = onlySheet
-    ? [onlySheet]
+  // One tab, a list of tabs, or (no argument) every day tab
+  const sheets = Array.isArray(onlySheet) ? onlySheet
+    : onlySheet ? [onlySheet]
     : ss().getSheets().filter(sh => isDayTab(sh.getName()));
 
   sheets.forEach(sh => {
