@@ -4,7 +4,7 @@
 
 const SPREADSHEET_ID = '1A4blo-ANPeep8Ec2qPMK6P1qPBA9ZPZafAP3AJ0fSD4';
 const SITE_URL = 'https://lckdin-hub.vercel.app/';
-const APP_VERSION = 'v109';   // returned with every reply; bump on each deployment
+const APP_VERSION = 'v111';   // returned with every reply; bump on each deployment
 const TZ = 'Asia/Manila';
 const MIN_HOURS = 1;
 const PASS_DAILY_CAP_HOURS = 9;   // single place to change the daily pass limit

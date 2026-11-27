@@ -56,13 +56,26 @@ function doPost(e) {
   }
 
   // Sync runs after the lock is released. A sync error must not fail a saved booking.
-  if (SYNC_AFTER.indexOf(b.action) >= 0) {
-    try {
-      const sh = b.action === 'visit' ? dayTab(b.date) : dayTab(todayStr());
-      syncDayToLog(sh);
-      backfillPersonnel(sh);
-    } catch (syncErr) {
-      console.error('Visit Log sync failed: ' + syncErr.message);
+  // It takes the lock briefly so two log rewrites never overlap; if the sheet is busy,
+  // the day is left for the 5-minute timer instead of keeping the guest waiting.
+  // A tap that only showed the form or the checked-in screen wrote nothing, so it skips this.
+  const readOnlyTap = b.action === 'tap' && result && (result.action === 'form' || result.action === 'ask');
+  if (SYNC_AFTER.indexOf(b.action) >= 0 && !readOnlyTap) {
+    const day = b.action === 'visit' ? b.date : todayStr();
+    const syncLock = LockService.getScriptLock();
+    if (syncLock.tryLock(5000)) {
+      try {
+        const sh = dayTab(day);
+        syncDayToLog(sh);
+        backfillPersonnel(sh);
+      } catch (syncErr) {
+        console.error('Visit Log sync failed: ' + syncErr.message);
+        markDayPending(day);
+      } finally {
+        syncLock.releaseLock();
+      }
+    } else {
+      markDayPending(day);
     }
   }
   return reply({ ok: true, ...result });

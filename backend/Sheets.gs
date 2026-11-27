@@ -667,16 +667,37 @@ function sortLogRows(rows) {
 // Name and status are locked on closed rows, so the record can't drift.
 // The whole log is kept sorted newest first.
 function syncDayToLog(sh) {
+  syncDaysToLog([sh]);
+}
+
+// The day ('yyyy-MM-dd') a Visit Log key belongs to: keys are "day|..." or "LIVE|day|..."
+function dayOfKey(key) {
+  const parts = String(key).split('|');
+  return parts[0] === 'LIVE' ? parts[1] : parts[0];
+}
+
+// Rebuilds the Visit Log rows of several day tabs with one read and one write of the log.
+// Rows of days not in the list are kept as they are.
+function syncDaysToLog(sheets) {
+  sheets = (sheets || []).filter(Boolean);
+  if (!sheets.length) return;
   const log = getLog();
-  const day = isoFromTabName(sh.getName());
+  const days = new Set(sheets.map(sh => isoFromTabName(sh.getName())));
   const last = log.getLastRow();
 
   let rows = [];
   if (last > 1) {
     rows = log.getRange(2, 1, last - 1, LOG_GUESTS_COL).getValues()
-      .filter(r => r[0] !== '' && !isKeyForDay(String(r[KEY_COL - 1]), day));
+      .filter(r => r[0] !== '' && !days.has(dayOfKey(r[KEY_COL - 1])));
   }
+  sheets.forEach(sh => { rows = rows.concat(logRowsForDay(sh)); });
+  writeLogRows(log, rows, last);
+}
 
+// Visit Log rows for one day tab
+function logRowsForDay(sh) {
+  const day = isoFromTabName(sh.getName());
+  const rows = [];
   const data = sh.getDataRange().getValues();
   for (let r = 2; r <= data.length; r++) {
     const src = data[r - 1];
@@ -691,7 +712,11 @@ function syncDayToLog(sh) {
       rows.push([...v, 'LIVE|' + base, ...meta]);
     }
   }
+  return rows;
+}
 
+// Writes the whole Visit Log body, newest first, and trims leftover rows
+function writeLogRows(log, rows, last) {
   rows = sortLogRows(rows);
 
   const n = rows.length;
@@ -771,25 +796,94 @@ function fixBalances() {
   syncAllDays();
 }
 
-// Rebuilds the Visit Log from every day tab, and fills any blank Personnel from the shift record.
-// Runs on a timer (every 5 minutes), so Visit Lookup, Shift Summary and bookings catch up
-// even if an On edit trigger missed a change.
-function syncAllDays() {
+// ---------- Timer sync (every 5 minutes) ----------
+// Keeps the Visit Log and blank Personnel in step with the day tabs, without holding the
+// lock for long, so taps and bookings are not kept waiting as the sheet grows.
+//   every run:            yesterday, today, tomorrow, plus any day an edit could not sync
+//   once an hour:         the last SYNC_HOURLY_DAYS days
+//   once a day after 3 AM: every day tab
+//   run by hand from the editor: every day tab (the timer passes an event, a manual run doesn't)
+// The function keeps the name syncAllDays so the existing timer trigger keeps working.
+const SYNC_HOURLY_DAYS = 31;
+const SYNC_DAILY_HOUR = 3;   // Manila time
+
+function dayTabsByDate() {
+  return ss().getSheets().filter(sh => isDayTab(sh.getName()));
+}
+
+// Day tabs for these dates that exist (missing dates are skipped, not created)
+function dayTabsFor(isoList) {
+  const s = ss();
+  const seen = new Set();
+  return isoList
+    .filter(iso => iso && !seen.has(iso) && seen.add(iso))
+    .map(iso => s.getSheetByName(tabNameFor(iso)))
+    .filter(Boolean);
+}
+
+// Remembers a day whose Visit Log rows could not be refreshed because the sheet was busy
+function markDayPending(iso) {
+  const props = PropertiesService.getScriptProperties();
+  const list = String(props.getProperty('pendingSyncDays') || '').split(',').filter(Boolean);
+  if (list.indexOf(iso) < 0) list.push(iso);
+  props.setProperty('pendingSyncDays', list.slice(-60).join(','));
+}
+
+function syncAllDays(e) {
+  const manual = !(e && e.triggerUid);
   const lock = LockService.getScriptLock();
   if (!lock.tryLock(10000)) return;   // skip this run if a write is already in progress
   try {
-    // First run after this update: make old rows use the new columns and balance rule
     const props = PropertiesService.getScriptProperties();
+    // First run after the layout update: make old rows use the new columns and balance rule
     if (props.getProperty('layoutVersion') !== '2') {
       rewriteBalances();
       upgradeDayTabs();
       props.setProperty('layoutVersion', '2');
     }
 
-    ss().getSheets()
-      .filter(sh => isDayTab(sh.getName()))
-      .forEach(sh => syncDayToLog(sh));
-    backfillPersonnel();
+    const now = Date.now();
+    const today = todayStr();
+    const hourNow = Number(Utilities.formatDate(new Date(), TZ, 'H'));
+    const lastHourly = Number(props.getProperty('lastHourlySync') || 0);
+    const lastDaily = String(props.getProperty('lastDailySync') || '');
+    const doDaily = manual || (lastDaily !== today && hourNow >= SYNC_DAILY_HOUR);
+    const doHourly = !doDaily && now - lastHourly >= 60 * 60000;
+
+    // Claim the days that edits or taps could not sync. Days marked while this run is
+    // going are kept for the next run.
+    const pending = String(props.getProperty('pendingSyncDays') || '').split(',').filter(Boolean);
+    props.deleteProperty('pendingSyncDays');
+
+    let sheets;
+    if (doDaily) {
+      sheets = dayTabsByDate();
+    } else if (doHourly) {
+      const from = addDaysStr(today, -SYNC_HOURLY_DAYS);
+      sheets = dayTabsByDate().filter(sh => isoFromTabName(sh.getName()) >= from);
+    } else {
+      sheets = dayTabsFor([addDaysStr(today, -1), today, addDaysStr(today, 1)]);
+    }
+    // Add the pending days, each tab only once (a tab read twice would duplicate log rows)
+    const names = new Set(sheets.map(sh => sh.getName()));
+    dayTabsFor(pending).forEach(sh => {
+      if (!names.has(sh.getName())) { names.add(sh.getName()); sheets.push(sh); }
+    });
+
+    try {
+      syncDaysToLog(sheets);
+      backfillPersonnel(sheets);
+    } catch (err) {
+      pending.forEach(markDayPending);   // try those days again next run
+      throw err;
+    }
+
+    if (doDaily) {
+      props.setProperty('lastDailySync', today);
+      props.setProperty('lastHourlySync', String(now));
+    } else if (doHourly) {
+      props.setProperty('lastHourlySync', String(now));
+    }
   } finally {
     lock.releaseLock();
   }
@@ -887,10 +981,20 @@ function syncPaymentEdit(sh, row, col) {
 
 // Runs from the installable "On edit" trigger: runs the edit checks, then refreshes the log for that day.
 // When a Time In or Time Out is typed by hand, it also fills blank Personnel for that day.
+// Google also calls a function named onEdit as a "simple trigger" with limited rights.
+// That copy does nothing, so each edit is handled once, by the installable trigger.
 function onEdit(e) {
+  if (e && e.authMode === ScriptApp.AuthMode.LIMITED) return;
   onEditCore(e);
   if (e && e.range && isDayTab(e.range.getSheet().getName())) {
     const sh = e.range.getSheet();
+    // Take the lock before rewriting the log, so it never overlaps the timer or a tap.
+    // If the sheet is busy, the timer refreshes this day on its next run.
+    const lock = LockService.getScriptLock();
+    if (!lock.tryLock(5000)) {
+      markDayPending(isoFromTabName(sh.getName()));
+      return;
+    }
     try {
       syncDayToLog(sh);
       if (e.range.getColumn() === C.timeIn || e.range.getColumn() === C.timeOut) {
@@ -898,6 +1002,9 @@ function onEdit(e) {
       }
     } catch (err) {
       console.error('Visit Log sync failed: ' + err.message);
+      markDayPending(isoFromTabName(sh.getName()));
+    } finally {
+      lock.releaseLock();
     }
   }
 }
