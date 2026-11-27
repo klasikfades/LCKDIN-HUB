@@ -134,13 +134,14 @@ No data is stored on the web pages. Refreshing a page only reloads what the Apps
 Each NFC card has a link with a token, for example `?t=ABC123`. Tapping the card opens the tap screen.
 
 **First tap (no open visit):**
-- A form asks for the guest's name, Work or School, and the duration.
+- A form asks for the guest's name, Work or School, and how long they are staying: **Open time** (the default) or **Set duration** (1 to 24 hours).
+- Open time leaves Time Out blank until check-out, and the bill is the actual time used. A set duration fills Time Out now; check-out still bills the actual time if they stay longer.
 - **Check in** creates a row on today's day tab with status **In** and the exact time of the tap.
 - The Personnel column is filled automatically only if exactly one staff member is on duty.
 
 **Tap while checked in:**
-- The screen shows the end time, the bill so far, and buttons to extend or check out.
-- Extending adds time to the end time and updates the bill.
+- The screen shows the end time (or **Open time**), the bill so far, and buttons to extend or check out.
+- Extending adds time to the end time and updates the bill. Open-time visits have no end time, so they show only **Check out**.
 
 **Check out:**
 - The row changes to status **Out** and the visit is copied into the Visit Log.

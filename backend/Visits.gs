@@ -233,23 +233,33 @@ function billedHours(minutes) {
 // Bill for one visit row. Used after check-in, extend and check-out.
 // Reads Time In, Time Out and the saved Total, so the figures match the day tab.
 function visitBill(sh, r, tag) {
-  const row = sh.getRange(r, 1, 1, LAST_COL).getValues()[0];
+  const row = sh.getRange(r, 1, 1, MULT_HELPER_COL).getValues()[0];
   const tIn = row[C.timeIn - 1];
   const tOut = row[C.timeOut - 1];
-  const minutes = (tIn instanceof Date && tOut instanceof Date)
-    ? Math.max(0, (tOut - tIn) / 60000) : 0;
-  const hours = billedHours(minutes);
   const isPass = String(row[C.payment - 1]).trim() === 'Pass';
+  // Open time: no Time Out until check-out, so show the bill so far, up to now
+  const open = tIn instanceof Date && !(tOut instanceof Date) && row[C.status - 1] === 'In';
+  const end = open ? new Date() : tOut;
+  const minutes = (tIn instanceof Date && end instanceof Date)
+    ? Math.max(0, (end - tIn) / 60000) : 0;
+  const hours = billedHours(minutes);
+  let total = r2(Number(row[C.total - 1]) || 0);
+  if (open) {
+    const room = String(row[ROOM_HELPER_COL - 1] || '').trim();
+    const mult = Number(row[MULT_HELPER_COL - 1]) || 1;
+    total = room ? priceFor(room, hours, mult) : 0;
+  }
   return {
     name: String(row[C.name - 1]),
     room: tag && tag.category ? tag.category : '',
     rate: Number(row[C.rate - 1]) || 0,
     timeIn: fmt(tIn),
-    timeOut: fmt(tOut),
+    timeOut: open ? '' : fmt(tOut),
     minutes: Math.round(minutes),
     hours: hours,
-    total: isPass ? 0 : r2(Number(row[C.total - 1]) || 0),
-    isPass: isPass
+    total: isPass ? 0 : total,
+    isPass: isPass,
+    open: open
   };
 }
 
@@ -378,11 +388,11 @@ function handleTap(token) {
     if (tag.isPass) {
       // No exceptRow: the current visit's elapsed time counts toward the used minutes
       const left = passMinutesLeftToday(tag, token);
-      return { action: 'ask', name: tag.name, endTime: fmt(end), isPass: true,
+      return { action: 'ask', name: tag.name, endTime: fmt(end), isPass: true, open: bill.open,
                remainingMin: left, canExtend: false, noExtend: left === 0, bill: bill };
     }
-    return { action: 'ask', name: tag.name, endTime: fmt(end), isPass: false,
-             remainingMin: null, canExtend: true, noExtend: false, bill: bill };
+    return { action: 'ask', name: tag.name, endTime: fmt(end), isPass: false, open: bill.open,
+             remainingMin: null, canExtend: !bill.open, noExtend: false, bill: bill };
   }
 
   if (open) {
@@ -429,17 +439,20 @@ function handleCheckin(b) {
   if (b.purpose === 'School' && !school) throw new Error('Type the name of your school');
   const purpose = b.purpose === 'School' ? 'School: ' + school : 'Work';
 
+  // Open time (the default): no end time; the bill is the actual time used at check-out.
+  // A set duration fills Time Out now; check-out still bills the actual time.
+  const isOpen = String(b.duration || '').toLowerCase() === 'open';
   const duration = Number(b.duration);
-  if (!(duration >= 1 && duration <= 24)) throw new Error('Choose a duration');
+  if (!isOpen && !(duration >= 1 && duration <= 24)) throw new Error('Choose a duration');
 
-  let minutes = duration * 60;
+  let minutes = isOpen ? 0 : duration * 60;
   let paid, payment;
   if (tag.isPass) {
     passCheckValid(tag);
     const left = passMinutesLeftToday(tag, b.token);
     if (left !== null) {
       if (left <= 0) throw new Error('You have used your ' + PASS_DAILY_CAP_HOURS + ' hours for today. Please come back tomorrow.');
-      minutes = Math.min(minutes, left);   // stay cannot run past today's limit
+      if (!isOpen) minutes = Math.min(minutes, left);   // a set stay cannot run past today's limit
     }
     paid = 'Paid'; payment = 'Pass';
   } else {
@@ -450,7 +463,7 @@ function handleCheckin(b) {
 
   const timeIn = new Date();
   timeIn.setSeconds(0, 0);
-  const timeOut = new Date(timeIn.getTime() + minutes * 60000);
+  const timeOut = isOpen ? '' : new Date(timeIn.getTime() + minutes * 60000);
   const today = Utilities.formatDate(timeIn, TZ, 'yyyy-MM-dd');
   const rate = tag.isPass ? 0 : getRate(tag.category);
 
@@ -466,8 +479,8 @@ function handleCheckin(b) {
   setVisitHelpers(sh, r, tag.category, 1);
   recalcTotal(sh, r);
 
-  return { action: 'in', time: fmt(timeIn), name: roomName, endTime: fmt(timeOut),
-           bill: visitBill(sh, r, tag) };
+  return { action: 'in', time: fmt(timeIn), name: roomName, endTime: isOpen ? '' : fmt(timeOut),
+           open: isOpen, bill: visitBill(sh, r, tag) };
 }
 
 function handleExtend(b) {
@@ -482,6 +495,7 @@ function handleExtend(b) {
 
   const sh = open.sh, r = open.r;
   const cur = sh.getRange(r, C.timeOut).getValue();
+  if (!(cur instanceof Date)) throw new Error('This visit is on open time, so there is nothing to extend. Check out when you leave.');
   const base = cur instanceof Date ? Math.max(cur.getTime(), Date.now()) : Date.now();
   const newEnd = new Date(base + hours * 3600000);
 

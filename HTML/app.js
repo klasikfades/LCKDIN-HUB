@@ -1,7 +1,7 @@
 // ---- Connection ----
 // Must be the URL of the CURRENT deployment (Deploy > Manage deployments > New version)
 const API_URL = 'https://script.google.com/macros/s/AKfycbzlzbiuTATPOKUXBTQubIVFvLIgiHbWeUeZXTaUEgXV8NgiZb1JxZKf0HACJ4--dHHomA/exec';
-const WEB_VERSION = '2026-11-14.2';   // shown in the browser console for support
+const WEB_VERSION = '2026-11-27.1';   // shown in the browser console for support
 const TZ = 'Asia/Manila';
 const REFRESH_MS = 5 * 60 * 1000;   // reload the numbers every 5 minutes
 const FETCH_MS = 30 * 1000;         // give up on a stalled request instead of waiting forever
@@ -573,8 +573,8 @@ function billHtml(b, label) {
   const lines = [
     ['Room', b.room || '-'],
     ['Time in', fmt12str(b.timeIn)],
-    ['Time out', fmt12str(b.timeOut)],
-    ['Time used', fmtMin(b.minutes)],
+    ['Time out', b.open ? 'When you check out' : fmt12str(b.timeOut)],
+    [b.open ? 'Time so far' : 'Time used', fmtMin(b.minutes)],
     ['Billed', b.hours + (b.hours === 1 ? ' hr' : ' hrs')]
   ];
 
@@ -593,8 +593,10 @@ function renderTap(r, token) {
   const body = $('tapBody');
   const name = esc(r.name || '');
 
-  // First tap: walk-in form (guest name, Work or School, then duration)
+  // First tap: walk-in form (guest name, Work or School, then Open time or a set duration)
   if (r.action === 'form') {
+    // Open time needs server v109 or later; an older server only takes hours
+    const openOk = Number(String(r.version || '').replace(/\D/g, '')) >= 109;
     const max = r.maxHours || 24;
     const opts = [...Array(max)].map((_, i) =>
       `<option value="${i + 1}">${i + 1} ${i === 0 ? 'hr' : 'hrs'}</option>`).join('');
@@ -615,8 +617,16 @@ function renderTap(r, token) {
         <label for="tSchoolName">School name</label>
         <input id="tSchoolName">
       </div>
-      <label for="tDur">Duration</label>
-      <select id="tDur">${opts}</select>
+      <label>How long are you staying?</label>
+      <div class="seg full" id="tModeSeg"${openOk ? '' : ' hidden'}>
+        <button type="button" id="tOpen" aria-pressed="true">Open time</button>
+        <button type="button" id="tSet" aria-pressed="false">Set duration</button>
+      </div>
+      <p class="hint-left" id="tModeHint"></p>
+      <div id="tDurWrap">
+        <label for="tDur">Duration</label>
+        <select id="tDur">${opts}</select>
+      </div>
       ${passNote}
       <button type="button" id="tStart" class="dark">Check in</button>
       <p id="tMsg" class="msg err" role="alert"></p>`;
@@ -631,6 +641,21 @@ function renderTap(r, token) {
     $('tWork').onclick = () => setPurpose('Work');
     $('tSchool').onclick = () => setPurpose('School');
 
+    // Open time is the default: stay as long as you like, billed for the time used
+    let stayOpen = openOk;
+    const setStay = open => {
+      stayOpen = open;
+      $('tOpen').setAttribute('aria-pressed', String(open));
+      $('tSet').setAttribute('aria-pressed', String(!open));
+      $('tDurWrap').hidden = open;
+      $('tModeHint').textContent = open
+        ? 'Stay as long as you like. You pay for the time you use when you check out.'
+        : 'Pick how long you plan to stay. If you stay longer, the extra time is added when you check out.';
+    };
+    $('tOpen').onclick = () => setStay(true);
+    $('tSet').onclick = () => setStay(false);
+    if (openOk) setStay(true); else $('tModeHint').hidden = true;
+
     $('tStart').onclick = () => {
       const guest = $('tName').value.trim();
       if (!guest) {
@@ -642,7 +667,8 @@ function renderTap(r, token) {
         $('tMsg').textContent = 'Type the name of your school';
         return;
       }
-      tapAction({ action: 'checkin', token, name: guest, purpose, school, duration: $('tDur').value });
+      tapAction({ action: 'checkin', token, name: guest, purpose, school,
+        duration: stayOpen ? 'Open' : $('tDur').value });
     };
     return;
   }
@@ -652,9 +678,11 @@ function renderTap(r, token) {
   if (r.action === 'in' || r.action === 'ask') {
     const isNew = r.action === 'in';
     const canExtend = r.action === 'ask' && r.canExtend && !r.noExtend;
-    const billLabel = isNew ? 'Estimated total' : (r.extended ? 'Updated total' : 'Current total');
+    const isOpen = !!(r.open || (r.bill && r.bill.open));
+    const billLabel = isOpen ? 'Bill so far' : isNew ? 'Estimated total' : (r.extended ? 'Updated total' : 'Current total');
 
     const when = r.time ? 'Checked in at ' + esc(fmt12str(r.time)) + '. ' : '';
+    const until = isOpen ? 'Open time' : 'Until ' + esc(fmt12str(r.endTime));
     const added = r.extended
       ? `<p class="hint">Added ${esc(r.added)} ${Number(r.added) === 1 ? 'hr' : 'hrs'}. The total below is updated.</p>` : '';
     const passLeft = r.isPass && r.remainingMin !== null
@@ -670,11 +698,12 @@ function renderTap(r, token) {
     body.innerHTML = `
       <div class="title">${isNew ? 'Checked in' : 'Currently checked in'}</div>
       <p class="subtitle">${name}</p>
-      <div class="status">${when}Until ${esc(fmt12str(r.endTime))}</div>
+      <div class="status">${when}${until}</div>
       ${added}
       ${passLeft}
       ${usedUp}
       ${billHtml(r.bill, billLabel)}
+      ${isOpen && !r.isPass ? '<p class="hint">Open time: the bill grows with the time you stay and is final when you check out.</p>' : ''}
       ${extendBlock}
       ${isNew
         ? '<p class="hint">Tap your card again when you leave to check out.</p>'
